@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+src-tauri/target/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.opencode/
+*.swp
+*.swo
+*~
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Tauri dev
+src-tauri/gen/
+
+# Logs
+*.log
+
+# Database files (user-specific, encrypted)
+*.db
+*.db-shm
+*.db-wal

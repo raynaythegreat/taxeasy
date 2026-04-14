@@ -1,0 +1,57 @@
+[package]
+name = "taxeasy"
+version = "0.1.0"
+description = "IRS-ready bookkeeping desktop app"
+authors = ["you"]
+edition = "2021"
+
+[lib]
+name = "taxeasy_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri          = { version = "2", features = [] }
+tauri-plugin-opener   = "2"
+tauri-plugin-dialog   = "2"
+tauri-plugin-fs       = "2"
+tauri-plugin-shell    = "2"
+
+# Serialization
+serde          = { version = "1", features = ["derive"] }
+serde_json     = "1"
+
+# Database
+rusqlite       = { version = "0.31", features = ["bundled-sqlcipher", "backup", "hooks"] }
+
+# Money arithmetic — NEVER use f64 for currency
+rust_decimal   = { version = "1", features = ["serde-with-str"] }
+
+# Dates
+chrono         = { version = "0.4", features = ["serde"] }
+
+# IDs
+uuid           = { version = "1", features = ["v4", "serde"] }
+
+# Async runtime + HTTP (for Ollama)
+tokio          = { version = "1", features = ["full"] }
+reqwest        = { version = "0.12", features = ["json"] }
+
+# Encryption (AES-256-GCM for EIN field, key derivation)
+aes-gcm        = "0.10"
+argon2         = "0.5"
+rand           = "0.8"
+
+# Error handling
+thiserror      = "1"
+anyhow         = "1"
+
+# Logging
+log            = "0.4"
+env_logger     = "0.11"
+
+[dev-dependencies]
+tempfile       = "3"
+

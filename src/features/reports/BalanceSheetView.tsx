@@ -1,0 +1,122 @@
+import { useQuery } from "@tanstack/react-query";
+import { getBalanceSheet, type BalanceSheetLineItem } from "../../lib/tauri";
+import { formatCurrency, formatDate } from "../../lib/utils";
+
+interface BalanceSheetViewProps {
+  asOfDate: string;
+  clientName?: string;
+}
+
+function LineRow({ item }: { item: BalanceSheetLineItem }) {
+  return (
+    <div className="flex justify-between py-0.5 text-sm">
+      <span className="text-gray-700 pl-4">{item.name}</span>
+      <span className="text-gray-900 tabular-nums">{formatCurrency(item.balance)}</span>
+    </div>
+  );
+}
+
+function SectionDivider() {
+  return <div className="border-t border-gray-300 my-1" />;
+}
+
+function SubtotalRow({ label, amount }: { label: string; amount: string }) {
+  return (
+    <div className="flex justify-between py-1 text-sm font-semibold">
+      <span className="text-gray-900">{label}</span>
+      <span className="tabular-nums">{formatCurrency(amount)}</span>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3 p-8">
+      {[...Array(10)].map((_, i) => (
+        <div key={i} className={`h-4 bg-gray-200 rounded ${i % 4 === 0 ? "w-1/3" : "w-full"}`} />
+      ))}
+    </div>
+  );
+}
+
+export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["balance_sheet", asOfDate],
+    queryFn: () => getBalanceSheet(asOfDate),
+  });
+
+  if (isLoading) return <LoadingSkeleton />;
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-600 text-sm">
+        Failed to load Balance Sheet. Please try again.
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="max-w-2xl mx-auto p-8 print:p-6 print:max-w-none bg-white print:shadow-none print:border-none">
+      {/* Report header */}
+      <div className="text-center mb-6">
+        {clientName && (
+          <p className="text-base font-semibold text-gray-900">{clientName}</p>
+        )}
+        <h2 className="text-xl font-bold text-gray-900 mt-1">Balance Sheet</h2>
+        <p className="text-sm text-gray-500 mt-1">As of {formatDate(asOfDate)}</p>
+      </div>
+
+      {/* ASSETS */}
+      <section className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Assets</p>
+        {data.asset_lines.length > 0 ? (
+          data.asset_lines.map((item) => (
+            <LineRow key={item.account_id} item={item} />
+          ))
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">No asset accounts</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label="Total Assets" amount={data.total_assets} />
+      </section>
+
+      {/* LIABILITIES */}
+      <section className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Liabilities</p>
+        {data.liability_lines.length > 0 ? (
+          data.liability_lines.map((item) => (
+            <LineRow key={item.account_id} item={item} />
+          ))
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">No liability accounts</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label="Total Liabilities" amount={data.total_liabilities} />
+      </section>
+
+      {/* EQUITY */}
+      <section className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Equity</p>
+        {data.equity_lines.length > 0 ? (
+          data.equity_lines.map((item) => (
+            <LineRow key={item.account_id} item={item} />
+          ))
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">No equity accounts</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label="Total Equity" amount={data.total_equity} />
+      </section>
+
+      {/* Total Liabilities & Equity */}
+      <div className="border-t-2 border-gray-800 mt-4 pt-2">
+        <div className="flex justify-between py-1 font-bold text-base">
+          <span className="text-gray-900">Total Liabilities &amp; Equity</span>
+          <span className="tabular-nums">{formatCurrency(data.total_liabilities_and_equity)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
