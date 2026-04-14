@@ -2,6 +2,7 @@ import { ArrowLeft, Pencil, Trash2, ChevronDown } from "lucide-react";
 import type { InvoiceDetail } from "../../lib/invoice-api";
 import { centsToDollars } from "../../lib/invoice-api";
 import { cn, formatDate } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface InvoiceDetailPanelProps {
   invoice: InvoiceDetail;
@@ -31,6 +32,14 @@ const TYPE_LABEL: Record<string, string> = {
   estimate: "Estimate",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  paid: "Paid",
+  overdue: "Overdue",
+  cancelled: "Cancelled",
+};
+
 const STATUS_FLOW: Record<string, string[]> = {
   draft: ["sent", "cancelled"],
   sent: ["paid", "overdue", "cancelled"],
@@ -46,6 +55,7 @@ export function InvoiceDetailPanel({
   onStatusChange,
   onBack,
 }: InvoiceDetailPanelProps) {
+  const { t } = useI18n();
   const nextStatuses = STATUS_FLOW[invoice.status] ?? [];
 
   return (
@@ -68,15 +78,15 @@ export function InvoiceDetailPanel({
               TYPE_BADGE[invoice.invoice_type]
             )}
           >
-            {TYPE_LABEL[invoice.invoice_type]}
+            {t(TYPE_LABEL[invoice.invoice_type])}
           </span>
           <span
             className={cn(
-              "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize shrink-0",
+              "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0",
               STATUS_BADGE[invoice.status]
             )}
           >
-            {invoice.status}
+            {t(STATUS_LABEL[invoice.status] ?? invoice.status)}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -86,7 +96,7 @@ export function InvoiceDetailPanel({
             className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50"
           >
             <Pencil className="w-3.5 h-3.5" />
-            Edit
+            {t("Edit")}
           </button>
           <button
             type="button"
@@ -94,7 +104,7 @@ export function InvoiceDetailPanel({
             className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-red-300 bg-white text-red-600 rounded hover:bg-red-50"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Delete
+            {t("Delete")}
           </button>
           {nextStatuses.length > 0 && (
             <div className="relative group">
@@ -102,7 +112,7 @@ export function InvoiceDetailPanel({
                 type="button"
                 className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                Status
+                {t("Status")}
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[120px]">
@@ -111,9 +121,9 @@ export function InvoiceDetailPanel({
                     key={s}
                     type="button"
                     onClick={() => onStatusChange(s)}
-                    className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 capitalize"
+                    className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Mark as {s}
+                    {t("Mark as {status}", { status: t(STATUS_LABEL[s] ?? s) })}
                   </button>
                 ))}
               </div>
@@ -126,7 +136,7 @@ export function InvoiceDetailPanel({
         <div className="grid grid-cols-2 gap-6">
           <div>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Client
+              {t("Client")}
             </h3>
             <p className="text-sm text-gray-900 font-medium">{invoice.client_name}</p>
             {invoice.client_email && (
@@ -140,16 +150,16 @@ export function InvoiceDetailPanel({
           </div>
           <div>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Dates
+              {t("Dates")}
             </h3>
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Issued</span>
+                <span className="text-gray-500">{t("Issued")}</span>
                 <span className="text-gray-900">{formatDate(invoice.issue_date)}</span>
               </div>
               {invoice.due_date && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Due</span>
+                  <span className="text-gray-500">{t("Due")}</span>
                   <span
                     className={cn(
                       invoice.status === "overdue" && "text-red-600 font-medium"
@@ -165,30 +175,30 @@ export function InvoiceDetailPanel({
 
         {invoice.transaction_id && (
           <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm">
-            <span className="text-gray-500">Linked Transaction: </span>
+            <span className="text-gray-500">{t("Linked Transaction")}: </span>
             <span className="text-gray-700 font-mono">{invoice.transaction_id}</span>
           </div>
         )}
 
         <div>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-            Line Items
+            {t("Line Items")}
           </h3>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Description
+                    {t("Description")}
                   </th>
                   <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">
-                    Qty
+                    {t("Qty")}
                   </th>
                   <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">
-                    Price
+                    {t("Price")}
                   </th>
                   <th className="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">
-                    Total
+                    {t("Total")}
                   </th>
                 </tr>
               </thead>
@@ -217,19 +227,19 @@ export function InvoiceDetailPanel({
         <div className="flex justify-end">
           <div className="w-64 space-y-1.5">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Subtotal</span>
+              <span className="text-gray-500">{t("Subtotal")}</span>
               <span className="text-gray-700 tabular-nums">
                 ${centsToDollars(invoice.subtotal_cents)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Tax ({invoice.tax_rate}%)</span>
+              <span className="text-gray-500">{t("Tax")} ({invoice.tax_rate}%)</span>
               <span className="text-gray-700 tabular-nums">
                 ${centsToDollars(invoice.tax_cents)}
               </span>
             </div>
             <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-1.5">
-              <span className="text-gray-900">Total</span>
+              <span className="text-gray-900">{t("Total")}</span>
               <span className="text-gray-900 tabular-nums">
                 ${centsToDollars(invoice.total_cents)}
               </span>
@@ -240,7 +250,7 @@ export function InvoiceDetailPanel({
         {invoice.notes && (
           <div>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Notes
+              {t("Notes")}
             </h3>
             <p className="text-sm text-gray-600 whitespace-pre-line bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
               {invoice.notes}

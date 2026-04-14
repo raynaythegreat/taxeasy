@@ -1,27 +1,26 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, FileText, Receipt, Calculator, Pencil, Trash2, ChevronRight } from "lucide-react";
-import { listInvoices, getInvoice, deleteInvoice, updateInvoiceStatus, centsToDollars } from "../../lib/invoice-api";
+import {
+  Plus,
+  Receipt,
+  Calculator,
+  Pencil,
+  Trash2,
+  ChevronRight,
+  FilePlus2,
+} from "lucide-react";
+import {
+  listInvoices,
+  getInvoice,
+  deleteInvoice,
+  updateInvoiceStatus,
+  centsToDollars,
+} from "../../lib/invoice-api";
 import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
 import { cn, formatDate } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
 import { InvoiceForm } from "./InvoiceForm";
 import { InvoiceDetailPanel } from "./InvoiceDetailPanel";
-
-const TYPE_FILTERS: { value: string; label: string }[] = [
-  { value: "", label: "All" },
-  { value: "invoice", label: "Invoices" },
-  { value: "receipt", label: "Receipts" },
-  { value: "estimate", label: "Estimates" },
-];
-
-const STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: "", label: "All" },
-  { value: "draft", label: "Draft" },
-  { value: "sent", label: "Sent" },
-  { value: "paid", label: "Paid" },
-  { value: "overdue", label: "Overdue" },
-];
 
 const TYPE_BADGE: Record<string, string> = {
   invoice: "bg-blue-100 text-blue-700",
@@ -37,18 +36,6 @@ const STATUS_BADGE: Record<string, string> = {
   cancelled: "bg-amber-100 text-amber-700",
 };
 
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse">
-      {[...Array(7)].map((_, i) => (
-        <td key={i} className="px-4 py-3">
-          <div className="h-4 bg-gray-100 rounded" />
-        </td>
-      ))}
-    </tr>
-  );
-}
-
 const TYPE_LABEL: Record<string, string> = {
   invoice: "Invoice",
   receipt: "Receipt",
@@ -63,40 +50,14 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-function TypeBadge({ type }: { type: string }) {
-  const { t } = useI18n();
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-        TYPE_BADGE[type]
-      )}
-    >
-      {t(TYPE_LABEL[type] ?? type)}
-    </span>
-  );
+interface ClientInvoiceHistoryProps {
+  clientName: string;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useI18n();
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-        STATUS_BADGE[status]
-      )}
-    >
-      {t(STATUS_LABEL[status] ?? status)}
-    </span>
-  );
-}
-
-export function InvoicesPage() {
+export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formInvoice, setFormInvoice] = useState<InvoiceDetail | undefined>();
   const [formDefaultType, setFormDefaultType] = useState<InvoiceType>("invoice");
@@ -104,12 +65,8 @@ export function InvoicesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ["invoices", typeFilter, statusFilter],
-    queryFn: () =>
-      listInvoices({
-        invoiceType: typeFilter || undefined,
-        status: statusFilter || undefined,
-      }),
+    queryKey: ["invoices"],
+    queryFn: () => listInvoices(),
   });
 
   const { data: detail } = useQuery({
@@ -144,11 +101,32 @@ export function InvoicesPage() {
     setFormInvoice(undefined);
   }, [queryClient, selectedId]);
 
-  const openCreate = useCallback((type: InvoiceType) => {
-    setFormInvoice(undefined);
-    setFormDefaultType(type);
-    setShowForm(true);
-  }, []);
+  const openCreate = useCallback(
+    (type: InvoiceType) => {
+      setFormInvoice({
+        id: "",
+        invoice_number: "",
+        invoice_type: type,
+        status: "draft",
+        issue_date: "",
+        due_date: null,
+        client_name: clientName,
+        subtotal_cents: 0,
+        tax_cents: 0,
+        total_cents: 0,
+        transaction_id: null,
+        created_at: "",
+        client_email: null,
+        client_address: null,
+        notes: null,
+        tax_rate: 0,
+        lines: [],
+      } as InvoiceDetail);
+      setFormDefaultType(type);
+      setShowForm(true);
+    },
+    [clientName]
+  );
 
   const openEdit = useCallback(() => {
     if (detail) {
@@ -162,9 +140,7 @@ export function InvoicesPage() {
       <InvoiceDetailPanel
         invoice={detail}
         onEdit={openEdit}
-        onDelete={() => {
-          setDeleteConfirm(detail.id);
-        }}
+        onDelete={() => setDeleteConfirm(detail.id)}
         onStatusChange={(status) =>
           statusMutation.mutate({ id: detail.id, status })
         }
@@ -173,10 +149,18 @@ export function InvoicesPage() {
     );
   }
 
+  const paidCount = invoices.filter((i) => i.status === "paid").length;
+  const overdueCount = invoices.filter((i) => i.status === "overdue").length;
+  const totalOutstanding = invoices
+    .filter((i) => i.status === "sent" || i.status === "overdue")
+    .reduce((sum, i) => sum + i.total_cents, 0);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
-        <h1 className="text-sm font-semibold text-gray-700">{t("Invoices & Receipts")}</h1>
+        <h2 className="text-sm font-semibold text-gray-700">
+          {t("Invoice History")}
+        </h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -205,100 +189,104 @@ export function InvoicesPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 px-5 py-2.5 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center gap-1">
-          {TYPE_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setTypeFilter(f.value)}
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
-                typeFilter === f.value
-                  ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {t(f.label)}
-            </button>
-          ))}
+      <div className="grid grid-cols-4 gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
+          <p className="text-xs text-gray-500 font-medium">{t("Total")}</p>
+          <p className="text-lg font-bold text-gray-900 mt-0.5">
+            {invoices.length}
+          </p>
         </div>
-
-        <div className="w-px h-5 bg-gray-200" />
-
-        <div className="flex items-center gap-1">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setStatusFilter(f.value)}
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
-                statusFilter === f.value
-                  ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {t(f.label)}
-            </button>
-          ))}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+          <p className="text-xs text-green-600 font-medium">{t("Paid")}</p>
+          <p className="text-lg font-bold text-green-700 mt-0.5">{paidCount}</p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          <p className="text-xs text-blue-600 font-medium">
+            {t("Outstanding")}
+          </p>
+          <p className="text-lg font-bold text-blue-700 mt-0.5">
+            ${centsToDollars(totalOutstanding)}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "border rounded-lg p-3 text-center",
+            overdueCount > 0
+              ? "bg-red-50 border-red-200"
+              : "bg-gray-50 border-gray-200"
+          )}
+        >
+          <p
+            className={cn(
+              "text-xs font-medium",
+              overdueCount > 0 ? "text-red-600" : "text-gray-500"
+            )}
+          >
+            {t("Overdue")}
+          </p>
+          <p
+            className={cn(
+              "text-lg font-bold mt-0.5",
+              overdueCount > 0 ? "text-red-700" : "text-gray-400"
+            )}
+          >
+            {overdueCount}
+          </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                {t("#")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t("Type")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t("Client")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                {t("Issue Date")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                {t("Due Date")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-                {t("Total")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {t("Status")}
-              </th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-                {t("Actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <>
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-              </>
-            )}
-
-            {!isLoading && invoices.length === 0 && (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FilePlus2 className="w-12 h-12 text-gray-300 mb-3" />
+            <p className="text-sm text-gray-500 font-medium">
+              {t("No invoices yet")}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {t("Create your first invoice to get started.")}
+            </p>
+            <button
+              type="button"
+              onClick={() => openCreate("invoice")}
+              className="mt-4 flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {t("New Invoice")}
+            </button>
+          </div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center">
-                  <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 font-medium">{t("No invoices yet")}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t("Create your first invoice to get started.")}
-                  </p>
-                </td>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                  {t("#")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  {t("Type")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                  {t("Issue Date")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                  {t("Due Date")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
+                  {t("Total")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  {t("Status")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
+                  {t("Actions")}
+                </th>
               </tr>
-            )}
-
-            {!isLoading &&
-              invoices.map((inv) => (
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
                 <tr
                   key={inv.id}
                   className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer group"
@@ -308,10 +296,14 @@ export function InvoicesPage() {
                     {inv.invoice_number}
                   </td>
                   <td className="px-4 py-2.5">
-                    <TypeBadge type={inv.invoice_type} />
-                  </td>
-                  <td className="px-4 py-2.5 text-sm text-gray-700 max-w-[200px] truncate">
-                    {inv.client_name}
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
+                        TYPE_BADGE[inv.invoice_type]
+                      )}
+                    >
+                      {t(TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type)}
+                    </span>
                   </td>
                   <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-nowrap">
                     {formatDate(inv.issue_date)}
@@ -328,20 +320,29 @@ export function InvoicesPage() {
                         {formatDate(inv.due_date)}
                       </span>
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-gray-300">&mdash;</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-sm text-right text-gray-900 font-medium tabular-nums">
                     ${centsToDollars(inv.total_cents)}
                   </td>
                   <td className="px-4 py-2.5">
-                    <StatusBadge status={inv.status} />
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
+                        STATUS_BADGE[inv.status]
+                      )}
+                    >
+                      {t(STATUS_LABEL[inv.status] ?? inv.status)}
+                    </span>
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-1">
                       {deleteConfirm === inv.id ? (
                         <>
-                          <span className="text-xs text-red-600 mr-1">{t("Delete?")}</span>
+                          <span className="text-xs text-red-600 mr-1">
+                            {t("Delete?")}
+                          </span>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -369,8 +370,6 @@ export function InvoicesPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setFormInvoice(undefined);
-                              setFormDefaultType(inv.invoice_type);
                               getInvoice(inv.id).then((d) => {
                                 setFormInvoice(d);
                                 setShowForm(true);
@@ -399,20 +398,21 @@ export function InvoicesPage() {
                   </td>
                 </tr>
               ))}
-          </tbody>
-          {!isLoading && invoices.length > 0 && (
+            </tbody>
             <tfoot>
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
                   className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100"
                 >
-                  {t("Showing {count} documents", { count: String(invoices.length) })}
+                  {t("Showing {count} documents", {
+                    count: String(invoices.length),
+                  })}
                 </td>
               </tr>
             </tfoot>
-          )}
-        </table>
+          </table>
+        )}
       </div>
 
       {showForm && (

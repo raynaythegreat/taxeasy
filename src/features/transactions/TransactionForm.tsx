@@ -4,6 +4,7 @@ import { Plus, Trash2, X, ChevronDown, Search } from "lucide-react";
 import { listAccounts, createTransaction, scanReceipt, suggestCategory, pickReceiptFile } from "../../lib/tauri";
 import type { Account, AccountType, EntryPayload, CategorizeSuggestion } from "../../lib/tauri";
 import { cn, today } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,14 +42,6 @@ interface SimpleState {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  asset: "Assets",
-  liability: "Liabilities",
-  equity: "Equity",
-  revenue: "Revenue",
-  expense: "Expenses",
-};
 
 const ACCOUNT_TYPE_ORDER: AccountType[] = [
   "asset",
@@ -89,9 +82,18 @@ interface AccountSelectProps {
   placeholder?: string;
 }
 
-function AccountSelect({ value, accounts, onChange, placeholder = "Select account…" }: AccountSelectProps) {
+function AccountSelect({ value, accounts, onChange, placeholder }: AccountSelectProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+
+  const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+    asset: t("Assets"),
+    liability: t("Liabilities"),
+    equity: t("Equity"),
+    revenue: t("Revenue"),
+    expense: t("Expenses"),
+  };
 
   const selected = accounts.find((a) => a.id === value);
 
@@ -147,7 +149,7 @@ function AccountSelect({ value, accounts, onChange, placeholder = "Select accoun
               <input
                 autoFocus
                 type="text"
-                placeholder="Search accounts…"
+                placeholder={t("Search accounts…")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full text-sm bg-transparent outline-none"
@@ -177,7 +179,7 @@ function AccountSelect({ value, accounts, onChange, placeholder = "Select accoun
               </div>
             ))}
             {Object.keys(grouped).length === 0 && (
-              <div className="px-3 py-4 text-sm text-gray-400 text-center">No accounts found</div>
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">{t("No accounts found")}</div>
             )}
           </div>
         </div>
@@ -194,16 +196,17 @@ interface SimpleFormProps {
   onChange: <K extends keyof SimpleState>(field: K, value: SimpleState[K]) => void;
 }
 
-const SIMPLE_TYPE_OPTIONS: { value: SimpleType; label: string; sub: string }[] = [
-  { value: "expense", label: "Expense", sub: "Money went out" },
-  { value: "income", label: "Income", sub: "Money came in" },
-  { value: "transfer", label: "Transfer", sub: "Moved between accounts" },
-];
-
 function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
+  const { t } = useI18n();
   const assets = accounts.filter((a) => a.account_type === "asset");
   const expenses = accounts.filter((a) => a.account_type === "expense");
   const revenues = accounts.filter((a) => a.account_type === "revenue");
+
+  const SIMPLE_TYPE_OPTIONS: { value: SimpleType; label: string; sub: string }[] = [
+    { value: "expense", label: t("Expense"), sub: t("Money went out") },
+    { value: "income", label: t("Income"), sub: t("Money came in") },
+    { value: "transfer", label: t("Transfer"), sub: t("Moved between accounts") },
+  ];
 
   return (
     <div className="space-y-4">
@@ -230,23 +233,14 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {/* Date + Description */}
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={simple.date}
-              onChange={(e) => onChange("date", e.target.value)}
-              required
-              className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-            />
-            <button
-              type="button"
-              onClick={() => onChange("date", today())}
-              className="px-2 py-1.5 text-xs text-gray-500 border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap"
-            >
-              Today
-            </button>
-          </div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t("Date")}</label>
+          <input
+            type="date"
+            value={simple.date}
+            onChange={(e) => onChange("date", e.target.value)}
+            required
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+          />
         </div>
         <div className="col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -266,7 +260,7 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {/* Amount */}
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">
-          Amount <span className="text-red-400">*</span>
+            {t("Amount")} <span className="text-red-400">*</span>
         </label>
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
@@ -429,6 +423,7 @@ function buildSimpleEntries(s: SimpleState): EntryPayload[] {
 // ── TransactionForm ───────────────────────────────────────────────────────────
 
 export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
 
   // Simple mode state
@@ -647,7 +642,7 @@ export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Description <span className="text-red-400">*</span>
+            {t("Description")} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"

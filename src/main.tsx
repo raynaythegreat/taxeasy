@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./lib/theme";
 import { SidebarProvider } from "./lib/sidebar";
+import { I18nProvider } from "./lib/i18n";
 import App from "./App";
 import "./index.css";
 
@@ -15,11 +16,13 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <SidebarProvider>
-          <App />
-        </SidebarProvider>
-      </ThemeProvider>
+      <I18nProvider>
+        <ThemeProvider>
+          <SidebarProvider>
+            <App />
+          </SidebarProvider>
+        </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 );

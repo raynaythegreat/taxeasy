@@ -4,6 +4,7 @@ import { Printer, Download } from "lucide-react";
 import { listClients, getActiveClientId } from "../../lib/tauri";
 import { today, fiscalYearRange, cn } from "../../lib/utils";
 import { handleExportReport } from "../../lib/export-api";
+import { useI18n } from "../../lib/i18n";
 import { PnLView } from "./PnLView";
 import { BalanceSheetView } from "./BalanceSheetView";
 import { CashFlowView } from "./CashFlowView";
@@ -20,6 +21,7 @@ const currentYear = new Date().getFullYear();
 const defaultRange = fiscalYearRange(currentYear);
 
 export function ReportsPage() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ReportTab>("pnl");
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
@@ -50,7 +52,7 @@ export function ReportsPage() {
     try {
       await handleExportReport(activeTab, dateFrom, dateTo);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Export failed");
+      setExportError(err instanceof Error ? err.message : t("Export failed"));
       setTimeout(() => setExportError(null), 4000);
     } finally {
       setExporting(false);
@@ -72,7 +74,7 @@ export function ReportsPage() {
                   : "text-gray-600 hover:bg-gray-100"
               )}
             >
-              {tab.label}
+              {t(tab.label)}
             </button>
           ))}
         </nav>
@@ -81,7 +83,7 @@ export function ReportsPage() {
           {activeTab === "balance_sheet" ? (
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                As of
+                {t("As of")}
               </label>
               <input
                 type="date"
@@ -93,7 +95,7 @@ export function ReportsPage() {
           ) : (
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                From
+                {t("From")}
               </label>
               <input
                 type="date"
@@ -102,7 +104,7 @@ export function ReportsPage() {
                 className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                To
+                {t("To")}
               </label>
               <input
                 type="date"
@@ -119,7 +121,7 @@ export function ReportsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {exporting ? "Exporting…" : "Download CSV"}
+            {exporting ? t("Exporting…") : t("Download CSV")}
           </button>
 
           <button
@@ -127,7 +129,7 @@ export function ReportsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
           >
             <Printer className="w-4 h-4" />
-            Print
+            {t("Print")}
           </button>
         </div>
       </div>

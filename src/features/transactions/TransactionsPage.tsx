@@ -6,11 +6,13 @@ import { fiscalYearRange } from "../../lib/utils";
 import { LedgerView } from "./LedgerView";
 import { TransactionForm } from "./TransactionForm";
 import { ImportWizard } from "./ImportWizard";
+import { useI18n } from "../../lib/i18n";
 
 const _currentYear = new Date().getFullYear();
 const { from: _defaultFrom, to: _defaultTo } = fiscalYearRange(_currentYear);
 
 export function TransactionsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const [dateFrom, setDateFrom] = useState(_defaultFrom);
@@ -63,7 +65,7 @@ export function TransactionsPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
-        <h1 className="text-sm font-semibold text-gray-700">Transactions</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t("Transactions")}</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -71,7 +73,7 @@ export function TransactionsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50"
           >
             <Upload className="w-4 h-4" />
-            Import
+            {t("Import")}
           </button>
           <button
             type="button"
@@ -79,7 +81,7 @@ export function TransactionsPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
-            New Transaction
+            {t("New Transaction")}
           </button>
         </div>
       </div>
@@ -91,13 +93,13 @@ export function TransactionsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search transactions…"
+            placeholder={t("Search transactions…")}
             className="pl-8 pr-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500 bg-white w-48"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">From</label>
+          <label className="text-xs text-gray-500 whitespace-nowrap">{t("From")}</label>
           <input
             type="date"
             value={dateFrom}
@@ -107,7 +109,7 @@ export function TransactionsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">To</label>
+          <label className="text-xs text-gray-500 whitespace-nowrap">{t("To")}</label>
           <input
             type="date"
             value={dateTo}
@@ -117,13 +119,13 @@ export function TransactionsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Account</label>
+          <label className="text-xs text-gray-500 whitespace-nowrap">{t("Account")}</label>
           <select
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
             className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500 bg-white"
           >
-            <option value="">All accounts</option>
+            <option value="">{t("All accounts")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.code} — {a.name}

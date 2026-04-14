@@ -10,6 +10,7 @@ import {
 } from "../../lib/tauri";
 import type { Client, EntityType, AccountingMethod, CreateClientPayload } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 import { ClientWorkspace } from "../../components/ClientWorkspace";
 import { ClientEditModal } from "./ClientEditModal";
 import { ClientArchiveConfirm } from "./ClientArchiveConfirm";
@@ -50,9 +51,10 @@ const DEFAULT_FORM: NewClientForm = {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function EntityBadge({ type }: { type: EntityType }) {
+  const { t } = useI18n();
   return (
     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-      {ENTITY_LABELS[type]}
+      {t(ENTITY_LABELS[type])}
     </span>
   );
 }
@@ -88,6 +90,7 @@ export function ClientsPage({ initialClientId, onBack }: {
   initialClientId?: string | null;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [activeClientId, setActiveClientId] = useState<string | null>(initialClientId ?? null);
   const [showForm, setShowForm] = useState(false);
@@ -163,7 +166,7 @@ export function ClientsPage({ initialClientId, onBack }: {
 
     const trimmedName = form.name.trim();
     if (!trimmedName) {
-      setFormError("Business name is required.");
+      setFormError(t("Business name is required."));
       return;
     }
 
@@ -200,14 +203,14 @@ export function ClientsPage({ initialClientId, onBack }: {
             <button
               onClick={onBack}
               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              title="Back to Dashboard"
+              title={t("Back to Dashboard")}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Clients
+              {t("Clients")}
             </h2>
           </div>
           {!showForm && (
@@ -225,7 +228,7 @@ export function ClientsPage({ initialClientId, onBack }: {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              New Client
+              {t("New Client")}
             </button>
           )}
         </div>
@@ -255,7 +258,7 @@ export function ClientsPage({ initialClientId, onBack }: {
             >
               {fetchError instanceof Error
                 ? fetchError.message
-                : "Failed to load clients."}
+                : t("Failed to load clients.")}
             </div>
           )}
 
@@ -322,7 +325,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                             }
                           }}
                           className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                          title="Edit client"
+                          title={t("Edit client")}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </span>
@@ -340,7 +343,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                             }
                           }}
                           className="p-1 rounded text-gray-400 hover:text-amber-600 hover:bg-amber-50"
-                          title="Archive client"
+                          title={t("Archive client")}
                         >
                           <Archive className="w-3.5 h-3.5" />
                         </span>
@@ -359,7 +362,7 @@ export function ClientsPage({ initialClientId, onBack }: {
         {showForm ? (
           /* ── New Client Form ── */
           <div className="p-6 max-w-lg">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">New Client</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-5">{t("New Client")}</h2>
 
             <form onSubmit={handleSubmit} noValidate className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
               {/* Business Name */}
@@ -368,7 +371,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   htmlFor="client-name"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Business Name <span className="text-red-500">*</span>
+                  {t("Business Name")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="client-name"
@@ -391,7 +394,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   htmlFor="entity-type"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Entity Type
+                  {t("Entity Type")}
                 </label>
                 <select
                   id="entity-type"
@@ -402,11 +405,11 @@ export function ClientsPage({ initialClientId, onBack }: {
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   disabled={createMutation.isPending}
                 >
-                  <option value="sole_prop">Sole Proprietor</option>
+                  <option value="sole_prop">{t("Sole Proprietor")}</option>
                   <option value="smllc">SMLLC</option>
                   <option value="scorp">S-Corp</option>
                   <option value="ccorp">C-Corp</option>
-                  <option value="partnership">Partnership</option>
+                  <option value="partnership">{t("Partnership")}</option>
                 </select>
               </div>
 
@@ -416,7 +419,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   htmlFor="ein"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  EIN{" "}
+                  {t("EIN")}{" "}
                   <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
@@ -444,7 +447,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   htmlFor="fiscal-year-start"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Fiscal Year Start
+                  {t("Fiscal Year Start")}
                 </label>
                 <select
                   id="fiscal-year-start"
@@ -457,7 +460,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                 >
                   {MONTHS.map((month, idx) => (
                     <option key={month} value={idx + 1}>
-                      {month}
+                      {t(month)}
                     </option>
                   ))}
                 </select>
@@ -467,7 +470,7 @@ export function ClientsPage({ initialClientId, onBack }: {
               <div>
                 <fieldset>
                   <legend className="block text-sm font-medium text-gray-700 mb-2">
-                    Accounting Method
+                    {t("Accounting Method")}
                   </legend>
                   <div className="flex gap-6">
                     {(["cash", "accrual"] as AccountingMethod[]).map((method) => (
@@ -484,7 +487,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                           className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                           disabled={createMutation.isPending}
                         />
-                        <span className="text-sm text-gray-700 capitalize">{method}</span>
+                        <span className="text-sm text-gray-700">{method === "cash" ? t("Cash") : t("Accrual")}</span>
                       </label>
                     ))}
                   </div>
@@ -511,10 +514,10 @@ export function ClientsPage({ initialClientId, onBack }: {
                   {createMutation.isPending ? (
                     <>
                       <Spinner />
-                      Creating…
+                      {t("Creating…")}
                     </>
                   ) : (
-                    "Create Client"
+                    t("Create Client")
                   )}
                 </button>
                 <button
@@ -523,7 +526,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   disabled={createMutation.isPending}
                   className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
               </div>
             </form>

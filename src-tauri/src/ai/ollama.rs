@@ -1,31 +1,55 @@
-/// Ollama HTTP client — auto-categorization and natural-language ledger queries.
 use reqwest::Client;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
 use crate::{error::{AppError, Result}, state::AppState};
 
-const OLLAMA_BASE: &str = "http://localhost:11434";
-const DEFAULT_MODEL: &str = "qwen2.5:7b-instruct";
-
-// ── Health check ─────────────────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize)]
-struct OllamaModel {
-    name: String,
+pub struct AiConfig {
+    provider: String,
+    ollama_url: String,
+    ollama_model: String,
+    lm_studio_url: String,
+    lm_studio_model: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct OllamaTagsResponse {
-    models: Vec<OllamaModel>,
+fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
+    let lock = state.app_db.lock().unwrap();
+    let db = lock.as_ref();
+    let get = |conn: &rusqlite::Connection, key: &str, def: &str| -> String {
+        conn.query_row(
+            "SELECT value FROM app_settings WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|_| def.to_owned())
+    };
+
+    match db {
+        Some(d) => {
+            let conn = d.conn();
+            AiConfig {
+                provider: get(conn, "ai_provider", "ollama"),
+                ollama_url: get(conn, "ollama_url", "http://localhost:11434"),
+                ollama_model: get(conn, "ollama_model", "qwen2.5:7b-instruct"),
+                lm_studio_url: get(conn, "lm_studio_url", "http://localhost:1234"),
+                lm_studio_model: get(conn, "lm_studio_model", ""),
+            }
+        }
+        None => AiConfig {
+            provider: "ollama".into(),
+            ollama_url: "http://localhost:11434".into(),
+            ollama_model: "qwen2.5:7b-instruct".into(),
+            lm_studio_url: "http://localhost:1234".into(),
+            lm_studio_model: "".into(),
+        },
+    }
 }
 
-/// Returns true if Ollama is running and has at least one model.
 #[tauri::command(rename_all = "camelCase")]
 pub async fn ollama_health() -> bool {
     let client = Client::new();
     match client
-        .get(format!("{OLLAMA_BASE}/api/tags"))
+        .get("http://localhost:11434/api/tags")
         .timeout(std::time::Duration::from_secs(3))
         .send()
         .await
@@ -34,8 +58,6 @@ pub async fn ollama_health() -> bool {
         Err(_) => false,
     }
 }
-
-// ── Completion helper ─────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
 struct GenerateRequest<'a> {
@@ -49,15 +71,15 @@ struct GenerateResponse {
     response: String,
 }
 
-async fn complete(prompt: &str) -> Result<String> {
+async fn ollama_complete(url: &str, model: &str, prompt: &str) -> Result<String> {
     let client = Client::new();
     let body = GenerateRequest {
-        model: DEFAULT_MODEL,
+        model,
         prompt,
         stream: false,
     };
     let resp = client
-        .post(format!("{OLLAMA_BASE}/api/generate"))
+        .post(format!("{}/api/generate", url.trim_end_matches('/')))
         .json(&body)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -70,6 +92,27 @@ async fn complete(prompt: &str) -> Result<String> {
 
     let gen: GenerateResponse = resp.json().await.map_err(|e| AppError::AiService(e.to_string()))?;
     Ok(gen.response.trim().to_owned())
+}
+
+pub async fn ai_complete(config: &AiConfig, prompt: &str) -> Result<String> {
+    match config.provider.as_str() {
+        "lmstudio" => {
+            let model = if config.lm_studio_model.is_empty() {
+                return Err(AppError::AiService("No LM Studio model selected".into()));
+            } else {
+                &config.lm_studio_model
+            };
+            crate::ai::lmstudio::lmstudio_complete(&config.lm_studio_url, model, prompt).await
+        }
+        _ => {
+            let model = if config.ollama_model.is_empty() {
+                "qwen2.5:7b-instruct"
+            } else {
+                &config.ollama_model
+            };
+            ollama_complete(&config.ollama_url, model, prompt).await
+        }
+    }
 }
 
 // ── Auto-categorization ───────────────────────────────────────────────────────
@@ -89,7 +132,8 @@ pub async fn suggest_category(
     amount_str: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<CategorizeSuggestion> {
-    // Build account list from active client
+    let config = read_ai_config(&state);
+
     let (accounts_text, accounts_vec) = {
         let lock = state.active_client.lock().unwrap();
         let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
@@ -123,7 +167,7 @@ Respond in JSON only, no markdown, exactly this shape:
 "#
     );
 
-    let raw = complete(&prompt).await?;
+    let raw = ai_complete(&config, &prompt).await?;
 
     // Parse JSON response
     let v: serde_json::Value =
@@ -160,6 +204,8 @@ pub async fn nl_query(
     question: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<NlQueryResult> {
+    let config = read_ai_config(&state);
+
     let schema = r#"
 Tables:
   transactions(id, txn_date TEXT, description TEXT, reference, locked, created_at)
@@ -187,7 +233,7 @@ Rules:
 "#
     );
 
-    let sql = complete(&prompt).await?;
+    let sql = ai_complete(&config, &prompt).await?;
 
     // Sanitize: only SELECT allowed
     let sql_upper = sql.trim().to_uppercase();
@@ -247,7 +293,7 @@ Question: {question}
 Results: {results_str}
 Summary:"#
     );
-    let summary = complete(&summary_prompt).await.unwrap_or_default();
+    let summary = ai_complete(&config, &summary_prompt).await.unwrap_or_default();
 
     Ok(NlQueryResult { sql, rows, summary })
 }

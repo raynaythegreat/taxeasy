@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPnl, type PnlLineItem } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface PnLViewProps {
   dateFrom: string;
@@ -41,6 +42,7 @@ function LoadingSkeleton() {
 }
 
 export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
+  const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
     queryKey: ["pnl", dateFrom, dateTo],
     queryFn: () => getPnl(dateFrom, dateTo),
@@ -51,7 +53,7 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
   if (error) {
     return (
       <div className="p-8 text-center text-red-600 text-sm">
-        Failed to load Profit &amp; Loss report. Please try again.
+        {t("Failed to load Profit & Loss report. Please try again.")}
       </div>
     );
   }
@@ -66,69 +68,63 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
 
   return (
     <div className="max-w-2xl mx-auto p-8 print:p-6 print:max-w-none bg-white print:shadow-none print:border-none">
-      {/* Report header */}
       <div className="text-center mb-6">
         {clientName && (
           <p className="text-base font-semibold text-gray-900">{clientName}</p>
         )}
-        <h2 className="text-xl font-bold text-gray-900 mt-1">Profit &amp; Loss</h2>
+        <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Profit & Loss")}</h2>
         <p className="text-sm text-gray-500 mt-1">
           {formatDate(dateFrom)} &ndash; {formatDate(dateTo)}
         </p>
       </div>
 
-      {/* REVENUE */}
       {hasRevenue && (
         <section className="mb-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Revenue</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Revenue")}</p>
           {data.revenue_lines.map((item) => (
             <LineRow key={item.account_id} item={item} />
           ))}
           <SectionDivider />
-          <SubtotalRow label="Total Revenue" amount={data.total_revenue} />
+          <SubtotalRow label={t("Total Revenue")} amount={data.total_revenue} />
         </section>
       )}
 
-      {/* COGS */}
       {hasCogs && (
         <section className="mb-4">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-            Cost of Goods Sold
+            {t("Cost of Goods Sold")}
           </p>
           {data.cogs_lines.map((item) => (
             <LineRow key={item.account_id} item={item} />
           ))}
           <SectionDivider />
-          <SubtotalRow label="Total COGS" amount={data.total_cogs} />
+          <SubtotalRow label={t("Total COGS")} amount={data.total_cogs} />
         </section>
       )}
 
-      {/* Gross Profit (only when COGS present) */}
       {hasCogs && (
         <div className="flex justify-between py-1.5 text-sm font-semibold border-t border-b border-gray-400 my-3">
-          <span>Gross Profit</span>
+          <span>{t("Gross Profit")}</span>
           <span className="tabular-nums">{formatCurrency(data.gross_profit)}</span>
         </div>
       )}
 
-      {/* OPERATING EXPENSES */}
       {hasExpenses && (
         <section className="mb-4">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-            Operating Expenses
+            {t("Operating Expenses")}
           </p>
           {data.expense_lines.map((item) => (
             <LineRow key={item.account_id} item={item} />
           ))}
           <SectionDivider />
-          <SubtotalRow label="Total Operating Expenses" amount={data.total_expenses} />
+          <SubtotalRow label={t("Total Operating Expenses")} amount={data.total_expenses} />
         </section>
       )}
 
-      {/* Net Income */}
       <div className="border-t-2 border-gray-800 mt-4 pt-2">
         <div className="flex justify-between py-1 font-bold text-base">
-          <span className="text-gray-900">Net Income</span>
+          <span className="text-gray-900">{t("Net Income")}</span>
           <span className={`tabular-nums ${netIncomeColor}`}>
             {formatCurrency(data.net_income)}
           </span>

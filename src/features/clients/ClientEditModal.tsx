@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { updateClient } from "../../lib/client-api";
 import type { Client, EntityType, AccountingMethod } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
   { value: "sole_prop", label: "Sole Proprietor" },
@@ -25,6 +26,7 @@ interface ClientEditModalProps {
 }
 
 export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [name, setName] = useState(client.name);
   const [entityType, setEntityType] = useState<EntityType>(client.entity_type);
@@ -54,7 +56,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Business name is required.");
+      setError(t("Business name is required."));
       return;
     }
     setError(null);
@@ -65,7 +67,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Edit Client</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t("Edit Client")}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -78,7 +80,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
-              Business Name <span className="text-red-500">*</span>
+              {t("Business Name")} <span className="text-red-500">*</span>
             </label>
             <input
               id="edit-name"
@@ -93,7 +95,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div>
             <label htmlFor="edit-entity" className="block text-sm font-medium text-gray-700 mb-1">
-              Entity Type
+              {t("Entity Type")}
             </label>
             <select
               id="edit-entity"
@@ -103,14 +105,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               disabled={mutation.isPending}
             >
               {ENTITY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>{t(o.label)}</option>
               ))}
             </select>
           </div>
 
           <div>
             <label htmlFor="edit-ein" className="block text-sm font-medium text-gray-700 mb-1">
-              EIN <span className="text-gray-400 font-normal">(optional)</span>
+              {t("EIN")} <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               id="edit-ein"
@@ -130,7 +132,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div>
             <label htmlFor="edit-fiscal" className="block text-sm font-medium text-gray-700 mb-1">
-              Fiscal Year Start
+              {t("Fiscal Year Start")}
             </label>
             <select
               id="edit-fiscal"
@@ -140,14 +142,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               disabled={mutation.isPending}
             >
               {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
+                <option key={m} value={i + 1}>{t(m)}</option>
               ))}
             </select>
           </div>
 
           <div>
             <fieldset>
-              <legend className="block text-sm font-medium text-gray-700 mb-2">Accounting Method</legend>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">{t("Accounting Method")}</legend>
               <div className="flex gap-6">
                 {(["cash", "accrual"] as AccountingMethod[]).map((m) => (
                   <label key={m} className="flex items-center gap-2 cursor-pointer">
@@ -160,7 +162,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                       disabled={mutation.isPending}
                     />
-                    <span className="text-sm text-gray-700 capitalize">{m}</span>
+                    <span className="text-sm text-gray-700">{m === "cash" ? t("Cash") : t("Accrual")}</span>
                   </label>
                 ))}
               </div>
@@ -180,7 +182,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               disabled={mutation.isPending}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="submit"
@@ -192,7 +194,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
                   : "bg-blue-600 text-white hover:bg-blue-700"
               )}
             >
-              {mutation.isPending ? "Saving…" : "Save Changes"}
+              {mutation.isPending ? t("Saving…") : t("Save Changes")}
             </button>
           </div>
         </form>

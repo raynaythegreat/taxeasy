@@ -13,14 +13,7 @@ import { listClients } from "../lib/tauri";
 import type { EntityType } from "../lib/tauri";
 import { getDashboardStats } from "../lib/dashboard-api";
 import { cn, formatDate } from "../lib/utils";
-
-const ENTITY_LABELS: Record<EntityType, string> = {
-  sole_prop: "Sole Proprietor",
-  smllc: "SMLLC",
-  scorp: "S-Corp",
-  ccorp: "C-Corp",
-  partnership: "Partnership",
-};
+import { useI18n } from "../lib/i18n";
 
 const ENTITY_COLORS: Record<EntityType, string> = {
   sole_prop: "bg-blue-50 text-blue-700",
@@ -36,14 +29,6 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   equity: "bg-purple-50 text-purple-700 border-purple-200",
   revenue: "bg-green-50 text-green-700 border-green-200",
   expense: "bg-amber-50 text-amber-700 border-amber-200",
-};
-
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  asset: "Assets",
-  liability: "Liabilities",
-  equity: "Equity",
-  revenue: "Revenue",
-  expense: "Expenses",
 };
 
 interface DashboardPageProps {
@@ -100,7 +85,24 @@ function fmtMoney(val: string) {
 }
 
 export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavigate }: DashboardPageProps) {
+  const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
+
+  const ENTITY_LABELS: Record<EntityType, string> = {
+    sole_prop: t("Sole Proprietor"),
+    smllc: t("SMLLC"),
+    scorp: t("S-Corp"),
+    ccorp: t("C-Corp"),
+    partnership: t("Partnership"),
+  };
+
+  const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+    asset: t("Assets"),
+    liability: t("Liabilities"),
+    equity: t("Equity"),
+    revenue: t("Revenue"),
+    expense: t("Expenses"),
+  };
   const { data: clients = [], isLoading: clientsLoading } = useQuery({
     queryKey: ["clients"],
     queryFn: listClients,
@@ -121,9 +123,9 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
       <div className="bg-white border-b border-gray-200 px-8 py-7">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("Dashboard")}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Your bookkeeping overview at a glance.
+              {t("Your bookkeeping overview at a glance.")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -132,21 +134,21 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              New Transaction
+              {t("New Transaction")}
             </button>
             <button
               onClick={() => onNavigate("transactions")}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Upload className="w-4 h-4" />
-              Import
+              {t("Import")}
             </button>
             <button
               onClick={() => onNavigate("reports")}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <FileText className="w-4 h-4" />
-              View Reports
+              {t("View Reports")}
             </button>
           </div>
         </div>
@@ -171,7 +173,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
-                      Total Clients
+                      {t("Total Clients")}
                     </p>
                     <p className="text-2xl font-bold text-purple-700">
                       {stats?.total_clients ?? activeClients.length}
@@ -187,7 +189,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">
-                      YTD Revenue
+                      {t("YTD Revenue")}
                     </p>
                     <p className="text-2xl font-bold text-green-700">
                       ${stats ? fmtMoney(stats.ytd_revenue) : "0.00"}
@@ -203,7 +205,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">
-                      YTD Expenses
+                      {t("YTD Expenses")}
                     </p>
                     <p className="text-2xl font-bold text-red-700">
                       ${stats ? fmtMoney(stats.ytd_expenses) : "0.00"}
@@ -245,7 +247,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                           : "text-red-600"
                       )}
                     >
-                      Net Income
+                      {t("Net Income")}
                     </p>
                     <p
                       className={cn(
@@ -268,7 +270,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
-                      Transactions
+                      {t("Transactions")}
                     </p>
                     <p className="text-2xl font-bold text-amber-700">
                       {stats?.total_transactions ?? 0}
@@ -283,7 +285,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
         {!statsLoading && stats?.account_balances && stats.account_balances.length > 0 && (
           <section>
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Account Balances
+              {t("Account Balances")}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {stats.account_balances.map((ab) => (
@@ -309,7 +311,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
 
         <section>
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Recent Transactions
+            {t("Recent Transactions")}
           </h2>
           {statsLoading ? (
             <TableSkeleton />
@@ -319,13 +321,13 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                      Date
+                      {t("Date")}
                     </th>
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Description
+                      {t("Description")}
                     </th>
                     <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-                      Amount
+                      {t("Amount")}
                     </th>
                   </tr>
                 </thead>
@@ -354,9 +356,9 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <FileText className="w-6 h-6 text-gray-400" />
               </div>
-              <p className="text-gray-500 text-sm">No transactions yet</p>
+              <p className="text-gray-500 text-sm">{t("No transactions yet")}</p>
               <p className="text-gray-400 text-xs mt-1">
-                Create your first transaction to see it here.
+                {t("Create your first transaction to see it here.")}
               </p>
             </div>
           )}
@@ -365,14 +367,14 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Clients
+              {t("Clients")}
             </h2>
             <button
               onClick={onNewClient}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              New Client
+              {t("New Client")}
             </button>
           </div>
 
@@ -389,15 +391,15 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-8 h-8 text-gray-400" />
               </div>
-              <p className="text-gray-600 font-medium">No clients yet</p>
+              <p className="text-gray-600 font-medium">{t("No clients yet")}</p>
               <p className="text-gray-400 text-sm mt-1">
-                Add your first client to get started.
+                {t("Add your first client to get started.")}
               </p>
               <button
                 onClick={onNewClient}
                 className="mt-5 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Add First Client
+                {t("Add First Client")}
               </button>
             </div>
           )}
@@ -434,11 +436,11 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                       {ENTITY_LABELS[client.entity_type]}
                     </span>
                     <span className="text-xs text-gray-400 capitalize">
-                      {client.accounting_method} basis
+                      {client.accounting_method} {t("basis")}
                     </span>
                   </div>
                   {client.ein && (
-                    <p className="mt-2 text-xs text-gray-400">EIN: {client.ein}</p>
+                    <p className="mt-2 text-xs text-gray-400">{t("EIN")}: {client.ein}</p>
                   )}
                 </button>
               ))}

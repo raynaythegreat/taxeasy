@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { deleteTransaction, updateTransaction } from "../../lib/tauri";
 import type { TransactionWithEntries } from "../../lib/tauri";
 import { cn, formatCurrency, formatDate } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface LedgerViewProps {
   dateFrom?: string;
@@ -58,6 +59,7 @@ function TxnRow({
   const [editRef, setEditRef] = useState(txn.reference ?? "");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const accountNames = [
     ...new Set(txn.entries.map((e) => e.account_name ?? "Unknown")),
@@ -181,14 +183,14 @@ function TxnRow({
                   disabled={saving || !editDesc.trim() || !editDate}
                   className="px-2.5 py-0.5 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"
                 >
-                  {saving ? "Saving…" : "Save"}
+                  {saving ? t("Saving…") : t("Save")}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
                   className="px-2 py-0.5 text-xs font-medium rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
               </div>
             </td>
@@ -228,20 +230,20 @@ function TxnRow({
             <div className="flex items-center justify-end gap-1">
               {confirmPending ? (
                 <>
-                  <span className="text-xs text-red-600 mr-1">Delete?</span>
+                  <span className="text-xs text-red-600 mr-1">{t("Delete?")}</span>
                   <button
                     type="button"
                     onClick={handleConfirmDelete}
                     className="px-2 py-0.5 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700"
                   >
-                    Yes
+                    {t("Yes")}
                   </button>
                   <button
                     type="button"
                     onClick={handleCancelDelete}
                     className="px-2 py-0.5 text-xs font-medium rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
                   >
-                    No
+                    {t("No")}
                   </button>
                 </>
               ) : txn.locked ? (
@@ -251,7 +253,7 @@ function TxnRow({
                   <button
                     type="button"
                     onClick={handleStartEdit}
-                    title="Edit transaction"
+                    title={t("Edit transaction")}
                     className="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -260,7 +262,7 @@ function TxnRow({
                     type="button"
                     onClick={handleDelete}
                     disabled={deleting}
-                    title="Delete transaction"
+                    title={t("Delete transaction")}
                     className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -284,10 +286,10 @@ function TxnRow({
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 uppercase tracking-wide">
-                  <th className="text-left pb-1.5 font-medium">Account</th>
-                  <th className="text-right pb-1.5 font-medium pr-8">Debit</th>
-                  <th className="text-right pb-1.5 font-medium pr-8">Credit</th>
-                  <th className="text-left pb-1.5 font-medium">Memo</th>
+                  <th className="text-left pb-1.5 font-medium">{t("Account")}</th>
+                  <th className="text-right pb-1.5 font-medium pr-8">{t("Debit")}</th>
+                  <th className="text-right pb-1.5 font-medium pr-8">{t("Credit")}</th>
+                  <th className="text-left pb-1.5 font-medium">{t("Memo")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -321,6 +323,7 @@ function TxnRow({
 }
 
 export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteTxn, onEditTxn }: LedgerViewProps) {
+  const { t } = useI18n();
   const { data: transactions, isLoading, error } = useQuery({
     queryKey: ["transactions", dateFrom, dateTo, accountId, searchQuery],
     queryFn: () =>
@@ -335,7 +338,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
   if (error) {
     return (
       <div className="px-4 py-8 text-center text-sm text-red-500">
-        Failed to load transactions. Please try again.
+        {t("Failed to load transactions. Please try again.")}
       </div>
     );
   }
@@ -346,25 +349,25 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-              Date
+              {t("Date")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Description
+              {t("Description")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Reference
+              {t("Reference")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Accounts
+              {t("Accounts")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              Debit
+              {t("Debit")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              Credit
+              {t("Credit")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              Actions
+              {t("Actions")}
             </th>
           </tr>
         </thead>
@@ -381,7 +384,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
           {!isLoading && (!transactions || transactions.length === 0) && (
             <tr>
               <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
-                No transactions found
+                {t("No transactions found")}
               </td>
             </tr>
           )}
@@ -398,7 +401,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
                 colSpan={7}
                 className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100"
               >
-                Showing {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
+                {t("Showing {count} transaction{s}", { count: String(transactions.length), s: transactions.length !== 1 ? "s" : "" })}
               </td>
             </tr>
           </tfoot>

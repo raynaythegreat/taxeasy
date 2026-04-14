@@ -13,14 +13,26 @@ import {
   HardDriveDownload,
   FileDown,
   AlertTriangle,
+  RefreshCw,
+  ChevronDown,
 } from "lucide-react";
-import { getSettings, saveSettings, ollamaHealth, glmocrCheckAvailable } from "../../lib/settings-api";
+import {
+  getSettings,
+  saveSettings,
+  ollamaHealthUrl,
+  ollamaListModels,
+  lmstudioHealth,
+  lmstudioListModels,
+  glmocrCheckAvailable,
+} from "../../lib/settings-api";
 import type { SaveSettingsPayload } from "../../lib/settings-api";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 import { BackupRestoreCard } from "./BackupRestoreCard";
 
 type SettingsTab = "ai" | "appearance" | "data" | "about";
+type AiProvider = "ollama" | "lmstudio";
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: "ai", label: "AI Configuration", icon: BrainCircuit },
@@ -31,25 +43,9 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
 
 function Spinner() {
   return (
-    <svg
-      className="animate-spin w-4 h-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
+    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   );
 }
@@ -65,27 +61,32 @@ function StatusDot({ ok, testing }: { ok: boolean | null; testing: boolean }) {
 }
 
 export function SettingsPage(_props: { onBack?: () => void }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SettingsTab>("ai");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const [aiProvider, setAiProvider] = useState<AiProvider>("ollama");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModel, setOllamaModel] = useState("qwen2.5:7b-instruct");
+  const [lmStudioUrl, setLmStudioUrl] = useState("http://localhost:1234");
+  const [lmStudioModel, setLmStudioModel] = useState("");
   const [glmocrPath, setGlmocrPath] = useState("");
   const [theme, setTheme] = useState("system");
   const [exportPath, setExportPath] = useState("");
 
-  const [ollamaStatus, setOllamaStatus] = useState<boolean | null>(null);
+  const [providerStatus, setProviderStatus] = useState<boolean | null>(null);
   const [glmocrStatus, setGlmocrStatus] = useState<boolean | null>(null);
-  const [testingOllama, setTestingOllama] = useState(false);
+  const [testingProvider, setTestingProvider] = useState(false);
   const [testingGlmocr, setTestingGlmocr] = useState(false);
+
+  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+  const [lmStudioModels, setLmStudioModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   const [confirmRestore, setConfirmRestore] = useState(false);
 
-  const {
-    data: settings,
-    isLoading,
-  } = useQuery({
+  const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: getSettings,
     retry: false,
@@ -93,8 +94,11 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   useEffect(() => {
     if (settings) {
+      setAiProvider((settings.ai_provider as AiProvider) || "ollama");
       setOllamaUrl(settings.ollama_url || "http://localhost:11434");
       setOllamaModel(settings.ollama_model || "qwen2.5:7b-instruct");
+      setLmStudioUrl(settings.lm_studio_url || "http://localhost:1234");
+      setLmStudioModel(settings.lm_studio_model || "");
       setGlmocrPath(settings.glmocr_path || "");
       setTheme(settings.theme || "system");
       setExportPath(settings.default_export_path || "");
@@ -105,22 +109,20 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     mutationFn: (payload: SaveSettingsPayload) => saveSettings(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      showToast("Settings saved", "success");
+      showToast(t("Settings saved"), "success");
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Failed to save: ${msg}`, "error");
+      showToast(`${t("Failed to save")}: ${msg}`, "error");
     },
   });
 
   const backupMutation = useMutation({
     mutationFn: backupDatabase,
-    onSuccess: (path) => {
-      showToast(`Backup saved to ${path}`, "success");
-    },
+    onSuccess: (path) => showToast(t("Backup saved to {path}", { path }), "success"),
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Backup failed: ${msg}`, "error");
+      showToast(`${t("Backup failed")}: ${msg}`, "error");
     },
   });
 
@@ -128,13 +130,13 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     mutationFn: restoreDatabase,
     onSuccess: () => {
       setConfirmRestore(false);
-      showToast("Data restored successfully", "success");
+      showToast(t("Data restored successfully"), "success");
       queryClient.invalidateQueries();
     },
     onError: (err: unknown) => {
       setConfirmRestore(false);
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Restore failed: ${msg}`, "error");
+      showToast(`${t("Restore failed")}: ${msg}`, "error");
     },
   });
 
@@ -147,17 +149,38 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     saveMutation.mutate(partial);
   }
 
-  const testOllama = useCallback(async () => {
-    setTestingOllama(true);
+  const testProvider = useCallback(async () => {
+    setTestingProvider(true);
     try {
-      const ok = await ollamaHealth();
-      setOllamaStatus(ok);
+      const ok =
+        aiProvider === "lmstudio"
+          ? await lmstudioHealth(lmStudioUrl)
+          : await ollamaHealthUrl(ollamaUrl);
+      setProviderStatus(ok);
     } catch {
-      setOllamaStatus(false);
+      setProviderStatus(false);
     } finally {
-      setTestingOllama(false);
+      setTestingProvider(false);
     }
-  }, [ollamaUrl]);
+  }, [aiProvider, ollamaUrl, lmStudioUrl]);
+
+  const fetchModels = useCallback(async () => {
+    setLoadingModels(true);
+    try {
+      if (aiProvider === "lmstudio") {
+        const models = await lmstudioListModels(lmStudioUrl);
+        setLmStudioModels(models);
+      } else {
+        const models = await ollamaListModels(ollamaUrl);
+        setOllamaModels(models);
+      }
+    } catch {
+      if (aiProvider === "lmstudio") setLmStudioModels([]);
+      else setOllamaModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [aiProvider, ollamaUrl, lmStudioUrl]);
 
   const testGlmocr = useCallback(async () => {
     setTestingGlmocr(true);
@@ -179,12 +202,22 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     );
   }
 
+  const THEME_LABELS: Record<string, string> = { light: "Light", dark: "Dark", system: "System" };
+
+  const currentModels = aiProvider === "lmstudio" ? lmStudioModels : ollamaModels;
+  const currentModel = aiProvider === "lmstudio" ? lmStudioModel : ollamaModel;
+  const currentUrl = aiProvider === "lmstudio" ? lmStudioUrl : ollamaUrl;
+  const setCurrentUrl = aiProvider === "lmstudio" ? setLmStudioUrl : setOllamaUrl;
+  const setCurrentModel = aiProvider === "lmstudio" ? setLmStudioModel : setOllamaModel;
+  const defaultUrl = aiProvider === "lmstudio" ? "http://localhost:1234" : "http://localhost:11434";
+  const providerLabel = aiProvider === "lmstudio" ? "LM Studio" : "Ollama";
+
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-3">
           <Settings className="w-5 h-5 text-gray-700" />
-          <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
+          <h1 className="text-lg font-semibold text-gray-900">{t("Settings")}</h1>
         </div>
       </div>
 
@@ -204,7 +237,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                 )}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.label)}
               </button>
             );
           })}
@@ -216,51 +249,121 @@ export function SettingsPage(_props: { onBack?: () => void }) {
           {activeTab === "ai" && (
             <>
               <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-                <h3 className="text-sm font-semibold text-gray-900">Ollama Server</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("AI Provider")}</h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {(["ollama", "lmstudio"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setAiProvider(p);
+                        setProviderStatus(null);
+                      }}
+                      className={cn(
+                        "rounded-xl border-2 p-4 text-center transition-colors focus:outline-none",
+                        aiProvider === p
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-sm font-semibold",
+                          aiProvider === p ? "text-blue-700" : "text-gray-700"
+                        )}
+                      >
+                        {p === "ollama" ? "Ollama" : "LM Studio"}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {p === "ollama" ? "Local LLM via Ollama" : "Local LLM via LM Studio"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+                <h3 className="text-sm font-semibold text-gray-900">{providerLabel} {t("Server")}</h3>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Server URL
+                    {t("Server URL")}
                   </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      value={ollamaUrl}
-                      onChange={(e) => setOllamaUrl(e.target.value)}
+                      value={currentUrl}
+                      onChange={(e) => setCurrentUrl(e.target.value)}
                       className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      placeholder={defaultUrl}
                     />
                     <button
-                      onClick={testOllama}
-                      disabled={testingOllama}
+                      onClick={testProvider}
+                      disabled={testingProvider}
                       className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                     >
                       <TestTube2 className="w-4 h-4" />
-                      Test
+                      {t("Test")}
                     </button>
-                    <StatusDot ok={ollamaStatus} testing={testingOllama} />
+                    <StatusDot ok={providerStatus} testing={testingProvider} />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Model
+                    {t("Model")}
                   </label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <select
+                        value={currentModel}
+                        onChange={(e) => setCurrentModel(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none pr-8"
+                      >
+                        {currentModels.length === 0 && (
+                          <option value="">{t("No models found")}</option>
+                        )}
+                        {currentModels.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                    <button
+                      onClick={fetchModels}
+                      disabled={loadingModels}
+                      className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                      title={t("Refresh model list")}
+                    >
+                      {loadingModels ? <Spinner /> : <RefreshCw className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {currentModels.length === 0 && currentModel && (
+                    <p className="mt-1 text-xs text-gray-400">
+                      {t("Custom model")}: {currentModel}
+                    </p>
+                  )}
                   <input
                     type="text"
-                    value={ollamaModel}
-                    onChange={(e) => setOllamaModel(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    placeholder="qwen2.5:7b-instruct"
+                    value={currentModel}
+                    onChange={(e) => setCurrentModel(e.target.value)}
+                    className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder={aiProvider === "ollama" ? "qwen2.5:7b-instruct" : "my-model"}
                   />
+                  <p className="mt-1 text-xs text-gray-400">
+                    {t("Select from dropdown or type a custom model name")}
+                  </p>
                 </div>
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-                <h3 className="text-sm font-semibold text-gray-900">GLM-OCR</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("GLM-OCR")}</h3>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Binary Path
+                    {t("Binary Path")}
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -276,7 +379,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                       className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                     >
                       <TestTube2 className="w-4 h-4" />
-                      Test
+                      {t("Test")}
                     </button>
                     <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
                   </div>
@@ -287,8 +390,11 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                 <button
                   onClick={() =>
                     handleSave({
+                      ai_provider: aiProvider,
                       ollama_url: ollamaUrl,
                       ollama_model: ollamaModel,
+                      lm_studio_url: lmStudioUrl,
+                      lm_studio_model: lmStudioModel,
                       glmocr_path: glmocrPath,
                     })
                   }
@@ -296,7 +402,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {saveMutation.isPending && <Spinner />}
-                  Save AI Settings
+                  {t("Save AI Settings")}
                 </button>
               </div>
             </>
@@ -304,16 +410,16 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
           {activeTab === "appearance" && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-              <h3 className="text-sm font-semibold text-gray-900">Theme</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("Theme")}</h3>
 
               <div className="grid grid-cols-3 gap-3">
-                {(["light", "dark", "system"] as const).map((t) => (
+                {(["light", "dark", "system"] as const).map((th) => (
                   <button
-                    key={t}
-                    onClick={() => setTheme(t)}
+                    key={th}
+                    onClick={() => setTheme(th)}
                     className={cn(
                       "rounded-xl border-2 p-4 text-center transition-colors focus:outline-none",
-                      theme === t
+                      theme === th
                         ? "border-blue-600 bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
                     )}
@@ -321,18 +427,18 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                     <div
                       className={cn(
                         "w-8 h-8 rounded-lg mx-auto mb-2 border",
-                        t === "light" && "bg-white border-gray-300",
-                        t === "dark" && "bg-gray-900 border-gray-700",
-                        t === "system" && "bg-gradient-to-br from-white to-gray-900 border-gray-400"
+                        th === "light" && "bg-white border-gray-300",
+                        th === "dark" && "bg-gray-900 border-gray-700",
+                        th === "system" && "bg-gradient-to-br from-white to-gray-900 border-gray-400"
                       )}
                     />
                     <span
                       className={cn(
-                        "text-sm font-medium capitalize",
-                        theme === t ? "text-blue-700" : "text-gray-700"
+                        "text-sm font-medium",
+                        theme === th ? "text-blue-700" : "text-gray-700"
                       )}
                     >
-                      {t}
+                      {t(THEME_LABELS[th])}
                     </span>
                   </button>
                 ))}
@@ -345,7 +451,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {saveMutation.isPending && <Spinner />}
-                  Save Appearance
+                  {t("Save Appearance")}
                 </button>
               </div>
             </div>
@@ -354,9 +460,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
           {activeTab === "data" && (
             <div className="space-y-4">
               <BackupRestoreCard
-                title="Backup Client Data"
-                description="Create a complete backup of all client data, transactions, and settings. The backup will be saved as a file you choose."
-                buttonText="Backup Client Data"
+                title={t("Backup Client Data")}
+                description={t("Create a complete backup of all client data, transactions, and settings. The backup will be saved as a file you choose.")}
+                buttonText={t("Backup Client Data")}
                 buttonIcon={HardDriveUpload}
                 onAction={() => backupMutation.mutate()}
                 loading={backupMutation.isPending}
@@ -364,9 +470,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               />
 
               <BackupRestoreCard
-                title="Restore from Backup"
-                description="Restore all data from a previously created backup file. This will replace all current data."
-                buttonText="Restore from Backup"
+                title={t("Restore from Backup")}
+                description={t("Restore all data from a previously created backup file. This will replace all current data.")}
+                buttonText={t("Restore from Backup")}
                 buttonIcon={HardDriveDownload}
                 onAction={() => setConfirmRestore(true)}
                 loading={restoreMutation.isPending}
@@ -374,9 +480,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               />
 
               <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Export All Transactions</h4>
+                <h4 className="text-sm font-semibold text-gray-900">{t("Export All Transactions")}</h4>
                 <p className="text-sm text-gray-500">
-                  Download all transactions across all clients as a CSV file.
+                  {t("Download all transactions across all clients as a CSV file.")}
                 </p>
                 <button
                   onClick={() => handleSave({ default_export_path: exportPath })}
@@ -384,7 +490,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <FileDown className="w-4 h-4" />
-                  Export All Transactions (CSV)
+                  {t("Export All Transactions (CSV)")}
                 </button>
               </div>
             </div>
@@ -394,16 +500,16 @@ export function SettingsPage(_props: { onBack?: () => void }) {
             <div className="rounded-xl border border-gray-200 bg-white p-8 space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Taxeasy</h2>
-                <p className="text-sm text-gray-500 mt-1">Local-first bookkeeping</p>
+                <p className="text-sm text-gray-500 mt-1">{t("Local-first bookkeeping")}</p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Version</span>
+                  <span className="text-sm text-gray-600">{t("Version")}</span>
                   <span className="text-sm font-medium text-gray-900">0.1.0</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Tech Stack</span>
+                  <span className="text-sm text-gray-600">{t("Tech Stack")}</span>
                   <span className="text-sm font-medium text-gray-900">
                     Tauri, React, and SQLite
                   </span>
@@ -421,17 +527,17 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="text-base font-semibold text-gray-900">Confirm Restore</h3>
+              <h3 className="text-base font-semibold text-gray-900">{t("Confirm Restore")}</h3>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">
-              This will overwrite all your current data with the backup. This action cannot be undone.
+              {t("This will overwrite all your current data with the backup. This action cannot be undone.")}
             </p>
             <div className="flex items-center gap-3 justify-end pt-2">
               <button
                 onClick={() => setConfirmRestore(false)}
                 className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 onClick={() => restoreMutation.mutate()}
@@ -439,7 +545,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {restoreMutation.isPending && <Spinner />}
-                Restore
+                {t("Restore")}
               </button>
             </div>
           </div>
@@ -450,9 +556,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
         <div
           className={cn(
             "fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all",
-            toast.type === "success"
-              ? "bg-green-600 text-white"
-              : "bg-red-600 text-white"
+            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
           )}
         >
           {toast.message}

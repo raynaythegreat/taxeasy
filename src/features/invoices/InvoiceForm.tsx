@@ -8,6 +8,7 @@ import type {
   CreateInvoiceLinePayload,
 } from "../../lib/invoice-api";
 import { cn, today } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface InvoiceFormProps {
   invoice?: InvoiceDetail;
@@ -52,6 +53,7 @@ function payloadToLines(lines: InvoiceDetail["lines"]): LineState[] {
 }
 
 export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceFormProps) {
+  const { t } = useI18n();
   const [invoiceType, setInvoiceType] = useState<InvoiceType>(
     invoice?.invoice_type ?? defaultType ?? "invoice"
   );
@@ -136,15 +138,15 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!clientName.trim()) {
-      setError("Client name is required.");
+      setError(t("Client name is required."));
       return;
     }
     if (!issueDate) {
-      setError("Issue date is required.");
+      setError(t("Issue date is required."));
       return;
     }
     if (lines.length === 0 || lines.every((l) => !l.description.trim())) {
-      setError("At least one line item with a description is required.");
+      setError(t("At least one line item with a description is required."));
       return;
     }
     setError(null);
@@ -156,7 +158,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
       <div className="h-full w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h2 className="text-base font-semibold text-gray-900">
-            {invoice ? "Edit" : "New"} {invoiceType === "invoice" ? "Invoice" : invoiceType === "receipt" ? "Receipt" : "Estimate"}
+            {invoice ? t("Edit") : t("New")} {invoiceType === "invoice" ? t("Invoice") : invoiceType === "receipt" ? t("Receipt") : t("Estimate")}
           </h2>
           <button
             type="button"
@@ -181,7 +183,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                     : "text-gray-500 hover:text-gray-700"
                 )}
               >
-                {opt.label}
+                {t(opt.label)}
               </button>
             ))}
           </div>
@@ -189,7 +191,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Document #
+                {t("Document #")}
               </label>
               <input
                 type="text"
@@ -201,7 +203,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Issue Date
+                {t("Issue Date")}
               </label>
               <input
                 type="date"
@@ -213,7 +215,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
+                {t("Due Date")}
               </label>
               <input
                 type="date"
@@ -228,20 +230,20 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Name <span className="text-red-500">*</span>
+                {t("Client Name")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="Client or customer name"
+                placeholder={t("Client or customer name")}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Email
+                {t("Client Email")}
               </label>
               <input
                 type="email"
@@ -254,12 +256,12 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Address
+                {t("Client Address")}
               </label>
               <textarea
                 value={clientAddress}
                 onChange={(e) => setClientAddress(e.target.value)}
-                placeholder="Street, City, State, ZIP"
+                placeholder={t("Street, City, State, ZIP")}
                 rows={2}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 disabled={mutation.isPending}
@@ -269,23 +271,23 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Line Items
+              {t("Line Items")}
             </label>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Description
+                      {t("Description")}
                     </th>
                     <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">
-                      Qty
+                      {t("Qty")}
                     </th>
                     <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">
-                      Unit Price
+                      {t("Unit Price")}
                     </th>
                     <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">
-                      Total
+                      {t("Total")}
                     </th>
                     <th className="w-10" />
                   </tr>
@@ -302,7 +304,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                             type="text"
                             value={line.description}
                             onChange={(e) => updateLine(i, "description", e.target.value)}
-                            placeholder="Item description"
+                            placeholder={t("Item description")}
                             className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-500 bg-white"
                             disabled={mutation.isPending}
                           />
@@ -358,7 +360,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                   disabled={mutation.isPending}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Add Line
+                  {t("Add Line")}
                 </button>
               </div>
             </div>
@@ -367,7 +369,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tax Rate (%)
+                {t("Tax Rate (%)")}
               </label>
               <input
                 type="number"
@@ -382,15 +384,15 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
             </div>
             <div className="space-y-1.5 pt-5">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-500">{t("Subtotal")}</span>
                 <span className="text-gray-700 tabular-nums">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax ({taxRate || "0"}%)</span>
+                <span className="text-gray-500">{t("Tax")} ({taxRate || "0"}%)</span>
                 <span className="text-gray-700 tabular-nums">${taxAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-1.5">
-                <span className="text-gray-900">Total</span>
+                <span className="text-gray-900">{t("Total")}</span>
                 <span className="text-gray-900 tabular-nums">${total.toFixed(2)}</span>
               </div>
             </div>
@@ -398,12 +400,12 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
+              {t("Notes")}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Payment terms, additional info…"
+              placeholder={t("Payment terms, additional info…")}
               rows={3}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               disabled={mutation.isPending}
@@ -423,7 +425,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
               disabled={mutation.isPending}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="submit"
@@ -435,7 +437,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                   : "bg-blue-600 text-white hover:bg-blue-700"
               )}
             >
-              {mutation.isPending ? "Saving…" : invoice ? "Update" : "Create"}
+              {mutation.isPending ? t("Saving…") : invoice ? t("Update") : t("Create")}
             </button>
           </div>
         </form>

@@ -4,6 +4,7 @@ import { AlertTriangle, Archive } from "lucide-react";
 import { archiveClient } from "../../lib/client-api";
 import type { Client } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface ClientArchiveConfirmProps {
   client: Client;
@@ -12,6 +13,7 @@ interface ClientArchiveConfirmProps {
 }
 
 export function ClientArchiveConfirm({ client, onClose, onArchived }: ClientArchiveConfirmProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -35,14 +37,14 @@ export function ClientArchiveConfirm({ client, onClose, onArchived }: ClientArch
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 shrink-0">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
-            <h2 className="text-base font-semibold text-gray-900">Archive Client</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t("Archive Client")}</h2>
           </div>
 
           <p className="text-sm text-gray-600">
-            Are you sure you want to archive <strong>{client.name}</strong>?
+            {t("Are you sure you want to archive {name}?", { name: client.name })}
           </p>
           <p className="text-xs text-gray-500">
-            This client will be hidden from the active client list. Archived clients can be restored later.
+            {t("This client will be hidden from the active client list. Archived clients can be restored later.")}
           </p>
 
           {error && (
@@ -58,7 +60,7 @@ export function ClientArchiveConfirm({ client, onClose, onArchived }: ClientArch
               disabled={mutation.isPending}
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="button"
@@ -72,7 +74,7 @@ export function ClientArchiveConfirm({ client, onClose, onArchived }: ClientArch
               )}
             >
               <Archive className="w-4 h-4" />
-              {mutation.isPending ? "Archiving…" : "Archive"}
+              {mutation.isPending ? t("Archiving…") : t("Archive")}
             </button>
           </div>
         </div>

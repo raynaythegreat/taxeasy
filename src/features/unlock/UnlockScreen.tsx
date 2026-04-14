@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { unlock } from "../../lib/tauri";
+import { useI18n } from "../../lib/i18n";
 
 interface UnlockScreenProps {
   onUnlocked: () => void;
 }
 
 export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
+  const { t } = useI18n();
   const [passphrase, setPassphrase] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +25,9 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
         err instanceof Error ? err.message : String(err);
       // Surface a clean message regardless of Tauri error format
       if (message.toLowerCase().includes("passphrase") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong")) {
-        setError("Incorrect passphrase. Please try again.");
+        setError(t("Incorrect passphrase. Please try again."));
       } else {
-        setError("Unable to unlock. Please try again.");
+        setError(t("Unable to unlock. Please try again."));
       }
     } finally {
       setLoading(false);
@@ -66,7 +68,7 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
                 htmlFor="passphrase"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                Passphrase
+                {t("Passphrase")}
               </label>
               <input
                 id="passphrase"
@@ -78,7 +80,7 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
                 }}
                 autoFocus
                 autoComplete="current-password"
-                placeholder="Enter your passphrase"
+                placeholder={t("Enter your passphrase")}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 disabled={loading}
                 required
@@ -122,10 +124,10 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     />
                   </svg>
-                  Unlocking…
+                  {t("Unlocking…")}
                 </span>
               ) : (
-                "Unlock"
+                t("Unlock")
               )}
             </button>
           </form>

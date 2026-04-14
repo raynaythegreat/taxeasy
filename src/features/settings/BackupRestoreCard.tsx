@@ -1,5 +1,6 @@
 import { type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface BackupRestoreCardProps {
   title: string;
@@ -20,13 +21,15 @@ export function BackupRestoreCard({
   loading,
   variant = "primary",
 }: BackupRestoreCardProps) {
+  const { t } = useI18n();
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
       <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
       <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
       {variant === "danger" && (
         <p className="text-xs text-amber-600 font-medium">
-          This will overwrite your current data. Make sure you have a recent backup.
+          {t("This will overwrite your current data. Make sure you have a recent backup.")}
         </p>
       )}
       <button
@@ -61,7 +64,7 @@ export function BackupRestoreCard({
                 d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
               />
             </svg>
-            Working…
+            {t("Working…")}
           </>
         ) : (
           <>

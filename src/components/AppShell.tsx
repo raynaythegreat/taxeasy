@@ -6,10 +6,12 @@ import { getActiveClientPref, switchClient } from "../lib/tauri";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { Settings, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 
 type AppView = "dashboard" | "clients" | "settings";
 
 export function AppShell() {
+  const { t, locale, setLocale } = useI18n();
   const [view, setView] = useState<AppView>("dashboard");
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
 
@@ -34,9 +36,9 @@ export function AppShell() {
   };
 
   const NAV_ITEMS: { id: AppView; label: string; icon: typeof LayoutDashboard }[] = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "clients", label: "Clients", icon: Users },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "dashboard", label: t("Dashboard"), icon: LayoutDashboard },
+    { id: "clients", label: t("Clients"), icon: Users },
+    { id: "settings", label: t("Settings"), icon: Settings },
   ];
 
   return (
@@ -69,6 +71,18 @@ export function AppShell() {
             );
           })}
         </nav>
+
+        <div className="ml-auto flex items-center">
+          <button
+            onClick={() => setLocale(locale === "en" ? "es" : "en")}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+              "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]"
+            )}
+          >
+            <span>{locale === "en" ? "🇺🇸 EN" : "🇪🇸 ES"}</span>
+          </button>
+        </div>
       </header>
       <main className="flex-1 min-h-0 overflow-hidden">
         {view === "dashboard" && (

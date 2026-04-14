@@ -20,6 +20,7 @@ import {
   type UpdateAccountPayload,
 } from "../../lib/account-api";
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 const ACCOUNT_TYPE_ORDER: AccountType[] = [
   "asset",
@@ -70,14 +71,16 @@ const EMPTY_FORM: AccountFormState = {
 };
 
 function TypeBadge({ type }: { type: AccountType }) {
+  const { t } = useI18n();
   return (
     <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium", ACCOUNT_TYPE_COLORS[type])}>
-      {ACCOUNT_TYPE_LABELS[type]}
+      {t(ACCOUNT_TYPE_LABELS[type])}
     </span>
   );
 }
 
 export function AccountManagementPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -160,7 +163,7 @@ export function AccountManagementPage() {
   function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!addForm.code.trim() || !addForm.name.trim()) {
-      setAddError("Code and name are required.");
+      setAddError(t("Code and name are required."));
       return;
     }
     setAddError(null);
@@ -188,7 +191,7 @@ export function AccountManagementPage() {
   function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!editForm.code.trim() || !editForm.name.trim()) {
-      setEditError("Code and name are required.");
+      setEditError(t("Code and name are required."));
       return;
     }
     if (!editingId) return;
@@ -206,7 +209,7 @@ export function AccountManagementPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
-        <h1 className="text-sm font-semibold text-gray-700">Chart of Accounts</h1>
+        <h1 className="text-sm font-semibold text-gray-700">{t("Chart of Accounts")}</h1>
         <button
           type="button"
           onClick={() => {
@@ -216,7 +219,7 @@ export function AccountManagementPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           <Plus className="w-4 h-4" />
-          Add Account
+          {t("Add Account")}
         </button>
       </div>
 
@@ -227,7 +230,7 @@ export function AccountManagementPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search accounts…"
+            placeholder={t("Search accounts…")}
             className="pl-8 pr-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500 bg-white w-64"
           />
         </div>
@@ -261,12 +264,12 @@ export function AccountManagementPage() {
                       <ChevronDown className="w-4 h-4 text-gray-400" />
                     )}
                     <div className={cn("w-2.5 h-2.5 rounded-full", ACCOUNT_TYPE_DOT[type])} />
-                    <span className="text-sm font-semibold text-gray-700">{ACCOUNT_TYPE_LABELS[type]}</span>
+                    <span className="text-sm font-semibold text-gray-700">{t(ACCOUNT_TYPE_LABELS[type])}</span>
                     <span className="text-xs text-gray-400 ml-1">({items.length})</span>
                   </button>
 
                   {!isCollapsed && items.length === 0 && (
-                    <div className="px-5 py-3 text-xs text-gray-400">No accounts</div>
+                    <div className="px-5 py-3 text-xs text-gray-400">{t("No accounts")}</div>
                   )}
 
                   {!isCollapsed &&
@@ -279,7 +282,7 @@ export function AccountManagementPage() {
                           >
                             <div className="grid grid-cols-[80px_1fr_120px_120px] gap-3 items-end">
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Code</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Code")}</label>
                                 <input
                                   type="text"
                                   value={editForm.code}
@@ -290,7 +293,7 @@ export function AccountManagementPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Name")}</label>
                                 <input
                                   type="text"
                                   value={editForm.name}
@@ -301,7 +304,7 @@ export function AccountManagementPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Sch C Line</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Sch C Line")}</label>
                                 <input
                                   type="text"
                                   value={editForm.schedule_c_line}
@@ -318,7 +321,7 @@ export function AccountManagementPage() {
                                   disabled={updateMutation.isPending}
                                   className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                  {updateMutation.isPending ? "Saving…" : "Save"}
+                                  {updateMutation.isPending ? t("Saving…") : t("Save")}
                                 </button>
                                 <button
                                   type="button"
@@ -351,7 +354,7 @@ export function AccountManagementPage() {
                               type="button"
                               onClick={() => toggleMutation.mutate({ id: account.id, active: !account.active })}
                               className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title={account.active ? "Deactivate" : "Activate"}
+                              title={account.active ? t("Deactivate") : t("Activate")}
                             >
                               {account.active ? (
                                 <ToggleRight className="w-5 h-5 text-green-500 hover:text-green-600" />
@@ -363,7 +366,7 @@ export function AccountManagementPage() {
                               type="button"
                               onClick={() => startEdit(account)}
                               className="shrink-0 p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Edit account"
+                              title={t("Edit account")}
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -382,7 +385,7 @@ export function AccountManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 border border-gray-200">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">Add Account</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t("Add Account")}</h2>
               <button
                 type="button"
                 onClick={() => {
@@ -400,7 +403,7 @@ export function AccountManagementPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Code <span className="text-red-500">*</span>
+                    {t("Code")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -414,7 +417,7 @@ export function AccountManagementPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type <span className="text-red-500">*</span>
+                    {t("Type")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={addForm.account_type}
@@ -424,9 +427,9 @@ export function AccountManagementPage() {
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={createMutation.isPending}
                   >
-                    {ACCOUNT_TYPE_ORDER.map((t) => (
-                      <option key={t} value={t}>
-                        {ACCOUNT_TYPE_LABELS[t]}
+                    {ACCOUNT_TYPE_ORDER.map((at) => (
+                      <option key={at} value={at}>
+                        {t(ACCOUNT_TYPE_LABELS[at])}
                       </option>
                     ))}
                   </select>
@@ -435,7 +438,7 @@ export function AccountManagementPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name <span className="text-red-500">*</span>
+                    {t("Name")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -449,7 +452,7 @@ export function AccountManagementPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parent Account <span className="text-gray-400 font-normal">(optional)</span>
+                    {t("Parent Account")} <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <select
                   value={addForm.parent_id}
@@ -470,7 +473,7 @@ export function AccountManagementPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Schedule C Line <span className="text-gray-400 font-normal">(optional)</span>
+                    {t("Schedule C Line")} <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -499,7 +502,7 @@ export function AccountManagementPage() {
                   disabled={createMutation.isPending}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="submit"
@@ -511,7 +514,7 @@ export function AccountManagementPage() {
                       : "bg-blue-600 text-white hover:bg-blue-700"
                   )}
                 >
-                  {createMutation.isPending ? "Creating…" : "Create Account"}
+                  {createMutation.isPending ? t("Creating…") : t("Create Account")}
                 </button>
               </div>
             </form>

@@ -2,7 +2,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, Result};
-use crate::state::AppState;
 
 #[derive(Serialize, Deserialize)]
 struct LmStudioModel {

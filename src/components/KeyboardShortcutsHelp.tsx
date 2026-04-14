@@ -1,23 +1,25 @@
 import { X } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 
 interface KeyboardShortcutsHelpProps {
   open: boolean;
   onClose: () => void;
 }
 
-const SHORTCUTS = [
-  { keys: ["⌘", "N"], label: "New Transaction" },
-  { keys: ["⌘", "E"], label: "Edit Selected" },
-  { keys: ["⌘", "I"], label: "Import" },
-  { keys: ["⌘", "R"], label: "View Reports" },
-  { keys: ["⌘", "B"], label: "Toggle Sidebar" },
-  { keys: ["⌘", ","], label: "Settings" },
-  { keys: ["?"], label: "Show Shortcuts" },
-  { keys: ["Esc"], label: "Close / Cancel" },
+const SHORTCUT_KEYS = [
+  { keys: ["⌘", "N"], labelKey: "New Transaction" },
+  { keys: ["⌘", "E"], labelKey: "Edit Selected" },
+  { keys: ["⌘", "I"], labelKey: "Import" },
+  { keys: ["⌘", "R"], labelKey: "View Reports" },
+  { keys: ["⌘", "B"], labelKey: "Toggle Sidebar" },
+  { keys: ["⌘", ","], labelKey: "Settings" },
+  { keys: ["?"], labelKey: "Show Shortcuts" },
+  { keys: ["Esc"], labelKey: "Close / Cancel" },
 ] as const;
 
 export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpProps) {
+  const { t } = useI18n();
   if (!open) return null;
 
   return (
@@ -35,7 +37,7 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
         )}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-slate-700">
-          <h3 className="text-sm font-semibold">Keyboard Shortcuts</h3>
+          <h3 className="text-sm font-semibold">{t("Keyboard Shortcuts")}</h3>
           <button
             type="button"
             onClick={onClose}
@@ -45,13 +47,13 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
           </button>
         </div>
         <div className="px-5 py-3 space-y-1">
-          {SHORTCUTS.map((s) => (
+          {SHORTCUT_KEYS.map((s) => (
             <div
-              key={s.label}
+              key={s.labelKey}
               className="flex items-center justify-between py-1.5"
             >
               <span className="text-sm text-gray-600 dark:text-slate-400">
-                {s.label}
+                {t(s.labelKey)}
               </span>
               <div className="flex items-center gap-0.5">
                 {s.keys.map((k, i) => (
@@ -73,7 +75,7 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
         </div>
         <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700">
           <p className="text-xs text-gray-400 dark:text-slate-500 text-center">
-            Press <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-[10px] font-mono">?</kbd> to toggle this panel
+            {t("Press")} <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-[10px] font-mono">?</kbd> {t("to toggle this panel")}
           </p>
         </div>
       </div>
