@@ -30,7 +30,7 @@ fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
             AiConfig {
                 provider: get(conn, "ai_provider", "ollama"),
                 ollama_url: get(conn, "ollama_url", "http://localhost:11434"),
-                ollama_model: get(conn, "ollama_model", "qwen2.5:7b-instruct"),
+                ollama_model: get(conn, "ollama_model", "glm-ocr:latest"),
                 lm_studio_url: get(conn, "lm_studio_url", "http://localhost:1234"),
                 lm_studio_model: get(conn, "lm_studio_model", ""),
             }
@@ -38,7 +38,7 @@ fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
         None => AiConfig {
             provider: "ollama".into(),
             ollama_url: "http://localhost:11434".into(),
-            ollama_model: "qwen2.5:7b-instruct".into(),
+            ollama_model: "glm-ocr:latest".into(),
             lm_studio_url: "http://localhost:1234".into(),
             lm_studio_model: "".into(),
         },
@@ -106,7 +106,7 @@ pub async fn ai_complete(config: &AiConfig, prompt: &str) -> Result<String> {
         }
         _ => {
             let model = if config.ollama_model.is_empty() {
-                "qwen2.5:7b-instruct"
+                "glm-ocr:latest"
             } else {
                 &config.ollama_model
             };

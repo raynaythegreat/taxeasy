@@ -65,6 +65,7 @@ export function TransactionsPage() {
   const handleCreated = useCallback(() => {
     invalidateTxns();
     invalidateReports();
+    setShowForm(false);
   }, [invalidateTxns, invalidateReports]);
 
   const handleImported = useCallback(() => {

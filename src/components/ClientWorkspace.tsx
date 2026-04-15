@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Printer, Building2, Calendar } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Printer, Building2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Client } from "../lib/tauri";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
@@ -8,13 +8,12 @@ import { ClientInvoiceHistory } from "../features/invoices/ClientInvoiceHistory"
 import { PnLView } from "../features/reports/PnLView";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
-import { cn, today, fiscalYearRange, formatDate } from "../lib/utils";
+import { cn, fiscalYearRange, formatDate } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
 
 type WorkspaceTab = "overview" | "transactions" | "accounts" | "invoices" | "pnl" | "balance_sheet" | "cash_flow";
 
-const _year = new Date().getFullYear();
-const _defaultRange = fiscalYearRange(_year);
+const MIN_YEAR = 2000;
 
 interface ClientWorkspaceProps {
   client: Client;
@@ -23,9 +22,16 @@ interface ClientWorkspaceProps {
 export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
-  const [dateFrom, setDateFrom] = useState(_defaultRange.from);
-  const [dateTo, setDateTo] = useState(_defaultRange.to);
-  const [asOfDate, setAsOfDate] = useState(today());
+
+  const currentYear = new Date().getFullYear();
+  const recentYears = useMemo(
+    () => Array.from({ length: 8 }, (_, i) => currentYear - i),
+    [currentYear]
+  );
+  const [taxYear, setTaxYear] = useState(currentYear);
+  const isRecent = recentYears.includes(taxYear);
+
+  const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
 
   const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
     { id: "overview", label: t("Overview") },
@@ -45,11 +51,10 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
     partnership: t("Partnership"),
   };
 
-  const isReportTab = tab !== "transactions" && tab !== "accounts" && tab !== "invoices" && tab !== "overview";
+  const isReportTab = tab === "pnl" || tab === "balance_sheet" || tab === "cash_flow";
 
   return (
     <div className="flex flex-col h-full">
-      {/* Client header */}
       {tab !== "overview" && (
         <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-3 print:hidden">
           <div className="flex items-center gap-3 flex-wrap">
@@ -67,65 +72,69 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         </div>
       )}
 
-      {/* Sub-tab toolbar */}
       <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-2 flex items-center gap-4 flex-wrap print:hidden">
         <nav className="flex gap-1">
-          {WORKSPACE_TABS.map((t) => (
+          {WORKSPACE_TABS.map((wt) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={wt.id}
+              onClick={() => setTab(wt.id)}
               className={cn(
                 "px-3 py-1.5 rounded text-sm font-medium transition-colors",
-                tab === t.id
+                tab === wt.id
                   ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
               )}
             >
-              {t.label}
+              {wt.label}
             </button>
           ))}
         </nav>
 
-        {/* Date controls — report tabs only */}
         {isReportTab && (
-          <div className="flex items-center gap-2 ml-auto flex-wrap">
-            {tab === "balance_sheet" ? (
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                  {t("As of")}
-                </label>
-                <input
-                  type="date"
-                  value={asOfDate}
-                  onChange={(e) => setAsOfDate(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                  {t("From")}
-                </label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                  {t("To")}
-                </label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
+              disabled={taxYear <= MIN_YEAR}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              {recentYears.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => setTaxYear(y)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    taxYear === y
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setTaxYear((y) => Math.min(currentYear, y + 1))}
+              disabled={taxYear >= currentYear}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            {!isRecent && (
+              <span className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+                {taxYear}
+              </span>
             )}
+            <span className="text-xs text-gray-400 tabular-nums ml-2">
+              {from} &mdash; {to}
+            </span>
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-2"
             >
               <Printer className="w-4 h-4" />
               {t("Print")}
@@ -134,7 +143,6 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         )}
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-h-0 overflow-auto print:overflow-visible">
         {tab === "overview" && (
           <div className="flex flex-col h-full">
@@ -180,17 +188,17 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         {tab === "invoices" && <InvoicesPage />}
         {tab === "pnl" && (
           <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <PnLView dateFrom={dateFrom} dateTo={dateTo} clientName={client.name} />
+            <PnLView dateFrom={from} dateTo={to} clientName={client.name} />
           </div>
         )}
         {tab === "balance_sheet" && (
           <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <BalanceSheetView asOfDate={asOfDate} clientName={client.name} />
+            <BalanceSheetView asOfDate={to} clientName={client.name} />
           </div>
         )}
         {tab === "cash_flow" && (
           <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <CashFlowView dateFrom={dateFrom} dateTo={dateTo} clientName={client.name} />
+            <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
           </div>
         )}
       </div>

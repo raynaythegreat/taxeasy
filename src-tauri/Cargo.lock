@@ -4827,6 +4827,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "argon2",
+ "base64 0.22.1",
  "chrono",
  "env_logger",
  "log",

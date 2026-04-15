@@ -38,6 +38,7 @@ uuid           = { version = "1", features = ["v4", "serde"] }
 # Async runtime + HTTP (for Ollama)
 tokio          = { version = "1", features = ["full"] }
 reqwest        = { version = "0.12", features = ["json"] }
+base64         = "0.22"
 
 # Encryption (AES-256-GCM for EIN field, key derivation)
 aes-gcm        = "0.10"

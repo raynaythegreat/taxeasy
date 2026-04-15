@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { listClients, getActiveClientId } from "../../lib/tauri";
-import { today, fiscalYearRange, cn } from "../../lib/utils";
+import { fiscalYearRange, cn } from "../../lib/utils";
 import { handleExportReport } from "../../lib/export-api";
 import { useI18n } from "../../lib/i18n";
 import { PnLView } from "./PnLView";
@@ -17,15 +17,22 @@ const TABS: { id: ReportTab; label: string }[] = [
   { id: "cash_flow", label: "Cash Flow" },
 ];
 
-const currentYear = new Date().getFullYear();
-const defaultRange = fiscalYearRange(currentYear);
+const MIN_YEAR = 2000;
 
 export function ReportsPage() {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ReportTab>("pnl");
-  const [dateFrom, setDateFrom] = useState(defaultRange.from);
-  const [dateTo, setDateTo] = useState(defaultRange.to);
-  const [asOfDate, setAsOfDate] = useState(today());
+
+  const currentYear = new Date().getFullYear();
+  const recentYears = useMemo(
+    () => Array.from({ length: 8 }, (_, i) => currentYear - i),
+    [currentYear]
+  );
+  const [taxYear, setTaxYear] = useState(currentYear);
+  const isRecent = recentYears.includes(taxYear);
+
+  const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
+
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -50,7 +57,7 @@ export function ReportsPage() {
     setExporting(true);
     setExportError(null);
     try {
-      await handleExportReport(activeTab, dateFrom, dateTo);
+      await handleExportReport(activeTab, from, to);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : t("Export failed"));
       setTimeout(() => setExportError(null), 4000);
@@ -79,41 +86,50 @@ export function ReportsPage() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 ml-auto">
-          {activeTab === "balance_sheet" ? (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                {t("As of")}
-              </label>
-              <input
-                type="date"
-                value={asOfDate}
-                onChange={(e) => setAsOfDate(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                {t("From")}
-              </label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <label className="text-sm text-gray-600 font-medium whitespace-nowrap">
-                {t("To")}
-              </label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
+            disabled={taxYear <= MIN_YEAR}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            {recentYears.map((y) => (
+              <button
+                key={y}
+                type="button"
+                onClick={() => setTaxYear(y)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  taxYear === y
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setTaxYear((y) => Math.min(currentYear, y + 1))}
+            disabled={taxYear >= currentYear}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+          {!isRecent && (
+            <span className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+              {taxYear}
+            </span>
           )}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs text-gray-400 tabular-nums">
+            {from} &mdash; {to}
+          </span>
 
           <button
             onClick={handleExport}
@@ -143,13 +159,13 @@ export function ReportsPage() {
       <div className="flex-1 overflow-auto bg-gray-50 print:bg-white print:overflow-visible">
         <div className="min-h-full py-6 print:py-0">
           {activeTab === "pnl" && (
-            <PnLView dateFrom={dateFrom} dateTo={dateTo} clientName={clientName} />
+            <PnLView dateFrom={from} dateTo={to} clientName={clientName} />
           )}
           {activeTab === "balance_sheet" && (
-            <BalanceSheetView asOfDate={asOfDate} clientName={clientName} />
+            <BalanceSheetView asOfDate={to} clientName={clientName} />
           )}
           {activeTab === "cash_flow" && (
-            <CashFlowView dateFrom={dateFrom} dateTo={dateTo} clientName={clientName} />
+            <CashFlowView dateFrom={from} dateTo={to} clientName={clientName} />
           )}
         </div>
       </div>
