@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload, Search, ChevronLeft } from "lucide-react";
+import { Plus, Upload, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { listAccounts } from "../../lib/tauri";
 import { fiscalYearRange, today } from "../../lib/utils";
 import { LedgerView } from "./LedgerView";
@@ -8,17 +8,32 @@ import { TransactionForm } from "./TransactionForm";
 import { ImportWizard } from "./ImportWizard";
 import { useI18n } from "../../lib/i18n";
 
+const MIN_YEAR = 2000;
+
 export function TransactionsPage() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const currentYear = new Date().getFullYear();
-  const taxYears = useMemo(() => [currentYear, currentYear - 1, currentYear - 2, currentYear - 3], [currentYear]);
+  const recentYears = useMemo(
+    () => Array.from({ length: 8 }, (_, i) => currentYear - i),
+    [currentYear]
+  );
   const [taxYear, setTaxYear] = useState(currentYear);
   const [accountId, setAccountId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+
+  const isRecent = recentYears.includes(taxYear);
+
+  const defaultTxnDate = useMemo(() => {
+    if (taxYear === currentYear) return today();
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${taxYear}-${mm}-${dd}`;
+  }, [taxYear, currentYear]);
 
   const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
 
@@ -79,8 +94,9 @@ export function TransactionsPage() {
           <TransactionForm
             onClose={() => setShowForm(false)}
             onCreated={handleCreated}
-            defaultDate={today()}
+            defaultDate={defaultTxnDate}
             taxYear={taxYear}
+            onSaveAndNew={handleCreated}
           />
         </div>
       </div>
@@ -94,21 +110,44 @@ export function TransactionsPage() {
           <h1 className="text-sm font-semibold text-gray-700">
             {t("Transactions")}
           </h1>
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            {taxYears.map((y) => (
-              <button
-                key={y}
-                type="button"
-                onClick={() => setTaxYear(y)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  taxYear === y
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
+              disabled={taxYear <= MIN_YEAR}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              {recentYears.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  onClick={() => setTaxYear(y)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                    taxYear === y
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setTaxYear((y) => Math.min(currentYear, y + 1))}
+              disabled={taxYear >= currentYear}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            {!isRecent && (
+              <span className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+                {taxYear}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
