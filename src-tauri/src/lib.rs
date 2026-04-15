@@ -65,6 +65,8 @@ pub fn run() {
             commands::invoices::update_invoice,
             commands::invoices::delete_invoice,
             commands::invoices::update_invoice_status,
+            commands::updater::check_for_updates,
+            commands::updater::get_app_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

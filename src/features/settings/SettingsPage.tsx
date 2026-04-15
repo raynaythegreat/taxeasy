@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   RefreshCw,
   ChevronDown,
+  Download,
+  ExternalLink,
 } from "lucide-react";
 import {
   getSettings,
@@ -29,7 +31,10 @@ import type { SaveSettingsPayload } from "../../lib/settings-api";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { useTheme } from "../../lib/theme";
 import { BackupRestoreCard } from "./BackupRestoreCard";
+import { checkForUpdates, getAppVersion } from "../../lib/updater-api";
+import type { UpdateCheck } from "../../lib/updater-api";
 
 type SettingsTab = "ai" | "appearance" | "data" | "about";
 type AiProvider = "ollama" | "lmstudio";
@@ -68,11 +73,11 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const [aiProvider, setAiProvider] = useState<AiProvider>("ollama");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
-  const [ollamaModel, setOllamaModel] = useState("qwen2.5:7b-instruct");
+  const [ollamaModel, setOllamaModel] = useState("glm-ocr:latest");
   const [lmStudioUrl, setLmStudioUrl] = useState("http://localhost:1234");
   const [lmStudioModel, setLmStudioModel] = useState("");
   const [glmocrPath, setGlmocrPath] = useState("");
-  const [theme, setTheme] = useState("system");
+  const { theme, setTheme } = useTheme();
   const [exportPath, setExportPath] = useState("");
 
   const [providerStatus, setProviderStatus] = useState<boolean | null>(null);
@@ -86,6 +91,14 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const [confirmRestore, setConfirmRestore] = useState(false);
 
+  const [appVersion, setAppVersion] = useState("");
+  const [updateCheck, setUpdateCheck] = useState<UpdateCheck | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  useEffect(() => {
+    getAppVersion().then(setAppVersion).catch(() => setAppVersion("0.1.0"));
+  }, []);
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: getSettings,
@@ -96,11 +109,13 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     if (settings) {
       setAiProvider((settings.ai_provider as AiProvider) || "ollama");
       setOllamaUrl(settings.ollama_url || "http://localhost:11434");
-      setOllamaModel(settings.ollama_model || "qwen2.5:7b-instruct");
+      setOllamaModel(settings.ollama_model || "glm-ocr:latest");
       setLmStudioUrl(settings.lm_studio_url || "http://localhost:1234");
       setLmStudioModel(settings.lm_studio_model || "");
       setGlmocrPath(settings.glmocr_path || "");
-      setTheme(settings.theme || "system");
+      if (settings.theme && settings.theme !== theme) {
+        setTheme(settings.theme as "light" | "dark" | "system");
+      }
       setExportPath(settings.default_export_path || "");
     }
   }, [settings]);
@@ -194,6 +209,18 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     }
   }, []);
 
+  const handleCheckUpdate = useCallback(async () => {
+    setCheckingUpdate(true);
+    try {
+      const result = await checkForUpdates();
+      setUpdateCheck(result);
+    } catch {
+      setUpdateCheck(null);
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -202,14 +229,13 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     );
   }
 
-  const THEME_LABELS: Record<string, string> = { light: "Light", dark: "Dark", system: "System" };
-
   const currentModels = aiProvider === "lmstudio" ? lmStudioModels : ollamaModels;
   const currentModel = aiProvider === "lmstudio" ? lmStudioModel : ollamaModel;
   const currentUrl = aiProvider === "lmstudio" ? lmStudioUrl : ollamaUrl;
   const setCurrentUrl = aiProvider === "lmstudio" ? setLmStudioUrl : setOllamaUrl;
   const setCurrentModel = aiProvider === "lmstudio" ? setLmStudioModel : setOllamaModel;
   const defaultUrl = aiProvider === "lmstudio" ? "http://localhost:1234" : "http://localhost:11434";
+  const defaultModel = aiProvider === "lmstudio" ? "" : "glm-ocr:latest";
   const providerLabel = aiProvider === "lmstudio" ? "LM Studio" : "Ollama";
 
   return (
@@ -350,7 +376,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                     value={currentModel}
                     onChange={(e) => setCurrentModel(e.target.value)}
                     className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    placeholder={aiProvider === "ollama" ? "qwen2.5:7b-instruct" : "my-model"}
+                    placeholder={defaultModel}
                   />
                   <p className="mt-1 text-xs text-gray-400">
                     {t("Select from dropdown or type a custom model name")}
@@ -438,7 +464,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                         theme === th ? "text-blue-700" : "text-gray-700"
                       )}
                     >
-                      {t(THEME_LABELS[th])}
+                      {t(th === "light" ? "Light" : th === "dark" ? "Dark" : "System")}
                     </span>
                   </button>
                 ))}
@@ -497,23 +523,88 @@ export function SettingsPage(_props: { onBack?: () => void }) {
           )}
 
           {activeTab === "about" && (
-            <div className="rounded-xl border border-gray-200 bg-white p-8 space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Taxeasy</h2>
-                <p className="text-sm text-gray-500 mt-1">{t("Local-first bookkeeping")}</p>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-gray-200 bg-white p-8 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Taxeasy</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t("Local-first bookkeeping")}</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">{t("Version")}</span>
+                    <span className="text-sm font-medium text-gray-900">{appVersion}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">{t("Tech Stack")}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      Tauri, React, and SQLite
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">{t("Version")}</span>
-                  <span className="text-sm font-medium text-gray-900">0.1.0</span>
+              <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-gray-900">{t("Check for Updates")}</h3>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCheckUpdate}
+                    disabled={checkingUpdate}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {checkingUpdate && <Spinner />}
+                    <RefreshCw className="w-4 h-4" />
+                    {checkingUpdate ? t("Checking…") : t("Check Now")}
+                  </button>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">{t("Tech Stack")}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    Tauri, React, and SQLite
-                  </span>
-                </div>
+
+                {updateCheck && (
+                  <div className={cn(
+                    "rounded-lg border p-4 space-y-2",
+                    updateCheck.hasUpdate
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  )}>
+                    {updateCheck.hasUpdate ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Download className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-700">
+                            {t("Update available")}: v{updateCheck.latestVersion}
+                          </span>
+                        </div>
+                        {updateCheck.downloadUrl && (
+                          <a
+                            href={updateCheck.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            {t("Download Update")}
+                          </a>
+                        )}
+                        <a
+                          href={updateCheck.releaseUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-green-600 hover:text-green-800 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {t("View release notes")}
+                        </a>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {t("You're up to date")} (v{updateCheck.currentVersion})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

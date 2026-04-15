@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   ArrowUpRight,
   Upload,
   FileText,
   Plus,
+  Scale,
+  ExternalLink,
 } from "lucide-react";
 import { listClients } from "../lib/tauri";
 import type { EntityType } from "../lib/tauri";
@@ -198,19 +199,39 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                 </div>
               </div>
 
-              <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <TrendingDown className="w-5 h-5 text-red-600" />
+                  <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <Scale className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">
-                      {t("YTD Expenses")}
+                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
+                      {t("Tax Law News")}
                     </p>
-                    <p className="text-2xl font-bold text-red-700">
-                      ${stats ? fmtMoney(stats.ytd_expenses) : "0.00"}
+                    <p className="text-sm font-medium text-indigo-700 mt-0.5">
+                      {new Date().getFullYear()} {t("Tax Season")}
                     </p>
                   </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <a
+                    href="https://www.irs.gov/newsroom"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    {t("IRS Newsroom")}
+                  </a>
+                  <a
+                    href="https://www.irs.gov/newsroom/tax-season"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    {t("Filing Season Updates")}
+                  </a>
                 </div>
               </div>
 

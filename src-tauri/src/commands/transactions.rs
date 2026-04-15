@@ -82,7 +82,7 @@ pub fn list_transactions(
 
     // Load entries for each transaction
     let mut stmt_entries = conn.prepare(
-        "SELECT e.id, e.transaction_id, e.account_id, a.name, e.debit_cents, e.credit_cents, e.memo
+        "SELECT e.id, e.transaction_id, e.account_id, a.name, e.debit_cents, e.credit_cents, e.memo, a.account_type
          FROM entries e JOIN accounts a ON a.id = e.account_id
          WHERE e.transaction_id = ?1",
     )?;
@@ -100,6 +100,7 @@ pub fn list_transactions(
                         debit: cents_to_decimal(row.get::<_, i64>(4)?),
                         credit: cents_to_decimal(row.get::<_, i64>(5)?),
                         memo: row.get(6)?,
+                        account_type: row.get(7)?,
                     })
                 })
                 .map(|rows| rows.filter_map(|r| r.ok()).collect::<Vec<_>>())
@@ -195,6 +196,14 @@ pub fn create_transaction(
             )
             .unwrap_or_default();
 
+        let account_type: Option<String> = conn
+            .query_row(
+                "SELECT account_type FROM accounts WHERE id = ?1",
+                params![e.account_id],
+                |r| r.get(0),
+            )
+            .ok();
+
         entries_out.push(Entry {
             id: entry_id,
             transaction_id: txn_id.clone(),
@@ -203,6 +212,7 @@ pub fn create_transaction(
             debit: cents_to_decimal(debit_cents),
             credit: cents_to_decimal(credit_cents),
             memo: e.memo.clone(),
+            account_type,
         });
     }
 

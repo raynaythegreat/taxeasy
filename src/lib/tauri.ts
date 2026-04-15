@@ -54,6 +54,7 @@ export interface Entry {
   debit: string;
   credit: string;
   memo?: string;
+  account_type?: string;
 }
 
 export interface TransactionWithEntries extends Transaction {

@@ -18,14 +18,13 @@ pub struct Entry {
     pub id: String,
     pub transaction_id: String,
     pub account_id: String,
-    /// The account name/code for display (joined, not stored).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account_name: Option<String>,
-    /// Positive debit amount in dollars (stored as integer cents in DB).
     pub debit: Decimal,
-    /// Positive credit amount in dollars (stored as integer cents in DB).
     pub credit: Decimal,
     pub memo: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_type: Option<String>,
 }
 
 /// Full transaction with all its entries (for display and editing).

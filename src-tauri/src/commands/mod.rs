@@ -8,3 +8,4 @@ pub mod settings;
 pub mod invoices;
 pub mod transactions;
 pub mod unlock;
+pub mod updater;

@@ -32,7 +32,7 @@ function LockIcon() {
 function SkeletonRow() {
   return (
     <tr className="animate-pulse">
-      {[...Array(7)].map((_, i) => (
+      {[...Array(6)].map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 bg-gray-100 rounded" />
         </td>
@@ -73,6 +73,27 @@ function TxnRow({
     (sum, e) => sum + (parseFloat(e.credit) || 0),
     0
   );
+
+  const hasExpenseDebit = txn.entries.some(
+    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense"
+  );
+  const isIncomeCredit = txn.entries.some(
+    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue"
+  );
+  const isTransfer = !hasExpenseDebit && !isIncomeCredit;
+
+  let displayAmount: number;
+  let amountLabel: string;
+  if (hasExpenseDebit) {
+    displayAmount = -totalDebit;
+    amountLabel = "expense";
+  } else if (isIncomeCredit) {
+    displayAmount = totalCredit;
+    amountLabel = "income";
+  } else {
+    displayAmount = totalDebit;
+    amountLabel = isTransfer ? "transfer" : "other";
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -170,10 +191,16 @@ function TxnRow({
               {accountNames}
             </td>
             <td className="px-4 py-2 text-sm text-right text-gray-400 tabular-nums">
-              {totalDebit > 0 ? formatCurrency(totalDebit) : "—"}
-            </td>
-            <td className="px-4 py-2 text-sm text-right text-gray-400 tabular-nums">
-              {totalCredit > 0 ? formatCurrency(totalCredit) : "—"}
+              <span
+                className={cn(
+                  amountLabel === "expense" && "text-red-600",
+                  amountLabel === "income" && "text-green-600",
+                  amountLabel === "transfer" && "text-blue-600"
+                )}
+              >
+                {displayAmount < 0 ? "-" : "+"}
+                {formatCurrency(Math.abs(displayAmount))}
+              </span>
             </td>
             <td className="px-2 py-2 text-right">
               <div className="flex items-center justify-end gap-1">
@@ -197,14 +224,14 @@ function TxnRow({
           </tr>
           {editError && (
             <tr className="bg-red-50 border-b border-red-100">
-              <td colSpan={7} className="px-4 py-1.5 text-xs text-red-600">
+              <td colSpan={6} className="px-4 py-1.5 text-xs text-red-600">
                 {editError}
               </td>
             </tr>
           )}
         </>
       ) : (
-        <tr
+          <tr
           className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
           onClick={() => setExpanded((e) => !e)}
         >
@@ -220,11 +247,17 @@ function TxnRow({
           <td className="px-4 py-2.5 text-sm text-gray-600 max-w-[180px] truncate">
             {accountNames}
           </td>
-          <td className="px-4 py-2.5 text-sm text-right text-gray-700 tabular-nums">
-            {totalDebit > 0 ? formatCurrency(totalDebit) : "—"}
-          </td>
-          <td className="px-4 py-2.5 text-sm text-right text-gray-700 tabular-nums">
-            {totalCredit > 0 ? formatCurrency(totalCredit) : "—"}
+          <td className="px-4 py-2.5 text-sm text-right tabular-nums">
+            <span
+              className={cn(
+                amountLabel === "expense" && "text-red-600",
+                amountLabel === "income" && "text-green-600",
+                amountLabel === "transfer" && "text-blue-600"
+              )}
+            >
+              {displayAmount < 0 ? "-" : "+"}
+              {formatCurrency(Math.abs(displayAmount))}
+            </span>
           </td>
           <td className="px-4 py-2.5 text-right">
             <div className="flex items-center justify-end gap-1">
@@ -282,7 +315,7 @@ function TxnRow({
 
       {expanded && (
         <tr className="bg-blue-50/50 border-b border-blue-100">
-          <td colSpan={7} className="px-6 py-3 border-l-2 border-blue-400">
+          <td colSpan={6} className="px-6 py-3 border-l-2 border-blue-400">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 uppercase tracking-wide">
@@ -361,10 +394,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
               {t("Accounts")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              {t("Debit")}
-            </th>
-            <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              {t("Credit")}
+              {t("Amount")}
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
               {t("Actions")}
@@ -383,7 +413,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
 
           {!isLoading && (!transactions || transactions.length === 0) && (
             <tr>
-              <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
+              <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">
                 {t("No transactions found")}
               </td>
             </tr>
@@ -398,7 +428,7 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
           <tfoot>
             <tr>
               <td
-                colSpan={7}
+                colSpan={6}
                 className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100"
               >
                 {t("Showing {count} transaction{s}", { count: String(transactions.length), s: transactions.length !== 1 ? "s" : "" })}

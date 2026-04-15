@@ -19,6 +19,10 @@ interface EntryRow {
 interface TransactionFormProps {
   onClose: () => void;
   onCreated: () => void;
+  onSaveAndNew?: () => void;
+  defaultDate?: string;
+  taxYear?: number;
+  onDateUsed?: () => void;
 }
 
 type SimpleType = "expense" | "income" | "transfer";
@@ -422,15 +426,17 @@ function buildSimpleEntries(s: SimpleState): EntryPayload[] {
 
 // ── TransactionForm ───────────────────────────────────────────────────────────
 
-export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
+export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate: defaultDateProp, onDateUsed }: TransactionFormProps) {
   const { t } = useI18n();
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
 
-  // Simple mode state
-  const [simple, setSimple] = useState<SimpleState>(makeSimpleState);
+  const [simple, setSimple] = useState<SimpleState>(() => {
+    const base = makeSimpleState();
+    if (defaultDateProp) base.date = defaultDateProp;
+    return base;
+  });
 
-  // Advanced mode state
-  const [txnDate, setTxnDate] = useState(today());
+  const [txnDate, setTxnDate] = useState(() => defaultDateProp || today());
   const [description, setDescription] = useState("");
   const [reference, setReference] = useState("");
   const [entries, setEntries] = useState<EntryRow[]>([makeEmptyRow(), makeEmptyRow()]);
@@ -553,6 +559,64 @@ export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
         });
       }
       onCreated();
+      if (onDateUsed) onDateUsed();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Failed to save transaction: ${msg}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveAndNew = async () => {
+    const canSaveNow = mode === "simple" ? isSimpleValid(simple) : advancedCanSave;
+    if (!canSaveNow || submitting) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (mode === "simple") {
+        await createTransaction({
+          txn_date: simple.date,
+          description: simple.description.trim(),
+          entries: buildSimpleEntries(simple),
+        });
+      } else {
+        const entryPayloads: EntryPayload[] = entries
+          .filter((row) => row.account_id)
+          .map((row) => ({
+            account_id: row.account_id,
+            debit: row.debit || undefined,
+            credit: row.credit || undefined,
+            memo: row.memo || undefined,
+          }));
+        await createTransaction({
+          txn_date: txnDate,
+          description: description.trim(),
+          reference: reference.trim() || undefined,
+          entries: entryPayloads,
+        });
+      }
+      onCreated();
+      const newDate = defaultDateProp || today();
+      setSimple({
+        txnType: simple.txnType,
+        date: newDate,
+        description: "",
+        amount: "",
+        paidFrom: "",
+        category: "",
+        depositedTo: "",
+        source: "",
+        fromAccount: "",
+        toAccount: "",
+        memo: "",
+      });
+      setDescription("");
+      setReference("");
+      setEntries([makeEmptyRow(), makeEmptyRow()]);
+      setTxnDate(newDate);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(`Failed to save transaction: ${msg}`);
@@ -885,6 +949,21 @@ export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
           >
             Cancel
           </button>
+          {onSaveAndNew && (
+            <button
+              type="button"
+              onClick={handleSaveAndNew}
+              disabled={!canSave}
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded",
+                canSave
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              )}
+            >
+              {submitting ? "Saving…" : t("Save & New")}
+            </button>
+          )}
           <button
             type="submit"
             disabled={!canSave}
@@ -895,7 +974,7 @@ export function TransactionForm({ onClose, onCreated }: TransactionFormProps) {
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
             )}
           >
-            {submitting ? "Saving…" : "Save Transaction"}
+            {submitting ? "Saving…" : t("Save Transaction")}
           </button>
         </div>
       </form>

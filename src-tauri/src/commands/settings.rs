@@ -48,7 +48,7 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
     Ok(AppSettings {
         ai_provider: get_val("ai_provider", "ollama"),
         ollama_url: get_val("ollama_url", "http://localhost:11434"),
-        ollama_model: get_val("ollama_model", "qwen2.5:7b-instruct"),
+        ollama_model: get_val("ollama_model", "glm-ocr:latest"),
         lm_studio_url: get_val("lm_studio_url", "http://localhost:1234"),
         lm_studio_model: get_val("lm_studio_model", ""),
         glmocr_path: get_val("glmocr_path", ""),
