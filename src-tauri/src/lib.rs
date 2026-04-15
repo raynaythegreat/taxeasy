@@ -88,6 +88,8 @@ pub fn run() {
             commands::chat::send_chat_message,
             commands::chat::get_chat_history,
             commands::chat::clear_chat_history,
+            commands::business_profile::get_business_profile,
+            commands::business_profile::save_business_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

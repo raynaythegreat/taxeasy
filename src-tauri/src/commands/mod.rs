@@ -1,5 +1,6 @@
 pub mod accounts;
 pub mod backup;
+pub mod business_profile;
 pub mod chat;
 pub mod client_export;
 pub mod clients;

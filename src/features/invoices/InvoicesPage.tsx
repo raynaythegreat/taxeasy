@@ -91,7 +91,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function InvoicesPage() {
+export function InvoicesPage({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -170,6 +170,36 @@ export function InvoicesPage() {
         }
         onBack={() => setSelectedId(null)}
       />
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">{t("Invoices")}</h2>
+        </div>
+        {invoices.length === 0 ? (
+          <p className="text-xs text-gray-400">{t("No invoices yet")}</p>
+        ) : (
+          <div className="space-y-1 max-h-48 overflow-auto">
+            {invoices.slice(0, 6).map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500 dark:text-neutral-400">{inv.invoice_number}</span>
+                  <span className="text-sm text-gray-700 dark:text-neutral-300 truncate max-w-[120px]">{inv.client_name}</span>
+                </div>
+                <span className={cn("text-xs font-medium", inv.status === "paid" ? "text-green-600" : inv.status === "sent" ? "text-amber-600" : "text-gray-500")}>
+                  {inv.total_cents ? `$${(inv.total_cents / 100).toFixed(2)}` : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {invoices.length > 6 && (
+          <p className="text-xs text-gray-400 mt-2 text-center">{invoices.length - 6} more...</p>
+        )}
+      </div>
     );
   }
 

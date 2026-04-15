@@ -61,7 +61,11 @@ function mimeFromName(name: string): string {
   return map[ext] ?? "application/octet-stream";
 }
 
-export function DocumentsPage() {
+interface DocumentsPageProps {
+  compact?: boolean;
+}
+
+export function DocumentsPage({ compact = false }: DocumentsPageProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -177,6 +181,33 @@ export function DocumentsPage() {
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  if (compact) {
+    return (
+      <div className="p-4 bg-white">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-900">{t("Documents")}</h3>
+          <span className="text-xs text-gray-500">{documents.length} {t("files")}</span>
+        </div>
+        {documents.length === 0 ? (
+          <p className="text-sm text-gray-500">{t("No documents")}</p>
+        ) : (
+          <div className="space-y-1">
+            {documents.slice(0, 5).map((doc) => (
+              <div key={doc.id} className="flex items-center gap-2 py-1">
+                {fileIcon(doc.mimeType)}
+                <span className="text-sm text-gray-700 truncate flex-1">{doc.fileName}</span>
+                <span className="text-xs text-gray-400">{doc.category}</span>
+              </div>
+            ))}
+            {documents.length > 5 && (
+              <p className="text-xs text-gray-400 pt-1">+{documents.length - 5} more</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -79,7 +79,7 @@ function TypeBadge({ type }: { type: AccountType }) {
   );
 }
 
-export function AccountManagementPage() {
+export function AccountManagementPage({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -204,6 +204,30 @@ export function AccountManagementPage() {
         schedule_c_line: editForm.schedule_c_line.trim() || undefined,
       },
     });
+  }
+
+  if (compact) {
+    return (
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">{t("Accounts")}</h2>
+        </div>
+        <div className="space-y-1 max-h-48 overflow-auto">
+          {filtered.slice(0, 8).map((account) => (
+            <div key={account.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-gray-500 dark:text-neutral-400">{account.code}</span>
+                <span className="text-sm text-gray-700 dark:text-neutral-300">{account.name}</span>
+              </div>
+              <TypeBadge type={account.account_type} />
+            </div>
+          ))}
+        </div>
+        {filtered.length > 8 && (
+          <p className="text-xs text-gray-400 mt-2 text-center">{filtered.length - 8} more accounts...</p>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -3,17 +3,18 @@ import {
   Users,
   TrendingUp,
   DollarSign,
-  ArrowUpRight,
   Upload,
   FileText,
   Plus,
   Scale,
   ExternalLink,
+  Building2,
 } from "lucide-react";
 import { listClients } from "../lib/tauri";
 import type { EntityType } from "../lib/tauri";
 import { getDashboardStats } from "../lib/dashboard-api";
-import { cn, formatDate } from "../lib/utils";
+import { getBusinessProfile } from "../lib/business-profile-api";
+import { cn } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
 
 const ENTITY_COLORS: Record<EntityType, string> = {
@@ -61,23 +62,6 @@ function StatSkeleton() {
   );
 }
 
-function TableSkeleton() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
-      <div className="px-5 py-3 border-b border-gray-100">
-        <div className="h-4 bg-gray-200 rounded w-32" />
-      </div>
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="px-5 py-3 border-b border-gray-50 flex gap-8">
-          <div className="h-3 bg-gray-100 rounded w-16" />
-          <div className="h-3 bg-gray-100 rounded flex-1" />
-          <div className="h-3 bg-gray-100 rounded w-20" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function fmtMoney(val: string) {
   return parseFloat(val).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -112,6 +96,12 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard_stats"],
     queryFn: getDashboardStats,
+    retry: false,
+  });
+
+  const { data: businessProfile } = useQuery({
+    queryKey: ["business_profile"],
+    queryFn: getBusinessProfile,
     retry: false,
   });
 
@@ -154,6 +144,57 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
           </div>
         </div>
       </div>
+
+      {businessProfile && (
+        <div className="bg-white border-b border-gray-200 px-8 py-5">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <Building2 className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">{businessProfile.name}</h2>
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                      {ENTITY_LABELS[businessProfile.entity_type as EntityType] || businessProfile.entity_type}
+                    </span>
+                    <span className="text-xs text-gray-400 capitalize">
+                      {businessProfile.accounting_method} {t("basis")}
+                    </span>
+                    {businessProfile.ein && (
+                      <span className="text-xs text-gray-500">{t("EIN")}: {businessProfile.ein}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("settings")}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  {t("Edit Profile")}
+                </button>
+              </div>
+              <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
+                {businessProfile.contact_name && (
+                  <span>{businessProfile.contact_name}</span>
+                )}
+                {businessProfile.email && (
+                  <span>{businessProfile.email}</span>
+                )}
+                {businessProfile.phone && (
+                  <span>{businessProfile.phone}</span>
+                )}
+              </div>
+              {(businessProfile.address_line1 || businessProfile.city) && (
+                <div className="mt-2 text-sm text-gray-500">
+                  {[businessProfile.address_line1, businessProfile.address_line2, businessProfile.city, businessProfile.state, businessProfile.postal_code].filter(Boolean).join(", ")}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-8 py-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -214,6 +255,12 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
+                  <div className="text-xs text-indigo-700 py-1 border-b border-indigo-100">
+                    <span className="font-medium">April 15, {new Date().getFullYear()}</span> - Tax Filing Deadline
+                  </div>
+                  <div className="text-xs text-indigo-700 py-1 border-b border-indigo-100">
+                    <span className="font-medium">Oct 15, {new Date().getFullYear()}</span> - Extended Filing Deadline
+                  </div>
                   <a
                     href="https://www.irs.gov/newsroom"
                     target="_blank"
@@ -221,16 +268,25 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                     className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3 shrink-0" />
-                    {t("IRS Newsroom")}
+                    {t("IRS Newsroom")} - Latest Updates
                   </a>
                   <a
-                    href="https://www.irs.gov/newsroom/tax-season"
+                    href="https://www.irs.gov/tax-professionals/priority-guidance-plan"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3 shrink-0" />
-                    {t("Filing Season Updates")}
+                    2026-2027 Priority Guidance Plan
+                  </a>
+                  <a
+                    href="https://www.irs.gov/irs-tax-pros/2026-tax-forum"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    2026 Nationwide Tax Forum
                   </a>
                 </div>
               </div>
@@ -283,22 +339,6 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   </div>
                 </div>
               </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <ArrowUpRight className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
-                      {t("Transactions")}
-                    </p>
-                    <p className="text-2xl font-bold text-amber-700">
-                      {stats?.total_transactions ?? 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </div>
@@ -329,61 +369,6 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
             </div>
           </section>
         )}
-
-        <section>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            {t("Recent Transactions")}
-          </h2>
-          {statsLoading ? (
-            <TableSkeleton />
-          ) : stats?.recent_transactions && stats.recent_transactions.length > 0 ? (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                      {t("Date")}
-                    </th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      {t("Description")}
-                    </th>
-                    <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-                      {t("Amount")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recent_transactions.slice(0, 5).map((txn) => (
-                    <tr
-                      key={txn.id}
-                      className="border-b border-gray-50 hover:bg-gray-50"
-                    >
-                      <td className="px-5 py-2.5 text-sm text-gray-700 whitespace-nowrap">
-                        {formatDate(txn.txn_date)}
-                      </td>
-                      <td className="px-5 py-2.5 text-sm text-gray-900 max-w-[260px] truncate">
-                        {txn.description}
-                      </td>
-                      <td className="px-5 py-2.5 text-sm text-right text-gray-700 tabular-nums">
-                        ${fmtMoney(txn.total_debit)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <FileText className="w-6 h-6 text-gray-400" />
-              </div>
-              <p className="text-gray-500 text-sm">{t("No transactions yet")}</p>
-              <p className="text-gray-400 text-xs mt-1">
-                {t("Create your first transaction to see it here.")}
-              </p>
-            </div>
-          )}
-        </section>
 
         <section>
           <div className="flex items-center justify-between mb-3">

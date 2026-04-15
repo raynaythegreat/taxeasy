@@ -1,10 +1,9 @@
 import { useState, useMemo, lazy, Suspense } from "react";
-import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles, Loader2, FileText, Receipt } from "lucide-react";
 import type { Client } from "../lib/tauri";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
 import { InvoicesPage } from "../features/invoices/InvoicesPage";
-import { ClientInvoiceHistory } from "../features/invoices/ClientInvoiceHistory";
 import { ClientEditModal } from "../features/clients/ClientEditModal";
 import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { PnLView } from "../features/reports/PnLView";
@@ -15,7 +14,7 @@ import { useI18n } from "../lib/i18n";
 
 const AiWorkspace = lazy(() => import("../features/ai/AiWorkspace").then(m => ({ default: m.AiWorkspace })));
 
-type WorkspaceTab = "overview" | "transactions" | "accounts" | "invoices" | "documents" | "pnl" | "balance_sheet" | "cash_flow" | "ai";
+type WorkspaceTab = "overview" | "transactions" | "invoices" | "documents" | "reports" | "ai";
 
 const MIN_YEAR = 2000;
 
@@ -26,6 +25,7 @@ interface ClientWorkspaceProps {
 export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
+  const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
   const [editingClient, setEditingClient] = useState(false);
 
   const currentYear = new Date().getFullYear();
@@ -40,13 +40,10 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
 
   const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
-    { id: "transactions", label: t("Transactions") },
-    { id: "accounts", label: t("Accounts") },
-    { id: "invoices", label: t("Invoices") },
+    { id: "transactions", label: t("Transactions"), icon: <Receipt className="w-3.5 h-3.5" /> },
+    { id: "invoices", label: t("Invoices"), icon: <FileText className="w-3.5 h-3.5" /> },
     { id: "documents", label: t("Documents") },
-    { id: "pnl", label: t("Profit & Loss") },
-    { id: "balance_sheet", label: t("Balance Sheet") },
-    { id: "cash_flow", label: t("Cash Flow") },
+    { id: "reports", label: t("Reports"), icon: <Printer className="w-3.5 h-3.5" /> },
     { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3.5 h-3.5" /> },
   ];
 
@@ -58,7 +55,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
     partnership: t("Partnership"),
   };
 
-  const isReportTab = tab === "pnl" || tab === "balance_sheet" || tab === "cash_flow";
+  const isReportTab = tab === "reports";
 
   return (
     <div className="flex flex-col h-full">
@@ -243,28 +240,53 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 </div>
               )}
             </div>
-            <div className="flex-1 min-h-0">
-              <ClientInvoiceHistory clientName={client.name} />
+            <div className="shrink-0 border-t border-gray-200">
+              <AccountManagementPage compact />
+            </div>
+            <div className="shrink-0 border-t border-gray-200">
+              <InvoicesPage compact />
+            </div>
+            <div className="shrink-0 border-t border-gray-200">
+              <DocumentsPage compact />
             </div>
           </div>
         )}
         {tab === "transactions" && <TransactionsPage />}
-        {tab === "accounts" && <AccountManagementPage />}
         {tab === "invoices" && <InvoicesPage />}
         {tab === "documents" && <DocumentsPage />}
-        {tab === "pnl" && (
-          <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <PnLView dateFrom={from} dateTo={to} clientName={client.name} />
-          </div>
-        )}
-        {tab === "balance_sheet" && (
-          <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <BalanceSheetView asOfDate={to} clientName={client.name} />
-          </div>
-        )}
-        {tab === "cash_flow" && (
-          <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
-            <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
+        {tab === "reports" && (
+          <div className="flex flex-col h-full">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-6 py-3 flex items-center gap-4 shadow-sm">
+              <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
+                {(["pnl", "balance_sheet", "cash_flow"] as const).map((rt) => (
+                  <button
+                    key={rt}
+                    type="button"
+                    onClick={() => setReportType(rt)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                      reportType === rt
+                        ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
+                        : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                    )}
+                  >
+                    {rt === "pnl" ? t("Profit & Loss") : rt === "balance_sheet" ? t("Balance Sheet") : t("Cash Flow")}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
+              >
+                <Printer className="w-4 h-4" />
+                {t("Print")}
+              </button>
+            </div>
+            <div className="flex-1 bg-gray-50 print:bg-white min-h-full py-6 print:py-0 overflow-auto">
+              {reportType === "pnl" && <PnLView dateFrom={from} dateTo={to} clientName={client.name} />}
+              {reportType === "balance_sheet" && <BalanceSheetView asOfDate={to} clientName={client.name} />}
+              {reportType === "cash_flow" && <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />}
+            </div>
           </div>
         )}
         {tab === "ai" && (

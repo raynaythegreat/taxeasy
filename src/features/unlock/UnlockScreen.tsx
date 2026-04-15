@@ -8,7 +8,7 @@ interface UnlockScreenProps {
 
 export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
   const { t } = useI18n();
-  const [passphrase, setPassphrase] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,14 +18,14 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
     setLoading(true);
 
     try {
-      await unlock(passphrase);
+      // Use "0000" as default PIN (user can change in settings)
+      await unlock(pin || "0000");
       onUnlocked();
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : String(err);
-      // Surface a clean message regardless of Tauri error format
-      if (message.toLowerCase().includes("passphrase") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong")) {
-        setError(t("Incorrect passphrase. Please try again."));
+      if (message.toLowerCase().includes("passphrase") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("pin")) {
+        setError(t("Incorrect PIN. Please try again."));
       } else {
         setError(t("Unable to unlock. Please try again."));
       }
@@ -65,23 +65,27 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-5">
               <label
-                htmlFor="passphrase"
+                htmlFor="pin"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                {t("Passphrase")}
+                {t("PIN")}
               </label>
               <input
-                id="passphrase"
+                id="pin"
                 type="password"
-                value={passphrase}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pin}
                 onChange={(e) => {
-                  setPassphrase(e.target.value);
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                  setPin(val);
                   if (error) setError(null);
                 }}
                 autoFocus
                 autoComplete="current-password"
-                placeholder={t("Enter your passphrase")}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                placeholder={t("Enter 4-digit PIN")}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 disabled={loading}
                 required
               />
@@ -99,7 +103,7 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
 
             <button
               type="submit"
-              disabled={loading || passphrase.trim() === ""}
+              disabled={loading || pin.length > 0 && pin.length < 4}
               className="w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (

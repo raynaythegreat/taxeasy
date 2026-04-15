@@ -16,6 +16,7 @@ pub struct AppSettings {
     pub glmocr_path: String,
     pub theme: String,
     pub default_export_path: String,
+    pub app_pin: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,6 +29,7 @@ pub struct SaveSettingsPayload {
     pub glmocr_path: Option<String>,
     pub theme: Option<String>,
     pub default_export_path: Option<String>,
+    pub app_pin: Option<String>,
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -54,6 +56,7 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
         glmocr_path: get_val("glmocr_path", ""),
         theme: get_val("theme", "system"),
         default_export_path: get_val("default_export_path", ""),
+        app_pin: get_val("app_pin", "0000"),
     })
 }
 
@@ -94,6 +97,9 @@ pub fn save_settings(payload: SaveSettingsPayload, state: tauri::State<AppState>
     }
     if let Some(ref v) = payload.default_export_path {
         set_val(conn, "default_export_path", v)?;
+    }
+    if let Some(ref v) = payload.app_pin {
+        set_val(conn, "app_pin", v)?;
     }
 
     Ok(())

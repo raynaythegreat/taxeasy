@@ -9,6 +9,7 @@ export interface AppSettings {
   glmocr_path: string;
   theme: string;
   default_export_path: string;
+  app_pin: string;
 }
 
 export interface SaveSettingsPayload {
@@ -20,6 +21,7 @@ export interface SaveSettingsPayload {
   glmocr_path?: string;
   theme?: string;
   default_export_path?: string;
+  app_pin?: string;
 }
 
 export async function getSettings(): Promise<AppSettings> {
