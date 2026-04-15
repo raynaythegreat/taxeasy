@@ -35,6 +35,12 @@ chrono         = { version = "0.4", features = ["serde"] }
 # IDs
 uuid           = { version = "1", features = ["v4", "serde"] }
 
+# File paths
+dirs           = "5"
+
+# Hashing
+sha2           = "0.10"
+
 # Async runtime + HTTP (for Ollama)
 tokio          = { version = "1", features = ["full"] }
 reqwest        = { version = "0.12", features = ["json"] }

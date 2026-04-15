@@ -60,8 +60,8 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
   const netChangeColor = netChangeNum >= 0 ? "text-green-700" : "text-red-600";
 
   return (
-    <div className="max-w-2xl mx-auto p-8 print:p-6 print:max-w-none bg-white shadow-sm rounded-lg print:shadow-none print:rounded-none">
-      <div className="text-center mb-8">
+    <div className="report-sheet">
+      <div className="text-center mb-8 print:mb-5">
         {clientName && (
           <p className="text-base font-semibold text-gray-900">{clientName}</p>
         )}
@@ -73,9 +73,9 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
 
       <SubtotalRow label={t("Net Income")} amount={data.net_income} />
 
-      <div className="border-t border-gray-200 my-3" />
+      <div className="report-divider my-3 print:my-2" />
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Operating Activities")}
         </p>
@@ -85,11 +85,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
         {data.operating_adjustments.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No adjustments")}</p>
         )}
-        <div className="border-t border-gray-200 mt-1" />
+        <div className="report-divider mt-1" />
         <SubtotalRow label={t("Net Cash from Operations")} amount={data.net_cash_from_operations} bold />
       </section>
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Investing Activities")}
         </p>
@@ -99,11 +99,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
         {data.investing_activities.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>
         )}
-        <div className="border-t border-gray-200 mt-1" />
+        <div className="report-divider mt-1" />
         <SubtotalRow label={t("Net Cash from Investing")} amount={data.net_cash_from_investing} bold />
       </section>
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Financing Activities")}
         </p>
@@ -113,11 +113,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
         {data.financing_activities.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>
         )}
-        <div className="border-t border-gray-200 mt-1" />
+        <div className="report-divider mt-1" />
         <SubtotalRow label={t("Net Cash from Financing")} amount={data.net_cash_from_financing} bold />
       </section>
 
-      <div className="border-t-2 border-gray-800 mt-4 pt-3 space-y-1">
+      <div className="report-divider-strong mt-4 pt-3 space-y-1 print:mt-3">
         <div className="flex justify-between py-1 font-bold text-base">
           <span className="text-gray-900">{t("Net Change in Cash")}</span>
           <span className={`tabular-nums ${netChangeColor}`}>

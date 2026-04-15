@@ -31,6 +31,18 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
   const [name, setName] = useState(client.name);
   const [entityType, setEntityType] = useState<EntityType>(client.entity_type);
   const [ein, setEin] = useState(client.ein ?? "");
+  const [contactName, setContactName] = useState(client.contact_name ?? "");
+  const [email, setEmail] = useState(client.email ?? "");
+  const [phone, setPhone] = useState(client.phone ?? "");
+  const [website, setWebsite] = useState(client.website ?? "");
+  const [addressLine1, setAddressLine1] = useState(client.address_line1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(client.address_line2 ?? "");
+  const [city, setCity] = useState(client.city ?? "");
+  const [stateName, setStateName] = useState(client.state ?? "");
+  const [postalCode, setPostalCode] = useState(client.postal_code ?? "");
+  const [country, setCountry] = useState(client.country ?? "");
+  const [taxPreparerNotes, setTaxPreparerNotes] = useState(client.tax_preparer_notes ?? "");
+  const [filingNotes, setFilingNotes] = useState(client.filing_notes ?? "");
   const [fiscalMonth, setFiscalMonth] = useState(client.fiscal_year_start_month);
   const [method, setMethod] = useState<AccountingMethod>(client.accounting_method);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +53,18 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
         name: name.trim(),
         entity_type: entityType,
         ein: ein.trim() || undefined,
+        contact_name: contactName.trim() || undefined,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        website: website.trim() || undefined,
+        address_line1: addressLine1.trim() || undefined,
+        address_line2: addressLine2.trim() || undefined,
+        city: city.trim() || undefined,
+        state: stateName.trim() || undefined,
+        postal_code: postalCode.trim() || undefined,
+        country: country.trim() || undefined,
+        tax_preparer_notes: taxPreparerNotes.trim() || undefined,
+        filing_notes: filingNotes.trim() || undefined,
         fiscal_year_start_month: fiscalMonth,
         accounting_method: method,
       }),
@@ -65,7 +89,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 border border-gray-200">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-900">{t("Edit Client")}</h2>
           <button
@@ -130,6 +154,140 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Contact Name")}
+              </label>
+              <input
+                type="text"
+                value={contactName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setContactName(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Phone")}
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Email")}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Website")}
+              </label>
+              <input
+                type="text"
+                value={website}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Address Line 1")}
+            </label>
+            <input
+              type="text"
+              value={addressLine1}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setAddressLine1(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Address Line 2")}
+            </label>
+            <input
+              type="text"
+              value={addressLine2}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setAddressLine2(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("City")}
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCity(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("State")}
+              </label>
+              <input
+                type="text"
+                value={stateName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setStateName(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Postal Code")}
+              </label>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setPostalCode(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Country")}
+              </label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCountry(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
           <div>
             <label htmlFor="edit-fiscal" className="block text-sm font-medium text-gray-700 mb-1">
               {t("Fiscal Year Start")}
@@ -167,6 +325,32 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
                 ))}
               </div>
             </fieldset>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Tax Preparer Notes")}
+            </label>
+            <textarea
+              value={taxPreparerNotes}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTaxPreparerNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Filing Notes")}
+            </label>
+            <textarea
+              value={filingNotes}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFilingNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
           </div>
 
           {error && (

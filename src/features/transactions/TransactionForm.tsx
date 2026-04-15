@@ -146,7 +146,7 @@ function AccountSelect({ value, accounts, onChange, placeholder }: AccountSelect
       </button>
 
       {open && (
-        <div className="absolute z-[9999] top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded shadow-lg">
+        <div className="absolute z-[9999] bottom-full left-0 mb-1 w-72 bg-white border border-gray-200 rounded shadow-lg">
           <div className="p-2 border-b border-gray-100">
             <div className="flex items-center gap-1.5 px-2 py-1 border border-gray-200 rounded bg-gray-50">
               <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -202,9 +202,15 @@ interface SimpleFormProps {
 
 function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
   const { t } = useI18n();
-  const assets = accounts.filter((a) => a.account_type === "asset");
-  const expenses = accounts.filter((a) => a.account_type === "expense");
-  const revenues = accounts.filter((a) => a.account_type === "revenue");
+  const balanceSheetAccounts = accounts.filter((a) =>
+    ["asset", "liability", "equity"].includes(a.account_type)
+  );
+  const debitAccounts = accounts.filter((a) =>
+    ["expense", "asset", "liability", "equity"].includes(a.account_type)
+  );
+  const creditAccounts = accounts.filter((a) =>
+    ["revenue", "liability", "equity"].includes(a.account_type)
+  );
 
   const SIMPLE_TYPE_OPTIONS: { value: SimpleType; label: string; sub: string }[] = [
     { value: "expense", label: t("Expense"), sub: t("Money went out") },
@@ -290,20 +296,20 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             </label>
             <AccountSelect
               value={simple.paidFrom}
-              accounts={assets}
+              accounts={balanceSheetAccounts}
               onChange={(id) => onChange("paidFrom", id)}
-              placeholder="Select checking, credit card…"
+              placeholder="Select checking, credit card, payable, loan…"
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Category <span className="text-red-400">*</span>
+              Debit account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
               value={simple.category}
-              accounts={expenses}
+              accounts={debitAccounts}
               onChange={(id) => onChange("category", id)}
-              placeholder="Select expense category…"
+              placeholder="Select expense, receivable, payable reduction, equity…"
             />
           </div>
         </>
@@ -317,20 +323,20 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             </label>
             <AccountSelect
               value={simple.depositedTo}
-              accounts={assets}
+              accounts={balanceSheetAccounts}
               onChange={(id) => onChange("depositedTo", id)}
-              placeholder="Select bank account…"
+              placeholder="Select bank, receivable, liability, equity…"
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Source <span className="text-red-400">*</span>
+              Credit account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
               value={simple.source}
-              accounts={revenues}
+              accounts={creditAccounts}
               onChange={(id) => onChange("source", id)}
-              placeholder="Select income source…"
+              placeholder="Select revenue, loan, payable, owner investment…"
             />
           </div>
         </>
@@ -344,7 +350,7 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             </label>
             <AccountSelect
               value={simple.fromAccount}
-              accounts={assets}
+              accounts={balanceSheetAccounts}
               onChange={(id) => onChange("fromAccount", id)}
               placeholder="Transfer out of…"
             />
@@ -355,7 +361,7 @@ function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             </label>
             <AccountSelect
               value={simple.toAccount}
-              accounts={assets}
+              accounts={balanceSheetAccounts}
               onChange={(id) => onChange("toAccount", id)}
               placeholder="Transfer in to…"
             />

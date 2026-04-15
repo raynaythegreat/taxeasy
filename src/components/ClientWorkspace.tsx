@@ -1,17 +1,20 @@
 import { useState, useMemo } from "react";
-import { Printer, Building2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import type { Client } from "../lib/tauri";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
 import { InvoicesPage } from "../features/invoices/InvoicesPage";
 import { ClientInvoiceHistory } from "../features/invoices/ClientInvoiceHistory";
+import { ClientEditModal } from "../features/clients/ClientEditModal";
+import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { PnLView } from "../features/reports/PnLView";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
+import { AiWorkspace } from "../features/ai/AiWorkspace";
 import { cn, fiscalYearRange, formatDate } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
 
-type WorkspaceTab = "overview" | "transactions" | "accounts" | "invoices" | "pnl" | "balance_sheet" | "cash_flow";
+type WorkspaceTab = "overview" | "transactions" | "accounts" | "invoices" | "documents" | "pnl" | "balance_sheet" | "cash_flow" | "ai";
 
 const MIN_YEAR = 2000;
 
@@ -22,6 +25,7 @@ interface ClientWorkspaceProps {
 export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
+  const [editingClient, setEditingClient] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
@@ -33,14 +37,16 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
 
   const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
 
-  const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
+  const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
     { id: "transactions", label: t("Transactions") },
     { id: "accounts", label: t("Accounts") },
     { id: "invoices", label: t("Invoices") },
+    { id: "documents", label: t("Documents") },
     { id: "pnl", label: t("Profit & Loss") },
     { id: "balance_sheet", label: t("Balance Sheet") },
     { id: "cash_flow", label: t("Cash Flow") },
+    { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3.5 h-3.5" /> },
   ];
 
   const ENTITY_LABELS: Record<Client["entity_type"], string> = {
@@ -79,12 +85,13 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               key={wt.id}
               onClick={() => setTab(wt.id)}
               className={cn(
-                "px-3 py-1.5 rounded text-sm font-medium transition-colors",
+                "px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1.5",
                 tab === wt.id
                   ? "bg-blue-600 text-white"
                   : "text-gray-600 hover:bg-gray-100"
               )}
             >
+              {wt.icon}
               {wt.label}
             </button>
           ))}
@@ -152,17 +159,28 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                   <Building2 className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900">{client.name}</h2>
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                      {ENTITY_LABELS[client.entity_type]}
-                    </span>
-                    <span className="text-xs text-gray-400 capitalize">
-                      {client.accounting_method} {t("basis")}
-                    </span>
-                    {client.ein && (
-                      <span className="text-xs text-gray-500">{t("EIN")}: {client.ein}</span>
-                    )}
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">{client.name}</h2>
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                          {ENTITY_LABELS[client.entity_type]}
+                        </span>
+                        <span className="text-xs text-gray-400 capitalize">
+                          {client.accounting_method} {t("basis")}
+                        </span>
+                        {client.ein && (
+                          <span className="text-xs text-gray-500">{t("EIN")}: {client.ein}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingClient(true)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      {t("Edit Profile")}
+                    </button>
                   </div>
                   <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
@@ -178,6 +196,52 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 </div>
               </div>
             </div>
+            <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900">{t("Business Profile")}</h3>
+                  <div className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
+                    <span className="text-gray-500">{t("Contact Name")}</span>
+                    <span className="text-gray-900">{client.contact_name || "—"}</span>
+                    <span className="text-gray-500">{t("Email")}</span>
+                    <span className="text-gray-900">{client.email || "—"}</span>
+                    <span className="text-gray-500">{t("Phone")}</span>
+                    <span className="text-gray-900">{client.phone || "—"}</span>
+                    <span className="text-gray-500">{t("Website")}</span>
+                    <span className="text-gray-900 break-all">{client.website || "—"}</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900">{t("Address")}</h3>
+                  <div className="text-sm text-gray-900 leading-6">
+                    {client.address_line1 || client.address_line2 || client.city || client.state || client.postal_code || client.country ? (
+                      <>
+                        {client.address_line1 && <div>{client.address_line1}</div>}
+                        {client.address_line2 && <div>{client.address_line2}</div>}
+                        {(client.city || client.state || client.postal_code) && (
+                          <div>{[client.city, client.state, client.postal_code].filter(Boolean).join(", ")}</div>
+                        )}
+                        {client.country && <div>{client.country}</div>}
+                      </>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {(client.tax_preparer_notes || client.filing_notes) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5 pt-5 border-t border-gray-100">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">{t("Tax Preparer Notes")}</h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{client.tax_preparer_notes || "—"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">{t("Filing Notes")}</h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{client.filing_notes || "—"}</p>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex-1 min-h-0">
               <ClientInvoiceHistory clientName={client.name} />
             </div>
@@ -186,6 +250,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         {tab === "transactions" && <TransactionsPage />}
         {tab === "accounts" && <AccountManagementPage />}
         {tab === "invoices" && <InvoicesPage />}
+        {tab === "documents" && <DocumentsPage />}
         {tab === "pnl" && (
           <div className="bg-gray-50 print:bg-white min-h-full py-6 print:py-0">
             <PnLView dateFrom={from} dateTo={to} clientName={client.name} />
@@ -201,7 +266,15 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
             <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
           </div>
         )}
+        {tab === "ai" && <AiWorkspace clientId={client.id} />}
       </div>
+      {editingClient && (
+        <ClientEditModal
+          client={client}
+          onClose={() => setEditingClient(false)}
+          onSaved={() => setEditingClient(false)}
+        />
+      )}
     </div>
   );
 }

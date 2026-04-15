@@ -21,6 +21,7 @@
   {"code":"3010","name":"Common Stock","account_type":"equity","parent_id":"3000","sort_order":310},
   {"code":"3020","name":"Preferred Stock","account_type":"equity","parent_id":"3000","sort_order":320},
   {"code":"3030","name":"Additional Paid-In Capital","account_type":"equity","parent_id":"3000","sort_order":330},
+  {"code":"3035","name":"Initial Capital Contribution","account_type":"equity","parent_id":"3000","sort_order":335},
   {"code":"3040","name":"Retained Earnings","account_type":"equity","parent_id":"3000","sort_order":340},
   {"code":"3050","name":"Treasury Stock","account_type":"equity","parent_id":"3000","sort_order":350},
   {"code":"3060","name":"Dividends Declared","account_type":"equity","parent_id":"3000","sort_order":360},

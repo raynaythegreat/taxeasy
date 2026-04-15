@@ -25,9 +25,10 @@ import {
   ollamaListModels,
   lmstudioHealth,
   lmstudioListModels,
-  glmocrCheckAvailable,
+  getGlmocrStatus,
 } from "../../lib/settings-api";
 import type { SaveSettingsPayload } from "../../lib/settings-api";
+import type { GlmOcrStatus } from "../../lib/settings-api";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
@@ -45,6 +46,42 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: "data", label: "Data Management", icon: Database },
   { id: "about", label: "About", icon: Info },
 ];
+
+function isOcrOrNonChatModel(model: string) {
+  const lower = model.trim().toLowerCase();
+  return (
+    lower.includes("glm-ocr") ||
+    lower.includes("embed") ||
+    lower.includes("embedding") ||
+    lower.includes("rerank") ||
+    lower.includes("whisper")
+  );
+}
+
+function pickPreferredOllamaModel(models: string[]) {
+  const preferredPrefixes = [
+    "qwen2.5",
+    "qwen3",
+    "llama3.2",
+    "llama3.1",
+    "gemma3",
+    "gemma2",
+    "mistral",
+    "deepseek",
+    "phi4",
+    "phi3",
+  ];
+
+  for (const prefix of preferredPrefixes) {
+    const match = models.find((model) => {
+      const lower = model.toLowerCase();
+      return lower.startsWith(prefix) && !isOcrOrNonChatModel(model);
+    });
+    if (match) return match;
+  }
+
+  return models.find((model) => !isOcrOrNonChatModel(model)) ?? "";
+}
 
 function Spinner() {
   return (
@@ -73,15 +110,15 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const [aiProvider, setAiProvider] = useState<AiProvider>("ollama");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
-  const [ollamaModel, setOllamaModel] = useState("glm-ocr:latest");
+  const [ollamaModel, setOllamaModel] = useState("");
   const [lmStudioUrl, setLmStudioUrl] = useState("http://localhost:1234");
   const [lmStudioModel, setLmStudioModel] = useState("");
-  const [glmocrPath, setGlmocrPath] = useState("");
   const { theme, setTheme } = useTheme();
   const [exportPath, setExportPath] = useState("");
 
   const [providerStatus, setProviderStatus] = useState<boolean | null>(null);
   const [glmocrStatus, setGlmocrStatus] = useState<boolean | null>(null);
+  const [glmocrDetails, setGlmocrDetails] = useState<GlmOcrStatus | null>(null);
   const [testingProvider, setTestingProvider] = useState(false);
   const [testingGlmocr, setTestingGlmocr] = useState(false);
 
@@ -109,10 +146,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     if (settings) {
       setAiProvider((settings.ai_provider as AiProvider) || "ollama");
       setOllamaUrl(settings.ollama_url || "http://localhost:11434");
-      setOllamaModel(settings.ollama_model || "glm-ocr:latest");
+      setOllamaModel(settings.ollama_model || "");
       setLmStudioUrl(settings.lm_studio_url || "http://localhost:1234");
       setLmStudioModel(settings.lm_studio_model || "");
-      setGlmocrPath(settings.glmocr_path || "");
       if (settings.theme && settings.theme !== theme) {
         setTheme(settings.theme as "light" | "dark" | "system");
       }
@@ -185,9 +221,17 @@ export function SettingsPage(_props: { onBack?: () => void }) {
       if (aiProvider === "lmstudio") {
         const models = await lmstudioListModels(lmStudioUrl);
         setLmStudioModels(models);
+        if ((!lmStudioModel || !models.includes(lmStudioModel)) && models.length > 0) {
+          setLmStudioModel(models[0]);
+        }
       } else {
         const models = await ollamaListModels(ollamaUrl);
         setOllamaModels(models);
+        const preferredModel = pickPreferredOllamaModel(models);
+        const currentStillValid = ollamaModel && models.includes(ollamaModel) && !isOcrOrNonChatModel(ollamaModel);
+        if (!currentStillValid && preferredModel) {
+          setOllamaModel(preferredModel);
+        }
       }
     } catch {
       if (aiProvider === "lmstudio") setLmStudioModels([]);
@@ -195,19 +239,31 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     } finally {
       setLoadingModels(false);
     }
-  }, [aiProvider, ollamaUrl, lmStudioUrl]);
+  }, [aiProvider, ollamaUrl, lmStudioUrl, ollamaModel, lmStudioModel]);
 
   const testGlmocr = useCallback(async () => {
     setTestingGlmocr(true);
     try {
-      const ok = await glmocrCheckAvailable();
-      setGlmocrStatus(ok);
+      const status = await getGlmocrStatus(ollamaUrl);
+      setGlmocrDetails(status);
+      setGlmocrStatus(status.available);
     } catch {
+      setGlmocrDetails(null);
       setGlmocrStatus(false);
     } finally {
       setTestingGlmocr(false);
     }
-  }, []);
+  }, [ollamaUrl]);
+
+  useEffect(() => {
+    void fetchModels();
+  }, [fetchModels]);
+
+  useEffect(() => {
+    if (aiProvider === "ollama") {
+      void testGlmocr();
+    }
+  }, [aiProvider, ollamaUrl, testGlmocr]);
 
   const handleCheckUpdate = useCallback(async () => {
     setCheckingUpdate(true);
@@ -229,13 +285,15 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     );
   }
 
-  const currentModels = aiProvider === "lmstudio" ? lmStudioModels : ollamaModels;
+  const currentModels = aiProvider === "lmstudio"
+    ? lmStudioModels
+    : ollamaModels.filter((model) => !isOcrOrNonChatModel(model));
   const currentModel = aiProvider === "lmstudio" ? lmStudioModel : ollamaModel;
   const currentUrl = aiProvider === "lmstudio" ? lmStudioUrl : ollamaUrl;
   const setCurrentUrl = aiProvider === "lmstudio" ? setLmStudioUrl : setOllamaUrl;
   const setCurrentModel = aiProvider === "lmstudio" ? setLmStudioModel : setOllamaModel;
   const defaultUrl = aiProvider === "lmstudio" ? "http://localhost:1234" : "http://localhost:11434";
-  const defaultModel = aiProvider === "lmstudio" ? "" : "glm-ocr:latest";
+  const defaultModel = aiProvider === "lmstudio" ? "" : pickPreferredOllamaModel(currentModels);
   const providerLabel = aiProvider === "lmstudio" ? "LM Studio" : "Ollama";
 
   return (
@@ -387,27 +445,104 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
                 <h3 className="text-sm font-semibold text-gray-900">{t("GLM-OCR")}</h3>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t("Binary Path")}
-                  </label>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{t("OCR Model")}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {glmocrDetails?.model_name || "glm-ocr:latest"}
+                        </p>
+                      </div>
+                      <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {glmocrDetails?.message || t("Document scanning uses the GLM-OCR model from Ollama.")}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={glmocrPath}
-                      onChange={(e) => setGlmocrPath(e.target.value)}
-                      placeholder="Auto-detect"
-                      className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    />
                     <button
                       onClick={testGlmocr}
                       disabled={testingGlmocr}
                       className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                     >
                       <TestTube2 className="w-4 h-4" />
-                      {t("Test")}
+                      {t("Test OCR Model")}
                     </button>
-                    <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
+                    <span className="text-xs text-gray-400">
+                      {t("Install with")}: <code>ollama pull glm-ocr:latest</code>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+                <h3 className="text-sm font-semibold text-gray-900">{t("ai.workspaceTitle")}</h3>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{t("ai.localBadge")}</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        {t("Local only")}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500">{t("All AI processing happens on your device")}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-900">{t("Draft from chat text")}</span>
+                    <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-900">{t("Draft from files/photos")}</span>
+                    <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900">{t("Require approval before posting")}</span>
+                    <input type="checkbox" defaultChecked disabled className="w-4 h-4 rounded border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed" />
+                    <span className="text-xs text-gray-400 ml-2">{t("Required in v1")}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+                <h3 className="text-sm font-semibold text-gray-900">{t("Grounding Controls")}</h3>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-700">{t("Client business profile")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-700">{t("Client uploaded documents")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-700">{t("Client posted transactions")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-700">{t("Client chart of accounts")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-700">{t("Client notes")}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-gray-400">{t("Other clients' data")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-gray-400">{t("Internet-based APIs")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-gray-400">{t("System files or OS data")}</span>
                   </div>
                 </div>
               </div>
@@ -421,7 +556,6 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                       ollama_model: ollamaModel,
                       lm_studio_url: lmStudioUrl,
                       lm_studio_model: lmStudioModel,
-                      glmocr_path: glmocrPath,
                     })
                   }
                   disabled={saveMutation.isPending}

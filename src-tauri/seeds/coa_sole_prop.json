@@ -15,6 +15,7 @@
   {"code":"2200","name":"Long-Term Loans","account_type":"liability","parent_id":"2000","sort_order":250},
   {"code":"3000","name":"Owner's Equity","account_type":"equity","parent_id":null,"sort_order":300},
   {"code":"3010","name":"Owner's Capital","account_type":"equity","parent_id":"3000","sort_order":310},
+  {"code":"3011","name":"Owner's Initial Investment","account_type":"equity","parent_id":"3000","sort_order":315},
   {"code":"3020","name":"Owner's Draw","account_type":"equity","parent_id":"3000","sort_order":320},
   {"code":"3030","name":"Retained Earnings","account_type":"equity","parent_id":"3000","sort_order":330},
   {"code":"4000","name":"Revenue","account_type":"revenue","parent_id":null,"sort_order":400},

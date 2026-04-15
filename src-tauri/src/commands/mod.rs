@@ -1,7 +1,12 @@
 pub mod accounts;
 pub mod backup;
+pub mod chat;
+pub mod client_export;
 pub mod clients;
 pub mod dashboard;
+pub mod documents;
+pub mod drafts;
+pub mod evidence;
 pub mod export;
 pub mod files;
 pub mod settings;

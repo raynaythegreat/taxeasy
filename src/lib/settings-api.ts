@@ -50,6 +50,16 @@ export async function lmstudioListModels(url: string): Promise<string[]> {
   return invoke("lmstudio_list_models", { url });
 }
 
-export async function glmocrCheckAvailable(): Promise<boolean> {
-  return invoke("glmocr_available");
+export interface GlmOcrStatus {
+  available: boolean;
+  model_name: string | null;
+  message: string;
+}
+
+export async function glmocrCheckAvailable(url?: string): Promise<boolean> {
+  return invoke("glmocr_available", { url: url ?? null });
+}
+
+export async function getGlmocrStatus(url?: string): Promise<GlmOcrStatus> {
+  return invoke("glmocr_status", { url: url ?? null });
 }

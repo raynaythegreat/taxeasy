@@ -17,6 +17,7 @@
   {"code":"3000","name":"Shareholders' Equity","account_type":"equity","parent_id":null,"sort_order":300},
   {"code":"3010","name":"Common Stock","account_type":"equity","parent_id":"3000","sort_order":310},
   {"code":"3020","name":"Additional Paid-In Capital","account_type":"equity","parent_id":"3000","sort_order":320},
+  {"code":"3025","name":"Shareholder Initial Investment","account_type":"equity","parent_id":"3000","sort_order":325},
   {"code":"3030","name":"Retained Earnings","account_type":"equity","parent_id":"3000","sort_order":330},
   {"code":"3040","name":"Shareholder Distributions","account_type":"equity","parent_id":"3000","sort_order":340},
   {"code":"4000","name":"Revenue","account_type":"revenue","parent_id":null,"sort_order":400},

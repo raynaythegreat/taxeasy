@@ -1,9 +1,11 @@
 /// App-level database — stores the client registry and app settings.
 /// One instance lives for the entire session.
-use rusqlite::{Connection, params};
+use std::collections::HashSet;
 
-use crate::error::{AppError, Result};
+use rusqlite::Connection;
+
 use super::encryption::{app_db_key, sqlcipher_hex_key};
+use crate::error::{AppError, Result};
 
 pub struct AppDb {
     conn: Connection,
@@ -34,6 +36,44 @@ impl AppDb {
     fn run_migrations(&self) -> Result<()> {
         let schema = include_str!("../../migrations/001_app.sql");
         self.conn.execute_batch(schema)?;
+        self.ensure_client_profile_columns()?;
+        Ok(())
+    }
+
+    fn ensure_client_profile_columns(&self) -> Result<()> {
+        let mut stmt = self.conn.prepare("PRAGMA table_info(clients)")?;
+        let existing: HashSet<String> = stmt
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let wanted = [
+            ("contact_name", "TEXT"),
+            ("email", "TEXT"),
+            ("phone", "TEXT"),
+            ("address_line1", "TEXT"),
+            ("address_line2", "TEXT"),
+            ("city", "TEXT"),
+            ("state", "TEXT"),
+            ("postal_code", "TEXT"),
+            ("country", "TEXT"),
+            ("website", "TEXT"),
+            ("tax_preparer_notes", "TEXT"),
+            ("filing_notes", "TEXT"),
+        ];
+
+        for (name, ty) in wanted {
+            if !existing.contains(name) {
+                self.conn
+                    .execute(&format!("ALTER TABLE clients ADD COLUMN {name} {ty}"), [])?;
+            }
+        }
+
+        self.conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version) VALUES (5)",
+            [],
+        )?;
+
         Ok(())
     }
 

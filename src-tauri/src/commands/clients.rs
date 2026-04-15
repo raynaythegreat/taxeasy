@@ -16,6 +16,18 @@ pub struct UpdateClientPayload {
     pub name: Option<String>,
     pub entity_type: Option<EntityType>,
     pub ein: Option<String>,
+    pub contact_name: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub address_line1: Option<String>,
+    pub address_line2: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub postal_code: Option<String>,
+    pub country: Option<String>,
+    pub website: Option<String>,
+    pub tax_preparer_notes: Option<String>,
+    pub filing_notes: Option<String>,
     pub fiscal_year_start_month: Option<u8>,
     pub accounting_method: Option<AccountingMethod>,
 }
@@ -28,7 +40,9 @@ pub fn list_clients(state: tauri::State<AppState>) -> Result<Vec<Client>> {
     let conn = db.conn();
 
     let mut stmt = conn.prepare(
-        "SELECT id, name, entity_type, ein_encrypted, fiscal_year_start_month,
+        "SELECT id, name, entity_type, ein_encrypted, contact_name, email, phone,
+                address_line1, address_line2, city, state, postal_code, country,
+                website, tax_preparer_notes, filing_notes, fiscal_year_start_month,
                 accounting_method, archived_at, created_at
          FROM clients WHERE archived_at IS NULL ORDER BY name",
     )?;
@@ -43,15 +57,39 @@ pub fn list_clients(state: tauri::State<AppState>) -> Result<Vec<Client>> {
             let name: String = row.get(1)?;
             let entity_type_str: String = row.get(2)?;
             let ein_blob: Option<Vec<u8>> = row.get(3)?;
-            let fiscal_year_start_month: u8 = row.get(4)?;
-            let accounting_method_str: String = row.get(5)?;
-            let archived_at: Option<String> = row.get(6)?;
-            let created_at: String = row.get(7)?;
+            let contact_name: Option<String> = row.get(4)?;
+            let email: Option<String> = row.get(5)?;
+            let phone: Option<String> = row.get(6)?;
+            let address_line1: Option<String> = row.get(7)?;
+            let address_line2: Option<String> = row.get(8)?;
+            let city: Option<String> = row.get(9)?;
+            let state_name: Option<String> = row.get(10)?;
+            let postal_code: Option<String> = row.get(11)?;
+            let country: Option<String> = row.get(12)?;
+            let website: Option<String> = row.get(13)?;
+            let tax_preparer_notes: Option<String> = row.get(14)?;
+            let filing_notes: Option<String> = row.get(15)?;
+            let fiscal_year_start_month: u8 = row.get(16)?;
+            let accounting_method_str: String = row.get(17)?;
+            let archived_at: Option<String> = row.get(18)?;
+            let created_at: String = row.get(19)?;
             Ok((
                 id,
                 name,
                 entity_type_str,
                 ein_blob,
+                contact_name,
+                email,
+                phone,
+                address_line1,
+                address_line2,
+                city,
+                state_name,
+                postal_code,
+                country,
+                website,
+                tax_preparer_notes,
+                filing_notes,
                 fiscal_year_start_month,
                 accounting_method_str,
                 archived_at,
@@ -60,7 +98,28 @@ pub fn list_clients(state: tauri::State<AppState>) -> Result<Vec<Client>> {
         })?
         .filter_map(|r| r.ok())
         .map(
-            |(id, name, et_str, ein_blob, fy_month, am_str, archived_at, created_at)| {
+            |(
+                id,
+                name,
+                et_str,
+                ein_blob,
+                contact_name,
+                email,
+                phone,
+                address_line1,
+                address_line2,
+                city,
+                state_name,
+                postal_code,
+                country,
+                website,
+                tax_preparer_notes,
+                filing_notes,
+                fy_month,
+                am_str,
+                archived_at,
+                created_at,
+            )| {
                 let entity_type = et_str.parse::<EntityType>().unwrap_or(EntityType::SoleProp);
                 let accounting_method = am_str
                     .parse::<AccountingMethod>()
@@ -75,6 +134,18 @@ pub fn list_clients(state: tauri::State<AppState>) -> Result<Vec<Client>> {
                     name,
                     entity_type,
                     ein,
+                    contact_name,
+                    email,
+                    phone,
+                    address_line1,
+                    address_line2,
+                    city,
+                    state: state_name,
+                    postal_code,
+                    country,
+                    website,
+                    tax_preparer_notes,
+                    filing_notes,
                     fiscal_year_start_month: fy_month,
                     accounting_method,
                     archived_at: archived_at.and_then(|s| s.parse().ok()),
@@ -178,6 +249,18 @@ pub fn create_client(
         name,
         entity_type,
         ein: payload.ein.filter(|s| !s.trim().is_empty()),
+        contact_name: payload.contact_name.filter(|s| !s.trim().is_empty()),
+        email: payload.email.filter(|s| !s.trim().is_empty()),
+        phone: payload.phone.filter(|s| !s.trim().is_empty()),
+        address_line1: payload.address_line1.filter(|s| !s.trim().is_empty()),
+        address_line2: payload.address_line2.filter(|s| !s.trim().is_empty()),
+        city: payload.city.filter(|s| !s.trim().is_empty()),
+        state: payload.state.filter(|s| !s.trim().is_empty()),
+        postal_code: payload.postal_code.filter(|s| !s.trim().is_empty()),
+        country: payload.country.filter(|s| !s.trim().is_empty()),
+        website: payload.website.filter(|s| !s.trim().is_empty()),
+        tax_preparer_notes: payload.tax_preparer_notes.filter(|s| !s.trim().is_empty()),
+        filing_notes: payload.filing_notes.filter(|s| !s.trim().is_empty()),
         fiscal_year_start_month,
         accounting_method,
         archived_at: None,
@@ -199,17 +282,24 @@ pub fn switch_client(
         lock.clone().unwrap_or_default()
     };
 
-    let db_filename: String = {
-        let lock = state.app_db.lock().unwrap();
-        let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = db.conn();
-        conn.query_row(
-            "SELECT db_filename FROM clients WHERE id = ?1 AND archived_at IS NULL",
+    let (db_filename, entity_type): (String, EntityType) =
+        {
+            let lock = state.app_db.lock().unwrap();
+            let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+            let conn = db.conn();
+            conn.query_row(
+            "SELECT db_filename, entity_type FROM clients WHERE id = ?1 AND archived_at IS NULL",
             params![client_id],
-            |row| row.get(0),
+            |row| {
+                let entity_type_str: String = row.get(1)?;
+                Ok((
+                    row.get(0)?,
+                    entity_type_str.parse::<EntityType>().unwrap_or(EntityType::SoleProp),
+                ))
+            },
         )
         .map_err(|_| AppError::NotFound(format!("client {client_id}")))?
-    };
+        };
 
     let data_dir = app_handle.path().app_data_dir().map_err(|e| {
         AppError::Io(std::io::Error::new(
@@ -221,6 +311,7 @@ pub fn switch_client(
 
     let client_db =
         crate::db::ClientDb::open(client_db_path.to_str().unwrap(), &client_id, &passphrase)?;
+    ensure_chart_of_accounts(client_db.conn(), &entity_type)?;
 
     let mut lock = state.active_client.lock().unwrap();
     *lock = Some(crate::state::ActiveClient {
@@ -291,18 +382,50 @@ pub fn update_client(
         )?;
     }
 
+    update_optional_text(conn, &id, "contact_name", payload.contact_name.as_deref())?;
+    update_optional_text(conn, &id, "email", payload.email.as_deref())?;
+    update_optional_text(conn, &id, "phone", payload.phone.as_deref())?;
+    update_optional_text(conn, &id, "address_line1", payload.address_line1.as_deref())?;
+    update_optional_text(conn, &id, "address_line2", payload.address_line2.as_deref())?;
+    update_optional_text(conn, &id, "city", payload.city.as_deref())?;
+    update_optional_text(conn, &id, "state", payload.state.as_deref())?;
+    update_optional_text(conn, &id, "postal_code", payload.postal_code.as_deref())?;
+    update_optional_text(conn, &id, "country", payload.country.as_deref())?;
+    update_optional_text(conn, &id, "website", payload.website.as_deref())?;
+    update_optional_text(
+        conn,
+        &id,
+        "tax_preparer_notes",
+        payload.tax_preparer_notes.as_deref(),
+    )?;
+    update_optional_text(conn, &id, "filing_notes", payload.filing_notes.as_deref())?;
+
     let row: (
         String,
         String,
         String,
         Option<Vec<u8>>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
         u8,
         String,
         Option<String>,
         String,
     ) = conn
         .query_row(
-            "SELECT id, name, entity_type, ein_encrypted, fiscal_year_start_month,
+            "SELECT id, name, entity_type, ein_encrypted, contact_name, email, phone,
+                    address_line1, address_line2, city, state, postal_code, country,
+                    website, tax_preparer_notes, filing_notes, fiscal_year_start_month,
                     accounting_method, archived_at, created_at
              FROM clients WHERE id = ?1",
             params![id],
@@ -316,6 +439,18 @@ pub fn update_client(
                     row.get(5)?,
                     row.get(6)?,
                     row.get(7)?,
+                    row.get(8)?,
+                    row.get(9)?,
+                    row.get(10)?,
+                    row.get(11)?,
+                    row.get(12)?,
+                    row.get(13)?,
+                    row.get(14)?,
+                    row.get(15)?,
+                    row.get(16)?,
+                    row.get(17)?,
+                    row.get(18)?,
+                    row.get(19)?,
                 ))
             },
         )
@@ -333,10 +468,22 @@ pub fn update_client(
         name: row.1,
         entity_type: row.2.parse().unwrap_or(EntityType::SoleProp),
         ein: ein_decrypted,
-        fiscal_year_start_month: row.4,
-        accounting_method: row.5.parse().unwrap_or(AccountingMethod::Cash),
-        archived_at: row.6.and_then(|s| s.parse().ok()),
-        created_at: row.7.parse().unwrap_or_else(|_| chrono::Utc::now()),
+        contact_name: row.4,
+        email: row.5,
+        phone: row.6,
+        address_line1: row.7,
+        address_line2: row.8,
+        city: row.9,
+        state: row.10,
+        postal_code: row.11,
+        country: row.12,
+        website: row.13,
+        tax_preparer_notes: row.14,
+        filing_notes: row.15,
+        fiscal_year_start_month: row.16,
+        accounting_method: row.17.parse().unwrap_or(AccountingMethod::Cash),
+        archived_at: row.18.and_then(|s| s.parse().ok()),
+        created_at: row.19.parse().unwrap_or_else(|_| chrono::Utc::now()),
     })
 }
 
@@ -396,8 +543,28 @@ pub fn get_active_client_pref(state: tauri::State<AppState>) -> Result<Option<St
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-fn seed_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType) -> Result<()> {
-    // Load the appropriate seed file bundled into the binary at compile time.
+fn update_optional_text(
+    conn: &rusqlite::Connection,
+    id: &str,
+    column: &str,
+    value: Option<&str>,
+) -> Result<()> {
+    if let Some(value) = value {
+        let trimmed = value.trim();
+        let normalized = if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        };
+        conn.execute(
+            &format!("UPDATE clients SET {column} = ?1 WHERE id = ?2"),
+            params![normalized, id],
+        )?;
+    }
+    Ok(())
+}
+
+fn seed_values(entity_type: &EntityType) -> Result<Vec<Value>> {
     let seed_json: &str = match entity_type {
         EntityType::SoleProp => include_str!("../../seeds/coa_sole_prop.json"),
         EntityType::Smllc => include_str!("../../seeds/coa_smllc.json"),
@@ -406,7 +573,59 @@ fn seed_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType)
         EntityType::Partnership => include_str!("../../seeds/coa_partnership.json"),
     };
 
-    let seeds: Vec<Value> = serde_json::from_str(seed_json)?;
+    Ok(serde_json::from_str(seed_json)?)
+}
+
+fn ensure_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType) -> Result<()> {
+    let seeds = seed_values(entity_type)?;
+
+    let mut existing: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut stmt = conn.prepare("SELECT id, code FROM accounts")?;
+    let rows = stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    for row in rows.flatten() {
+        existing.insert(row.1, row.0);
+    }
+
+    for seed in &seeds {
+        let code = seed["code"].as_str().unwrap_or("").to_owned();
+        if code.is_empty() || existing.contains_key(&code) {
+            continue;
+        }
+
+        let id = Uuid::new_v4().to_string();
+        let name = seed["name"].as_str().unwrap_or("");
+        let account_type = seed["account_type"].as_str().unwrap_or("expense");
+        let schedule_c_line = seed["schedule_c_line"].as_str();
+        let sort_order = seed["sort_order"].as_i64().unwrap_or(0);
+
+        conn.execute(
+            "INSERT INTO accounts (id, code, name, account_type, parent_id, schedule_c_line, active, sort_order)
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, 1, ?6)",
+            params![id, code, name, account_type, schedule_c_line, sort_order],
+        )?;
+
+        existing.insert(code, id);
+    }
+
+    for seed in &seeds {
+        let code = seed["code"].as_str().unwrap_or("");
+        if let Some(parent_code) = seed["parent_id"].as_str() {
+            if let (Some(id), Some(parent_id)) = (existing.get(code), existing.get(parent_code)) {
+                conn.execute(
+                    "UPDATE accounts SET parent_id = ?1 WHERE id = ?2",
+                    params![parent_id, id],
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn seed_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType) -> Result<()> {
+    let seeds = seed_values(entity_type)?;
 
     // Two passes: insert parents first (code as temp id), then set parent_id foreign keys.
     // Since we use code as the parent_id reference in seeds, we map code → uuid.

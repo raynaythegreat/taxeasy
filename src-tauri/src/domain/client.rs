@@ -86,6 +86,30 @@ pub struct Client {
     /// Decrypted EIN string ("XX-XXXXXXX"), or None if not set.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ein: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_line1: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_line2: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tax_preparer_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filing_notes: Option<String>,
     pub fiscal_year_start_month: u8,
     pub accounting_method: AccountingMethod,
     pub archived_at: Option<DateTime<Utc>>,
@@ -98,6 +122,18 @@ pub struct CreateClientPayload {
     pub name: String,
     pub entity_type: EntityType,
     pub ein: Option<String>,
+    pub contact_name: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub address_line1: Option<String>,
+    pub address_line2: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub postal_code: Option<String>,
+    pub country: Option<String>,
+    pub website: Option<String>,
+    pub tax_preparer_notes: Option<String>,
+    pub filing_notes: Option<String>,
     pub fiscal_year_start_month: Option<u8>,
     pub accounting_method: Option<AccountingMethod>,
 }

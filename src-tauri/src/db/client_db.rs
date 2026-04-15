@@ -35,6 +35,10 @@ impl ClientDb {
         self.conn.execute_batch(schema)?;
         let invoices = include_str!("../../migrations/003_invoices.sql");
         self.conn.execute_batch(invoices)?;
+        let documents = include_str!("../../migrations/004_documents.sql");
+        self.conn.execute_batch(documents)?;
+        let ai_workspace = include_str!("../../migrations/005_ai_workspace.sql");
+        self.conn.execute_batch(ai_workspace)?;
         Ok(())
     }
 

@@ -19,7 +19,7 @@ function LineRow({ item }: { item: PnlLineItem }) {
 }
 
 function SectionDivider() {
-  return <div className="border-t border-gray-300 my-1" />;
+  return <div className="report-divider" />;
 }
 
 function SubtotalRow({ label, amount, bold }: { label: string; amount: string; bold?: boolean }) {
@@ -67,8 +67,8 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
   const netIncomeColor = netIncomeNum >= 0 ? "text-green-700" : "text-red-600";
 
   return (
-    <div className="max-w-2xl mx-auto p-8 print:p-6 print:max-w-none bg-white print:shadow-none print:border-none">
-      <div className="text-center mb-6">
+    <div className="report-sheet">
+      <div className="text-center mb-6 print:mb-4">
         {clientName && (
           <p className="text-base font-semibold text-gray-900">{clientName}</p>
         )}
@@ -79,7 +79,7 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
       </div>
 
       {hasRevenue && (
-        <section className="mb-4">
+        <section className="report-section">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Revenue")}</p>
           {data.revenue_lines.map((item) => (
             <LineRow key={item.account_id} item={item} />
@@ -90,7 +90,7 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
       )}
 
       {hasCogs && (
-        <section className="mb-4">
+        <section className="report-section">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
             {t("Cost of Goods Sold")}
           </p>
@@ -103,14 +103,14 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
       )}
 
       {hasCogs && (
-        <div className="flex justify-between py-1.5 text-sm font-semibold border-t border-b border-gray-400 my-3">
+        <div className="flex justify-between py-1.5 text-sm font-semibold border-t border-b border-gray-400 my-3 print:my-2">
           <span>{t("Gross Profit")}</span>
           <span className="tabular-nums">{formatCurrency(data.gross_profit)}</span>
         </div>
       )}
 
       {hasExpenses && (
-        <section className="mb-4">
+        <section className="report-section">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
             {t("Operating Expenses")}
           </p>
@@ -122,7 +122,7 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
         </section>
       )}
 
-      <div className="border-t-2 border-gray-800 mt-4 pt-2">
+      <div className="report-divider-strong mt-4 pt-2 print:mt-3">
         <div className="flex justify-between py-1 font-bold text-base">
           <span className="text-gray-900">{t("Net Income")}</span>
           <span className={`tabular-nums ${netIncomeColor}`}>

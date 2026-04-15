@@ -18,7 +18,7 @@ function LineRow({ item }: { item: BalanceSheetLineItem }) {
 }
 
 function SectionDivider() {
-  return <div className="border-t border-gray-300 my-1" />;
+  return <div className="report-divider" />;
 }
 
 function SubtotalRow({ label, amount }: { label: string; amount: string }) {
@@ -60,8 +60,8 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
   if (!data) return null;
 
   return (
-    <div className="max-w-2xl mx-auto p-8 print:p-6 print:max-w-none bg-white print:shadow-none print:border-none">
-      <div className="text-center mb-6">
+    <div className="report-sheet">
+      <div className="text-center mb-6 print:mb-4">
         {clientName && (
           <p className="text-base font-semibold text-gray-900">{clientName}</p>
         )}
@@ -69,7 +69,7 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
         <p className="text-sm text-gray-500 mt-1">{t("As of")} {formatDate(asOfDate)}</p>
       </div>
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Assets")}</p>
         {data.asset_lines.length > 0 ? (
           data.asset_lines.map((item) => (
@@ -82,7 +82,7 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
         <SubtotalRow label={t("Total Assets")} amount={data.total_assets} />
       </section>
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Liabilities")}</p>
         {data.liability_lines.length > 0 ? (
           data.liability_lines.map((item) => (
@@ -95,7 +95,7 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
         <SubtotalRow label={t("Total Liabilities")} amount={data.total_liabilities} />
       </section>
 
-      <section className="mb-4">
+      <section className="report-section">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Equity")}</p>
         {data.equity_lines.length > 0 ? (
           data.equity_lines.map((item) => (
@@ -108,7 +108,7 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
         <SubtotalRow label={t("Total Equity")} amount={data.total_equity} />
       </section>
 
-      <div className="border-t-2 border-gray-800 mt-4 pt-2">
+      <div className="report-divider-strong mt-4 pt-2 print:mt-3">
         <div className="flex justify-between py-1 font-bold text-base">
           <span className="text-gray-900">{t("Total Liabilities & Equity")}</span>
           <span className="tabular-nums">{formatCurrency(data.total_liabilities_and_equity)}</span>

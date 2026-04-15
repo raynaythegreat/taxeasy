@@ -5,6 +5,13 @@ use serde::{Deserialize, Serialize};
 use crate::{error::{AppError, Result}, state::AppState};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct GlmOcrStatus {
+    pub available: bool,
+    pub model_name: Option<String>,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtractedReceipt {
     pub vendor: Option<String>,
     pub date: Option<String>,
@@ -26,12 +33,8 @@ pub async fn scan_receipt(file_path: String, state: tauri::State<'_, AppState>) 
         return parse_text_statement(&file_path);
     }
 
-    let (ollama_url, ollama_model) = read_ollama_config(&state);
-    let model = if ollama_model.is_empty() {
-        "glm-ocr:latest"
-    } else {
-        &ollama_model
-    };
+    let ollama_url = read_ollama_url(&state);
+    let model = resolve_glmocr_model(&ollama_url).await?;
 
     let image_data = std::fs::read(&file_path)
         .map_err(|e| AppError::AiService(format!("Cannot read file: {e}")))?;
@@ -75,20 +78,29 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub async fn glmocr_available(state: tauri::State<'_, AppState>) -> Result<bool> {
-    let (url, _) = read_ollama_config(&state);
-    let client = reqwest::Client::new();
-    let ok = client
-        .get(format!("{}/api/tags", url.trim_end_matches('/')))
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false);
-    Ok(ok)
+pub async fn glmocr_available(url: Option<String>, state: tauri::State<'_, AppState>) -> Result<bool> {
+    let url = url.unwrap_or_else(|| read_ollama_url(&state));
+    Ok(resolve_glmocr_model(&url).await.is_ok())
 }
 
-fn read_ollama_config(state: &tauri::State<'_, AppState>) -> (String, String) {
+#[tauri::command(rename_all = "camelCase")]
+pub async fn glmocr_status(url: Option<String>, state: tauri::State<'_, AppState>) -> Result<GlmOcrStatus> {
+    let url = url.unwrap_or_else(|| read_ollama_url(&state));
+    match resolve_glmocr_model(&url).await {
+        Ok(model_name) => Ok(GlmOcrStatus {
+            available: true,
+            model_name: Some(model_name),
+            message: "GLM-OCR is ready in Ollama".into(),
+        }),
+        Err(err) => Ok(GlmOcrStatus {
+            available: false,
+            model_name: None,
+            message: err.to_string(),
+        }),
+    }
+}
+
+fn read_ollama_url(state: &tauri::State<'_, AppState>) -> String {
     let lock = state.app_db.lock().unwrap();
     let db = lock.as_ref();
     let get = |conn: &rusqlite::Connection, key: &str, def: &str| -> String {
@@ -103,12 +115,43 @@ fn read_ollama_config(state: &tauri::State<'_, AppState>) -> (String, String) {
     match db {
         Some(d) => {
             let conn = d.conn();
-            let url = get(conn, "ollama_url", "http://localhost:11434");
-            let model = get(conn, "ollama_model", "glm-ocr:latest");
-            (url, model)
+            get(conn, "ollama_url", "http://localhost:11434")
         }
-        None => ("http://localhost:11434".into(), "glm-ocr:latest".into()),
+        None => "http://localhost:11434".into(),
     }
+}
+
+async fn resolve_glmocr_model(url: &str) -> Result<String> {
+    let models = crate::ai::lmstudio::ollama_list_models(url.to_owned()).await?;
+
+    if let Some(exact) = models.iter().find(|name| is_exact_glmocr_name(name)) {
+        return Ok(exact.clone());
+    }
+
+    if let Some(fallback) = models.iter().find(|name| is_glmocr_name(name)) {
+        return Ok(fallback.clone());
+    }
+
+    let available = if models.is_empty() {
+        "none".to_owned()
+    } else {
+        models.join(", ")
+    };
+
+    Err(AppError::AiService(format!(
+        "Ollama is running, but no GLM-OCR model is installed. Install it with `ollama pull glm-ocr:latest`. Available models: {available}"
+    )))
+}
+
+fn is_exact_glmocr_name(name: &str) -> bool {
+    let lower = name.trim().to_lowercase();
+    lower == "glm-ocr:latest"
+        || lower.ends_with("/glm-ocr:latest")
+        || lower.ends_with(":glm-ocr:latest")
+}
+
+fn is_glmocr_name(name: &str) -> bool {
+    name.trim().to_lowercase().contains("glm-ocr")
 }
 
 fn parse_ocr_output(raw: &str) -> Result<ExtractedReceipt> {

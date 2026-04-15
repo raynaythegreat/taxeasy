@@ -1,0 +1,108 @@
+<h2>Client AI Chat Workspace</h2>
+<p class="subtitle">Choose the layout that should drive the first implementation slice: client-scoped chat, OCR from photos/PDFs, and staged draft transactions before save.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. Split Review Workspace</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1.1fr 1fr 1.15fr;gap:10px;min-height:260px;">
+            <div style="border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#f8fafc;display:flex;flex-direction:column;gap:8px;">
+              <div class="label">Client AI Chat</div>
+              <div class="mock-input">Ask about this client only...</div>
+              <div style="flex:1;border:1px dashed #cbd5e1;border-radius:8px;padding:8px;background:white;">Chat answers grounded in this client's accounts, transactions, docs, and notes</div>
+              <button class="mock-button">Upload photo/PDF</button>
+            </div>
+            <div style="border:1px solid #d1d5db;border-radius:10px;padding:10px;background:white;display:flex;flex-direction:column;gap:8px;">
+              <div class="label">Document Preview</div>
+              <div class="placeholder" style="flex:1;min-height:180px;">Receipt / bank statement / scanned photo preview</div>
+              <div style="font-size:12px;color:#64748b;">Zoom, page nav, image rotation</div>
+            </div>
+            <div style="border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#f8fafc;display:flex;flex-direction:column;gap:8px;">
+              <div class="label">Draft Transactions</div>
+              <div style="display:grid;gap:6px;">
+                <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:white;">04/14  Office Depot  $82.14  Office Expense</div>
+                <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:white;">04/14  Fuel Stop  $54.00  Auto Expense</div>
+                <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;background:white;">04/15  Owner Investment  $5,000  Owner's Initial Investment</div>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;">
+                <button class="mock-button">Approve selected</button>
+                <span style="font-size:12px;color:#64748b;">Nothing hits ledger until approved</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Recommended</h3>
+      <p>Best for speed and accuracy. You can compare the source document directly against extracted drafts before saving single or bulk transactions.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. Chat-First With Review Drawer</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1.4fr .9fr;gap:10px;min-height:260px;">
+            <div style="border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#f8fafc;display:flex;flex-direction:column;gap:8px;">
+              <div class="label">Client AI Chat</div>
+              <div style="flex:1;border:1px dashed #cbd5e1;border-radius:8px;padding:8px;background:white;">Conversation and OCR upload history</div>
+              <div class="mock-input">Ask for missing transactions or upload files...</div>
+            </div>
+            <div style="border:1px solid #d1d5db;border-radius:10px;padding:10px;background:white;display:flex;flex-direction:column;gap:8px;">
+              <div class="label">Review Drawer</div>
+              <div class="placeholder" style="flex:1;">Open drawer to see document and draft rows</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Chat-Heavy</h3>
+      <p>Feels simpler up front, but hides the document-to-draft comparison until you open the review drawer.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. Tabbed Intake Wizard</div>
+        <div class="mockup-body">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <div class="mock-button">1 Upload</div>
+            <div class="mock-button">2 OCR</div>
+            <div class="mock-button">3 Drafts</div>
+            <div class="mock-button">4 Save</div>
+          </div>
+          <div class="placeholder" style="min-height:210px;">Step-by-step wizard content</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Guided</h3>
+      <p>Good for first-time users, but slower for repeated bookkeeping because it adds more steps.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Why I recommend A</h4>
+      <ul>
+        <li>Fastest review loop for receipts, statements, and phone photos</li>
+        <li>Bulk drafts stay grouped under their source document</li>
+        <li>Keeps the client chat grounded while showing the evidence beside the draft rows</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Main tradeoff</h4>
+      <ul>
+        <li>Needs more horizontal space, so mobile/small widths would collapse into stacked panes</li>
+      </ul>
+    </div>
+  </div>
+</div>

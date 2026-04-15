@@ -1,6 +1,8 @@
 pub mod glmocr;
 pub mod lmstudio;
 pub mod ollama;
+pub mod chat;
+pub mod ocr_pipeline;
 
 pub use glmocr::{glmocr_available, scan_receipt};
 pub use lmstudio::{lmstudio_complete, lmstudio_health, lmstudio_list_models, ollama_list_models, ollama_health_url};

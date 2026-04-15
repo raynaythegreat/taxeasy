@@ -12,7 +12,58 @@ pub struct AiConfig {
     lm_studio_model: String,
 }
 
-fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
+fn looks_like_ocr_or_embedding_model(model: &str) -> bool {
+    let lower = model.trim().to_lowercase();
+    lower.contains("glm-ocr")
+        || lower.contains("embed")
+        || lower.contains("embedding")
+        || lower.contains("rerank")
+        || lower.contains("whisper")
+}
+
+fn preferred_ollama_model(models: &[String]) -> Option<String> {
+    let preferred_prefixes = [
+        "qwen2.5",
+        "qwen3",
+        "llama3.2",
+        "llama3.1",
+        "gemma3",
+        "gemma2",
+        "mistral",
+        "deepseek",
+        "phi4",
+        "phi3",
+    ];
+
+    for prefix in preferred_prefixes {
+        if let Some(model) = models.iter().find(|name| {
+            let lower = name.to_lowercase();
+            lower.starts_with(prefix) && !looks_like_ocr_or_embedding_model(name)
+        }) {
+            return Some(model.clone());
+        }
+    }
+
+    models
+        .iter()
+        .find(|name| !looks_like_ocr_or_embedding_model(name))
+        .cloned()
+}
+
+async fn resolve_ollama_chat_model(url: &str, configured_model: &str) -> Result<String> {
+    if !configured_model.trim().is_empty() && !looks_like_ocr_or_embedding_model(configured_model) {
+        return Ok(configured_model.trim().to_owned());
+    }
+
+    let models = crate::ai::lmstudio::ollama_list_models(url.to_owned()).await?;
+    preferred_ollama_model(&models).ok_or_else(|| {
+        AppError::AiService(
+            "No suitable Ollama text model found. Pull a local chat model like qwen2.5, llama3.2, gemma, or mistral.".into(),
+        )
+    })
+}
+
+pub fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
     let lock = state.app_db.lock().unwrap();
     let db = lock.as_ref();
     let get = |conn: &rusqlite::Connection, key: &str, def: &str| -> String {
@@ -30,7 +81,7 @@ fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
             AiConfig {
                 provider: get(conn, "ai_provider", "ollama"),
                 ollama_url: get(conn, "ollama_url", "http://localhost:11434"),
-                ollama_model: get(conn, "ollama_model", "glm-ocr:latest"),
+                ollama_model: get(conn, "ollama_model", ""),
                 lm_studio_url: get(conn, "lm_studio_url", "http://localhost:1234"),
                 lm_studio_model: get(conn, "lm_studio_model", ""),
             }
@@ -38,7 +89,7 @@ fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
         None => AiConfig {
             provider: "ollama".into(),
             ollama_url: "http://localhost:11434".into(),
-            ollama_model: "glm-ocr:latest".into(),
+            ollama_model: "".into(),
             lm_studio_url: "http://localhost:1234".into(),
             lm_studio_model: "".into(),
         },
@@ -105,12 +156,8 @@ pub async fn ai_complete(config: &AiConfig, prompt: &str) -> Result<String> {
             crate::ai::lmstudio::lmstudio_complete(&config.lm_studio_url, model, prompt).await
         }
         _ => {
-            let model = if config.ollama_model.is_empty() {
-                "glm-ocr:latest"
-            } else {
-                &config.ollama_model
-            };
-            ollama_complete(&config.ollama_url, model, prompt).await
+            let model = resolve_ollama_chat_model(&config.ollama_url, &config.ollama_model).await?;
+            ollama_complete(&config.ollama_url, &model, prompt).await
         }
     }
 }

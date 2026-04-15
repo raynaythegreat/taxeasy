@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trash2, ChevronDown, Pencil } from "lucide-react";
+import { Trash2, ChevronDown, Pencil, ArrowUpDown } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { deleteTransaction, updateTransaction } from "../../lib/tauri";
 import type { TransactionWithEntries } from "../../lib/tauri";
@@ -14,6 +14,28 @@ interface LedgerViewProps {
   searchQuery?: string;
   onDeleteTxn: (id: string) => void;
   onEditTxn: () => void;
+}
+
+type SortKey = "date" | "description" | "reference" | "accounts" | "amount";
+type SortDirection = "asc" | "desc";
+
+function getTransactionAccountNames(txn: TransactionWithEntries) {
+  return [...new Set(txn.entries.map((e) => e.account_name ?? "Unknown"))].join(", ");
+}
+
+function getTransactionDisplayAmount(txn: TransactionWithEntries) {
+  const totalDebit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0);
+  const totalCredit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
+  const hasExpenseDebit = txn.entries.some(
+    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense"
+  );
+  const isIncomeCredit = txn.entries.some(
+    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue"
+  );
+
+  if (hasExpenseDebit) return -totalDebit;
+  if (isIncomeCredit) return totalCredit;
+  return totalDebit;
 }
 
 function LockIcon() {
@@ -61,18 +83,10 @@ function TxnRow({
   const [editError, setEditError] = useState<string | null>(null);
   const { t } = useI18n();
 
-  const accountNames = [
-    ...new Set(txn.entries.map((e) => e.account_name ?? "Unknown")),
-  ].join(", ");
+  const accountNames = getTransactionAccountNames(txn);
 
-  const totalDebit = txn.entries.reduce(
-    (sum, e) => sum + (parseFloat(e.debit) || 0),
-    0
-  );
-  const totalCredit = txn.entries.reduce(
-    (sum, e) => sum + (parseFloat(e.credit) || 0),
-    0
-  );
+  const totalDebit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0);
+  const totalCredit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
 
   const hasExpenseDebit = txn.entries.some(
     (e) => parseFloat(e.debit) > 0 && e.account_type === "expense"
@@ -157,7 +171,7 @@ function TxnRow({
     <>
       {editing ? (
         <>
-          <tr className="border-b border-blue-200 bg-blue-50/60">
+          <tr className="border-b border-blue-200 bg-blue-50/60 dark:border-blue-800 dark:bg-blue-50/60">
             <td className="px-2 py-2">
               <input
                 type="date"
@@ -314,8 +328,8 @@ function TxnRow({
       )}
 
       {expanded && (
-        <tr className="bg-blue-50/50 border-b border-blue-100">
-          <td colSpan={6} className="px-6 py-3 border-l-2 border-blue-400">
+        <tr className="bg-blue-50/50 border-b border-blue-100 dark:border-blue-800 dark:bg-blue-50/50">
+          <td colSpan={6} className="px-6 py-3 border-l-2 border-blue-400 dark:border-blue-500">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 uppercase tracking-wide">
@@ -327,7 +341,7 @@ function TxnRow({
               </thead>
               <tbody>
                 {txn.entries.map((entry) => (
-                  <tr key={entry.id} className="border-t border-blue-100">
+                  <tr key={entry.id} className="border-t border-blue-100 dark:border-blue-800">
                     <td className="py-1 text-gray-700">
                       {entry.account_name ?? entry.account_id}
                     </td>
@@ -357,6 +371,8 @@ function TxnRow({
 
 export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteTxn, onEditTxn }: LedgerViewProps) {
   const { t } = useI18n();
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const { data: transactions, isLoading, error } = useQuery({
     queryKey: ["transactions", dateFrom, dateTo, accountId, searchQuery],
     queryFn: () =>
@@ -367,6 +383,60 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
         search: searchQuery ?? null,
       }),
   });
+
+  const sortedTransactions = useMemo(() => {
+    const items = [...(transactions ?? [])];
+    items.sort((a, b) => {
+      let result = 0;
+
+      if (sortKey === "date") {
+        result = a.txn_date.localeCompare(b.txn_date);
+      } else if (sortKey === "description") {
+        result = a.description.localeCompare(b.description, undefined, { sensitivity: "base" });
+      } else if (sortKey === "reference") {
+        result = (a.reference ?? "").localeCompare(b.reference ?? "", undefined, { sensitivity: "base" });
+      } else if (sortKey === "accounts") {
+        result = getTransactionAccountNames(a).localeCompare(getTransactionAccountNames(b), undefined, { sensitivity: "base" });
+      } else if (sortKey === "amount") {
+        result = getTransactionDisplayAmount(a) - getTransactionDisplayAmount(b);
+      }
+
+      if (result === 0) {
+        result = a.created_at.localeCompare(b.created_at);
+      }
+
+      return sortDirection === "asc" ? result : -result;
+    });
+    return items;
+  }, [transactions, sortDirection, sortKey]);
+
+  const toggleSort = (key: SortKey) => {
+    setSortKey((currentKey) => {
+      if (currentKey === key) {
+        setSortDirection((currentDirection) => (currentDirection === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+      setSortDirection(key === "date" ? "desc" : "asc");
+      return key;
+    });
+  };
+
+  const SortHeader = ({ label, keyName, align = "left" }: { label: string; keyName: SortKey; align?: "left" | "right" }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(keyName)}
+      className={cn(
+        "inline-flex items-center gap-1 hover:text-gray-700 transition-colors",
+        align === "right" && "ml-auto"
+      )}
+    >
+      <span>{label}</span>
+      <ArrowUpDown className="w-3.5 h-3.5" />
+      {sortKey === keyName && (
+        <span className="text-[10px] font-bold">{sortDirection === "asc" ? "↑" : "↓"}</span>
+      )}
+    </button>
+  );
 
   if (error) {
     return (
@@ -382,19 +452,19 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-              {t("Date")}
+              <SortHeader label={t("Date")} keyName="date" />
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              {t("Description")}
+              <SortHeader label={t("Description")} keyName="description" />
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              {t("Reference")}
+              <SortHeader label={t("Reference")} keyName="reference" />
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              {t("Accounts")}
+              <SortHeader label={t("Accounts")} keyName="accounts" />
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
-              {t("Amount")}
+              <SortHeader label={t("Amount")} keyName="amount" align="right" />
             </th>
             <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">
               {t("Actions")}
@@ -420,18 +490,18 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
           )}
 
           {!isLoading &&
-            transactions?.map((txn) => (
+            sortedTransactions.map((txn) => (
               <TxnRow key={txn.id} txn={txn} onDelete={onDeleteTxn} onEdit={onEditTxn} />
             ))}
         </tbody>
-        {!isLoading && transactions && transactions.length > 0 && (
+        {!isLoading && sortedTransactions.length > 0 && (
           <tfoot>
             <tr>
               <td
                 colSpan={6}
                 className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100"
               >
-                {t("Showing {count} transaction{s}", { count: String(transactions.length), s: transactions.length !== 1 ? "s" : "" })}
+                {t("Showing {count} transaction{s}", { count: String(sortedTransactions.length), s: sortedTransactions.length !== 1 ? "s" : "" })}
               </td>
             </tr>
           </tfoot>

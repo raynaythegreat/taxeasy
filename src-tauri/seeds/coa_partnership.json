@@ -13,6 +13,7 @@
   {"code":"2200","name":"Long-Term Loans","account_type":"liability","parent_id":"2000","sort_order":240},
   {"code":"3000","name":"Partners' Capital","account_type":"equity","parent_id":null,"sort_order":300},
   {"code":"3010","name":"Partner Capital Contributions","account_type":"equity","parent_id":"3000","sort_order":310},
+  {"code":"3011","name":"Partner Initial Contribution","account_type":"equity","parent_id":"3000","sort_order":315},
   {"code":"3020","name":"Partner Distributions","account_type":"equity","parent_id":"3000","sort_order":320},
   {"code":"3030","name":"Partner Draws","account_type":"equity","parent_id":"3000","sort_order":330},
   {"code":"3040","name":"Retained Earnings","account_type":"equity","parent_id":"3000","sort_order":340},
