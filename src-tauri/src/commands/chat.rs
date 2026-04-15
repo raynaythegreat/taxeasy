@@ -17,7 +17,7 @@ pub async fn send_chat_message(
     client_id: String,
     message: String,
 ) -> Result<ChatResponse> {
-    let (user_message, context, history) = {
+    let (_user_message, context, history) = {
         let lock = state.active_client.lock().unwrap();
         let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
 

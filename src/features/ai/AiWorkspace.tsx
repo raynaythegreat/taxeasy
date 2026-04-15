@@ -29,6 +29,7 @@ export function AiWorkspace({ clientId }: { clientId: string }) {
           <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
             <button
               type="button"
+              aria-label={t("ai.chatTab")}
               onClick={() => setActiveTab("chat")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
@@ -42,6 +43,7 @@ export function AiWorkspace({ clientId }: { clientId: string }) {
             </button>
             <button
               type="button"
+              aria-label={t("ai.importTab")}
               onClick={() => setActiveTab("import")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",

@@ -430,4 +430,5 @@ export const en: Record<string, string> = {
   "ai.thinking": "Thinking...",
   "ai.uploading": "Uploading...",
   "ai.fileSupported": "PDF, PNG, JPG, GIF, BMP, WEBP",
+  "ai.groupBySource": "Group by source",
 };

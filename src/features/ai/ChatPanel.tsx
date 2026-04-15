@@ -23,6 +23,9 @@ export function ChatPanel({ clientId }: { clientId: string }) {
       queryClient.invalidateQueries({ queryKey: ["chatHistory", clientId] });
       queryClient.invalidateQueries({ queryKey: ["drafts", clientId] });
     },
+    onError: (err) => {
+      console.error("Chat error:", err);
+    },
   });
 
   const clearMutation = useMutation({

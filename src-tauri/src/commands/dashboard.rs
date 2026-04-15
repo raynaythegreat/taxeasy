@@ -50,7 +50,7 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
         (total, active)
     };
 
-    let (client_id, fiscal_year_start_month) = {
+    let (_client_id, fiscal_year_start_month) = {
         let lock = state.active_client.lock().unwrap();
         let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
         let cid = ac.client_id.clone();

@@ -4,7 +4,6 @@ use uuid::Uuid;
 
 use crate::{
     domain::account::{Account, AccountType},
-    domain::transaction::cents_to_decimal,
     error::{AppError, Result},
     state::AppState,
 };

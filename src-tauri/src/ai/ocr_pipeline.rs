@@ -25,7 +25,7 @@ pub async fn process_document(
 
     let mut hasher = Sha256::new();
     hasher.update(&image_data);
-    let hash = format!("{:x}", hasher.finalize());
+    let _hash = format!("{:x}", hasher.finalize());
 
     let ollama_url = {
         let lock = state.app_db.lock().unwrap();
@@ -115,7 +115,7 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
 
         (evidence, ac.db.conn() as *const rusqlite::Connection)
     };
-    drop(conn_ref);
+    let _ = conn_ref;
 
     let mut drafts = Vec::new();
     if let Ok(items) = parse_line_items(&raw_text) {

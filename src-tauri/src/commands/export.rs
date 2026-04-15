@@ -1,5 +1,4 @@
 use rusqlite::params;
-use tauri::Manager;
 
 use crate::{
     domain::transaction::cents_to_decimal,

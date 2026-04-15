@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::domain::chat_message::ChatMessage;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 
 pub fn insert_message(
     conn: &Connection,

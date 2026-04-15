@@ -49,6 +49,7 @@ export function DraftQueue({ clientId }: { clientId: string }) {
   const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [groupBySource, setGroupBySource] = useState(true);
 
   const { data: drafts = [], isLoading, refetch } = useQuery({
     queryKey: ["drafts", clientId],
@@ -120,11 +121,13 @@ export function DraftQueue({ clientId }: { clientId: string }) {
   const approveMutation = useMutation({
     mutationFn: (draftId: string) => approveDraft(clientId, draftId),
     onSuccess: invalidateDrafts,
+    onError: (err) => console.error("Approve error:", err),
   });
 
   const rejectMutation = useMutation({
     mutationFn: (draftId: string) => rejectDraft(clientId, draftId),
     onSuccess: invalidateDrafts,
+    onError: (err) => console.error("Reject error:", err),
   });
 
   const bulkApproveMutation = useMutation({
@@ -133,6 +136,7 @@ export function DraftQueue({ clientId }: { clientId: string }) {
       invalidateDrafts();
       setSelectedIds(new Set());
     },
+    onError: (err) => console.error("Bulk approve error:", err),
   });
 
   const bulkRejectMutation = useMutation({
@@ -157,6 +161,15 @@ export function DraftQueue({ clientId }: { clientId: string }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-neutral-400">
+            <input
+              type="checkbox"
+              checked={groupBySource}
+              onChange={(e) => setGroupBySource(e.target.checked)}
+              className="w-3 h-3 rounded border-gray-300 dark:border-neutral-600"
+            />
+            {t("ai.groupBySource")}
+          </label>
           {pendingDrafts.length > 0 && (
             <>
               <button

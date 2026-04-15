@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { useState, useMemo, lazy, Suspense } from "react";
+import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import type { Client } from "../lib/tauri";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
@@ -10,9 +10,10 @@ import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { PnLView } from "../features/reports/PnLView";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
-import { AiWorkspace } from "../features/ai/AiWorkspace";
 import { cn, fiscalYearRange, formatDate } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
+
+const AiWorkspace = lazy(() => import("../features/ai/AiWorkspace").then(m => ({ default: m.AiWorkspace })));
 
 type WorkspaceTab = "overview" | "transactions" | "accounts" | "invoices" | "documents" | "pnl" | "balance_sheet" | "cash_flow" | "ai";
 
@@ -266,7 +267,11 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
             <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
           </div>
         )}
-        {tab === "ai" && <AiWorkspace clientId={client.id} />}
+        {tab === "ai" && (
+          <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+            <AiWorkspace clientId={client.id} />
+          </Suspense>
+        )}
       </div>
       {editingClient && (
         <ClientEditModal
