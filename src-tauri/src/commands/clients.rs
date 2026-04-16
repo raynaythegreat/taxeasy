@@ -313,6 +313,12 @@ pub fn switch_client(
         crate::db::ClientDb::open(client_db_path.to_str().unwrap(), &client_id, &passphrase)?;
     ensure_chart_of_accounts(client_db.conn(), &entity_type)?;
 
+    // Auto-run any due recurring transactions on client open. Non-fatal.
+    let due_created = crate::commands::recurring::run_due_on_conn(client_db.conn());
+    if due_created > 0 {
+        log::info!("recurring: auto-created {due_created} transaction(s) on client switch");
+    }
+
     let mut lock = state.active_client.lock().unwrap();
     *lock = Some(crate::state::ActiveClient {
         client_id,
