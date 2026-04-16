@@ -170,10 +170,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="edit-contact-name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Contact Name")}
               </label>
               <input
+                id="edit-contact-name"
                 type="text"
                 value={contactName}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setContactName(e.target.value)}
@@ -182,8 +186,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone")}</label>
+              <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Phone")}
+              </label>
               <input
+                id="edit-phone"
                 type="text"
                 value={phone}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
@@ -195,8 +202,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
+              <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Email")}
+              </label>
               <input
+                id="edit-email"
                 type="email"
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
@@ -205,8 +215,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Website")}</label>
+              <label
+                htmlFor="edit-website"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("Website")}
+              </label>
               <input
+                id="edit-website"
                 type="text"
                 value={website}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
@@ -217,10 +233,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="edit-address1" className="block text-sm font-medium text-gray-700 mb-1">
               {t("Address Line 1")}
             </label>
             <input
+              id="edit-address1"
               type="text"
               value={addressLine1}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setAddressLine1(e.target.value)}
@@ -230,10 +247,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="edit-address2" className="block text-sm font-medium text-gray-700 mb-1">
               {t("Address Line 2")}
             </label>
             <input
+              id="edit-address2"
               type="text"
               value={addressLine2}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setAddressLine2(e.target.value)}
@@ -244,8 +262,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("City")}</label>
+              <label htmlFor="edit-city" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("City")}
+              </label>
               <input
+                id="edit-city"
                 type="text"
                 value={city}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setCity(e.target.value)}
@@ -254,8 +275,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("State")}</label>
+              <label htmlFor="edit-state" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("State")}
+              </label>
               <input
+                id="edit-state"
                 type="text"
                 value={stateName}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setStateName(e.target.value)}
@@ -267,10 +291,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="edit-postal" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("Postal Code")}
               </label>
               <input
+                id="edit-postal"
                 type="text"
                 value={postalCode}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setPostalCode(e.target.value)}
@@ -279,8 +304,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Country")}</label>
+              <label
+                htmlFor="edit-country"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("Country")}
+              </label>
               <input
+                id="edit-country"
                 type="text"
                 value={country}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setCountry(e.target.value)}
@@ -338,10 +369,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="edit-tax-preparer-notes"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {t("Tax Preparer Notes")}
             </label>
             <textarea
+              id="edit-tax-preparer-notes"
               value={taxPreparerNotes}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setTaxPreparerNotes(e.target.value)
@@ -353,10 +388,14 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="edit-filing-notes"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {t("Filing Notes")}
             </label>
             <textarea
+              id="edit-filing-notes"
               value={filingNotes}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFilingNotes(e.target.value)}
               rows={3}
@@ -366,7 +405,11 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           {error && (
-            <div role="alert" aria-live="polite" className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div
+              role="alert"
+              aria-live="polite"
+              className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+            >
               {error}
             </div>
           )}

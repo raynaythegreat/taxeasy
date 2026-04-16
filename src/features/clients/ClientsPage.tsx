@@ -114,6 +114,7 @@ export function ClientsPage({
           // Non-fatal: we just won't highlight any client
         });
     }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: getActiveClientId is a stable Tauri command reference
   }, [initialClientId, handleSwitchClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Query: list clients
@@ -339,9 +340,7 @@ export function ClientsPage({
                         <span
                           className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
-                            isActive
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-200 text-gray-700",
+                            isActive ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700",
                           )}
                         >
                           {initials}
@@ -375,42 +374,28 @@ export function ClientsPage({
                         <EntityBadge type={client.entity_type} />
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingClient(client);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.stopPropagation();
-                              setEditingClient(client);
-                            }
                           }}
                           className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                           title={t("Edit client")}
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        </button>
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setArchivingClient(client);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.stopPropagation();
-                              setArchivingClient(client);
-                            }
                           }}
                           className="p-1 rounded text-gray-400 hover:text-amber-600 hover:bg-amber-50"
                           title={t("Archive client")}
                         >
                           <Archive className="w-3.5 h-3.5" />
-                        </span>
+                        </button>
                       </div>
                     </button>
                   </li>
@@ -595,7 +580,7 @@ export function ClientsPage({
         ) : activeClientId && clients?.find((c) => c.id === activeClientId) ? (
           <ClientWorkspace
             key={activeClientId}
-            client={clients.find((c) => c.id === activeClientId)!}
+            client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

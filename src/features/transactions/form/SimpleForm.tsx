@@ -88,8 +88,11 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {/* Date + Description */}
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">{t("Date")}</label>
+          <label htmlFor="simple-date" className="block text-xs font-medium text-gray-600 mb-1">
+            {t("Date")}
+          </label>
           <input
+            id="simple-date"
             type="date"
             value={simple.date}
             onChange={(e) => onChange("date", e.target.value)}
@@ -98,10 +101,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
           />
         </div>
         <div className="col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label
+            htmlFor="simple-description"
+            className="block text-xs font-medium text-gray-600 mb-1"
+          >
             Description <span className="text-red-400">*</span>
           </label>
           <input
+            id="simple-description"
             type="text"
             value={simple.description}
             onChange={(e) => onChange("description", e.target.value)}
@@ -114,7 +121,7 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
 
       {/* Amount */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
+        <label htmlFor="simple-amount" className="block text-xs font-medium text-gray-600 mb-1">
           {t("Amount")} <span className="text-red-400">*</span>
         </label>
         <div className="relative">
@@ -122,6 +129,7 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             $
           </span>
           <input
+            id="simple-amount"
             type="number"
             inputMode="decimal"
             min="0"
@@ -139,10 +147,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {simple.txnType === "expense" && (
         <>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              htmlFor="simple-paid-from"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
               Paid from <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-paid-from"
               value={simple.paidFrom}
               accounts={balanceSheetAccounts}
               onChange={(id) => onChange("paidFrom", id)}
@@ -150,10 +162,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              htmlFor="simple-category"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
               Debit account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-category"
               value={simple.category}
               accounts={debitAccounts}
               onChange={(id) => onChange("category", id)}
@@ -166,10 +182,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {simple.txnType === "income" && (
         <>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              htmlFor="simple-deposited-to"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
               Deposited to <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-deposited-to"
               value={simple.depositedTo}
               accounts={balanceSheetAccounts}
               onChange={(id) => onChange("depositedTo", id)}
@@ -177,10 +197,11 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label htmlFor="simple-source" className="block text-xs font-medium text-gray-600 mb-1">
               Credit account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-source"
               value={simple.source}
               accounts={creditAccounts}
               onChange={(id) => onChange("source", id)}
@@ -193,10 +214,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {simple.txnType === "transfer" && (
         <>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              htmlFor="simple-from-account"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
               From account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-from-account"
               value={simple.fromAccount}
               accounts={balanceSheetAccounts}
               onChange={(id) => onChange("fromAccount", id)}
@@ -204,10 +229,14 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label
+              htmlFor="simple-to-account"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
               To account <span className="text-red-400">*</span>
             </label>
             <AccountSelect
+              id="simple-to-account"
               value={simple.toAccount}
               accounts={balanceSheetAccounts}
               onChange={(id) => onChange("toAccount", id)}
@@ -219,8 +248,11 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
 
       {/* Memo */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Memo (optional)</label>
+        <label htmlFor="simple-memo" className="block text-xs font-medium text-gray-600 mb-1">
+          Memo (optional)
+        </label>
         <input
+          id="simple-memo"
           type="text"
           value={simple.memo}
           onChange={(e) => onChange("memo", e.target.value)}

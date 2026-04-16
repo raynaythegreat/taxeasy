@@ -185,10 +185,11 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="inv-number" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("Document #")}
               </label>
               <input
+                id="inv-number"
                 type="text"
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
@@ -197,10 +198,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-issue-date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Issue Date")}
               </label>
               <input
+                id="inv-issue-date"
                 type="date"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
@@ -209,10 +214,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-due-date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Due Date")}
               </label>
               <input
+                id="inv-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -224,10 +233,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-client-name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Client Name")} <span className="text-red-500">*</span>
               </label>
               <input
+                id="inv-client-name"
                 type="text"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
@@ -237,10 +250,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-client-email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Client Email")}
               </label>
               <input
+                id="inv-client-email"
                 type="email"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
@@ -250,10 +267,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-client-address"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Client Address")}
               </label>
               <textarea
+                id="inv-client-address"
                 value={clientAddress}
                 onChange={(e) => setClientAddress(e.target.value)}
                 placeholder={t("Street, City, State, ZIP")}
@@ -265,7 +286,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="inv-lines" className="block text-sm font-medium text-gray-700 mb-2">
               {t("Line Items")}
             </label>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -293,6 +314,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                     const price = parseFloat(line.unitPrice) || 0;
                     const lineTotal = qty * price;
                     return (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: invoice lines have no stable ID; index is safe here because lines are only appended/removed, never reordered
                       <tr key={i} className="border-t border-gray-100">
                         <td className="px-2 py-1.5">
                           <input
@@ -364,10 +386,14 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="inv-tax-rate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Tax Rate (%)")}
               </label>
               <input
+                id="inv-tax-rate"
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(e.target.value)}
@@ -397,8 +423,11 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("Notes")}</label>
+            <label htmlFor="inv-notes" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Notes")}
+            </label>
             <textarea
+              id="inv-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t("Payment terms, additional info…")}
@@ -409,7 +438,11 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           </div>
 
           {error && (
-            <div role="alert" aria-live="polite" className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div
+              role="alert"
+              aria-live="polite"
+              className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+            >
               {error}
             </div>
           )}

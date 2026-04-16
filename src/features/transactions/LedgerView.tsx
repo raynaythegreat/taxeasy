@@ -55,6 +55,7 @@ function SkeletonRow() {
   return (
     <tr className="animate-pulse">
       {[...Array(6)].map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton columns, no stable ID
         <td key={i} className="px-4 py-3">
           <div className="h-4 bg-gray-100 rounded" />
         </td>
