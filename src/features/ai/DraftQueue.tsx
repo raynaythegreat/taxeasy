@@ -1,21 +1,24 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  FileText,
-  MessageSquare,
-} from "lucide-react";
-import { listDrafts, approveDraft, rejectDraft, bulkApproveDrafts, bulkRejectDrafts } from "../../lib/draft-api";
+  useQuery as useAccountsQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { ChevronDown, ChevronRight, Clock, FileText, MessageSquare, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { DraftTransaction } from "../../lib/ai-api";
 import { listEvidence } from "../../lib/ai-api";
-import { cn, formatDate } from "../../lib/utils";
+import {
+  approveDraft,
+  bulkApproveDrafts,
+  bulkRejectDrafts,
+  listDrafts,
+  rejectDraft,
+} from "../../lib/draft-api";
 import { useI18n } from "../../lib/i18n";
-import { DraftRowEditor } from "./DraftRowEditor";
-import { useQuery as useAccountsQuery } from "@tanstack/react-query";
 import { listAccounts } from "../../lib/tauri";
+import { cn, formatDate } from "../../lib/utils";
+import { DraftRowEditor } from "./DraftRowEditor";
 
 interface DraftGroup {
   evidenceId: string;
@@ -36,7 +39,7 @@ function statusBadge(status: string, t: (k: string) => string) {
     <span
       className={cn(
         "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium",
-        styles[status] ?? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-400"
+        styles[status] ?? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-400",
       )}
     >
       {t(`ai.${status}`)}
@@ -51,7 +54,11 @@ export function DraftQueue({ clientId }: { clientId: string }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupBySource, setGroupBySource] = useState(true);
 
-  const { data: drafts = [], isLoading, refetch } = useQuery({
+  const {
+    data: drafts = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["drafts", clientId],
     queryFn: () => listDrafts(clientId),
   });
@@ -227,8 +234,19 @@ export function DraftQueue({ clientId }: { clientId: string }) {
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <svg className="animate-spin w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
             </svg>
           </div>
         ) : groups.length === 0 ? (
@@ -281,7 +299,10 @@ export function DraftQueue({ clientId }: { clientId: string }) {
                     <span className="text-[10px] text-gray-500 dark:text-neutral-400 shrink-0">
                       {group.drafts.length} {t("ai.draftRows")}
                     </span>
-                    {statusBadge(groupPending > 0 ? "pending" : group.drafts[0]?.status ?? "pending", t)}
+                    {statusBadge(
+                      groupPending > 0 ? "pending" : (group.drafts[0]?.status ?? "pending"),
+                      t,
+                    )}
                   </button>
                   {isExpanded && (
                     <div className="px-4 pb-3 space-y-2">

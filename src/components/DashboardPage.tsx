@@ -1,21 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Users,
-  TrendingUp,
+  Building2,
   DollarSign,
-  Upload,
+  ExternalLink,
   FileText,
   Plus,
   Scale,
-  ExternalLink,
-  Building2,
+  TrendingUp,
+  Upload,
+  Users,
 } from "lucide-react";
-import { listClients } from "../lib/tauri";
-import type { EntityType } from "../lib/tauri";
-import { getDashboardStats } from "../lib/dashboard-api";
 import { getBusinessProfile } from "../lib/business-profile-api";
-import { cn } from "../lib/utils";
+import { getDashboardStats } from "../lib/dashboard-api";
 import { useI18n } from "../lib/i18n";
+import type { EntityType } from "../lib/tauri";
+import { listClients } from "../lib/tauri";
+import { cn } from "../lib/utils";
 
 const ENTITY_COLORS: Record<EntityType, string> = {
   sole_prop: "bg-blue-50 text-blue-700",
@@ -69,7 +69,11 @@ function fmtMoney(val: string) {
   });
 }
 
-export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavigate }: DashboardPageProps) {
+export function DashboardPage({
+  onSelectClient,
+  onNewClient,
+  onNavigate: _onNavigate,
+}: DashboardPageProps) {
   const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
 
@@ -157,13 +161,16 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   <h2 className="text-lg font-bold text-gray-900">{businessProfile.name}</h2>
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                      {ENTITY_LABELS[businessProfile.entity_type as EntityType] || businessProfile.entity_type}
+                      {ENTITY_LABELS[businessProfile.entity_type as EntityType] ||
+                        businessProfile.entity_type}
                     </span>
                     <span className="text-xs text-gray-400 capitalize">
                       {businessProfile.accounting_method} {t("basis")}
                     </span>
                     {businessProfile.ein && (
-                      <span className="text-xs text-gray-500">{t("EIN")}: {businessProfile.ein}</span>
+                      <span className="text-xs text-gray-500">
+                        {t("EIN")}: {businessProfile.ein}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -176,19 +183,21 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                 </button>
               </div>
               <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
-                {businessProfile.contact_name && (
-                  <span>{businessProfile.contact_name}</span>
-                )}
-                {businessProfile.email && (
-                  <span>{businessProfile.email}</span>
-                )}
-                {businessProfile.phone && (
-                  <span>{businessProfile.phone}</span>
-                )}
+                {businessProfile.contact_name && <span>{businessProfile.contact_name}</span>}
+                {businessProfile.email && <span>{businessProfile.email}</span>}
+                {businessProfile.phone && <span>{businessProfile.phone}</span>}
               </div>
               {(businessProfile.address_line1 || businessProfile.city) && (
                 <div className="mt-2 text-sm text-gray-500">
-                  {[businessProfile.address_line1, businessProfile.address_line2, businessProfile.city, businessProfile.state, businessProfile.postal_code].filter(Boolean).join(", ")}
+                  {[
+                    businessProfile.address_line1,
+                    businessProfile.address_line2,
+                    businessProfile.city,
+                    businessProfile.state,
+                    businessProfile.postal_code,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                 </div>
               )}
             </div>
@@ -256,10 +265,12 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                 </div>
                 <div className="mt-3 space-y-2">
                   <div className="text-xs text-indigo-700 py-1 border-b border-indigo-100">
-                    <span className="font-medium">April 15, {new Date().getFullYear()}</span> - Tax Filing Deadline
+                    <span className="font-medium">April 15, {new Date().getFullYear()}</span> - Tax
+                    Filing Deadline
                   </div>
                   <div className="text-xs text-indigo-700 py-1 border-b border-indigo-100">
-                    <span className="font-medium">Oct 15, {new Date().getFullYear()}</span> - Extended Filing Deadline
+                    <span className="font-medium">Oct 15, {new Date().getFullYear()}</span> -
+                    Extended Filing Deadline
                   </div>
                   <a
                     href="https://www.irs.gov/newsroom"
@@ -294,24 +305,20 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
               <div
                 className={cn(
                   "border rounded-xl p-5",
-                  netIncomeNum >= 0
-                    ? "bg-blue-50 border-blue-200"
-                    : "bg-red-50 border-red-200"
+                  netIncomeNum >= 0 ? "bg-blue-50 border-blue-200" : "bg-red-50 border-red-200",
                 )}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={cn(
                       "w-10 h-10 rounded-lg flex items-center justify-center",
-                      netIncomeNum >= 0
-                        ? "bg-blue-100"
-                        : "bg-red-100"
+                      netIncomeNum >= 0 ? "bg-blue-100" : "bg-red-100",
                     )}
                   >
                     <DollarSign
                       className={cn(
                         "w-5 h-5",
-                        netIncomeNum >= 0 ? "text-blue-600" : "text-red-600"
+                        netIncomeNum >= 0 ? "text-blue-600" : "text-red-600",
                       )}
                     />
                   </div>
@@ -319,9 +326,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                     <p
                       className={cn(
                         "text-xs font-semibold uppercase tracking-wide",
-                        netIncomeNum >= 0
-                          ? "text-blue-600"
-                          : "text-red-600"
+                        netIncomeNum >= 0 ? "text-blue-600" : "text-red-600",
                       )}
                     >
                       {t("Net Income")}
@@ -329,9 +334,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                     <p
                       className={cn(
                         "text-2xl font-bold",
-                        netIncomeNum >= 0
-                          ? "text-blue-700"
-                          : "text-red-700"
+                        netIncomeNum >= 0 ? "text-blue-700" : "text-red-700",
                       )}
                     >
                       ${stats ? fmtMoney(stats.ytd_net_income) : "0.00"}
@@ -355,15 +358,13 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                   className={cn(
                     "border rounded-lg p-4",
                     ACCOUNT_TYPE_COLORS[ab.account_type] ??
-                      "bg-gray-50 text-gray-700 border-gray-200"
+                      "bg-gray-50 text-gray-700 border-gray-200",
                   )}
                 >
                   <p className="text-xs font-medium uppercase tracking-wide opacity-75">
                     {ACCOUNT_TYPE_LABELS[ab.account_type] ?? ab.account_type}
                   </p>
-                  <p className="text-lg font-bold mt-1 tabular-nums">
-                    ${fmtMoney(ab.balance)}
-                  </p>
+                  <p className="text-lg font-bold mt-1 tabular-nums">${fmtMoney(ab.balance)}</p>
                 </div>
               ))}
             </div>
@@ -436,7 +437,7 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                     <span
                       className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                        ENTITY_COLORS[client.entity_type]
+                        ENTITY_COLORS[client.entity_type],
                       )}
                     >
                       {ENTITY_LABELS[client.entity_type]}
@@ -446,7 +447,9 @@ export function DashboardPage({ onSelectClient, onNewClient, onNavigate: _onNavi
                     </span>
                   </div>
                   {client.ein && (
-                    <p className="mt-2 text-xs text-gray-400">{t("EIN")}: {client.ein}</p>
+                    <p className="mt-2 text-xs text-gray-400">
+                      {t("EIN")}: {client.ein}
+                    </p>
                   )}
                 </button>
               ))}

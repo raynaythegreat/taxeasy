@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCashFlow, type CashFlowLineItem } from "../../lib/tauri";
-import { formatCurrency, formatDate } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { type CashFlowLineItem, getCashFlow } from "../../lib/tauri";
+import { formatCurrency, formatDate } from "../../lib/utils";
 
 interface CashFlowViewProps {
   dateFrom: string;
@@ -31,7 +31,10 @@ function LoadingSkeleton() {
   return (
     <div className="animate-pulse space-y-3 p-8">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className={`h-4 bg-gray-200 rounded ${i === 0 ? "w-1/3 mx-auto" : "w-full"}`} />
+        <div
+          key={i}
+          className={`h-4 bg-gray-200 rounded ${i === 0 ? "w-1/3 mx-auto" : "w-full"}`}
+        />
       ))}
     </div>
   );
@@ -62,9 +65,7 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
   return (
     <div className="report-sheet">
       <div className="text-center mb-8 print:mb-5">
-        {clientName && (
-          <p className="text-base font-semibold text-gray-900">{clientName}</p>
-        )}
+        {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Statement of Cash Flows")}</h2>
         <p className="text-sm text-gray-500 mt-1">
           {formatDate(dateFrom)} &ndash; {formatDate(dateTo)}
@@ -86,7 +87,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No adjustments")}</p>
         )}
         <div className="report-divider mt-1" />
-        <SubtotalRow label={t("Net Cash from Operations")} amount={data.net_cash_from_operations} bold />
+        <SubtotalRow
+          label={t("Net Cash from Operations")}
+          amount={data.net_cash_from_operations}
+          bold
+        />
       </section>
 
       <section className="report-section">
@@ -100,7 +105,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>
         )}
         <div className="report-divider mt-1" />
-        <SubtotalRow label={t("Net Cash from Investing")} amount={data.net_cash_from_investing} bold />
+        <SubtotalRow
+          label={t("Net Cash from Investing")}
+          amount={data.net_cash_from_investing}
+          bold
+        />
       </section>
 
       <section className="report-section">
@@ -114,7 +123,11 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>
         )}
         <div className="report-divider mt-1" />
-        <SubtotalRow label={t("Net Cash from Financing")} amount={data.net_cash_from_financing} bold />
+        <SubtotalRow
+          label={t("Net Cash from Financing")}
+          amount={data.net_cash_from_financing}
+          bold
+        />
       </section>
 
       <div className="report-divider-strong mt-4 pt-3 space-y-1 print:mt-3">

@@ -1,8 +1,8 @@
+import { Check, CheckCircle, Pencil, SkipForward, XCircle } from "lucide-react";
 import { useState } from "react";
-import { Pencil, Check, CheckCircle, XCircle, SkipForward } from "lucide-react";
 import type { DraftTransaction } from "../../lib/ai-api";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 
 function formatAmount(amount: number | null): string {
   if (amount === null) return "—";
@@ -211,7 +211,7 @@ export function DraftRowEditor({
             <span
               className={cn(
                 "inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
-                statusClasses(draft.status)
+                statusClasses(draft.status),
               )}
             >
               {t(`ai.${draft.status}`)}

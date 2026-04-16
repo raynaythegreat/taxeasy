@@ -1,7 +1,7 @@
-import { CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
-import { cn } from "../../../lib/utils";
+import { CheckCircle2, Download, ExternalLink, RefreshCw } from "lucide-react";
 import { useI18n } from "../../../lib/i18n";
 import type { UpdateCheck } from "../../../lib/updater-api";
+import { cn } from "../../../lib/utils";
 
 function Spinner() {
   return (
@@ -19,7 +19,12 @@ interface AboutTabProps {
   onCheckUpdate: () => void;
 }
 
-export function AboutTab({ appVersion, updateCheck, checkingUpdate, onCheckUpdate }: AboutTabProps) {
+export function AboutTab({
+  appVersion,
+  updateCheck,
+  checkingUpdate,
+  onCheckUpdate,
+}: AboutTabProps) {
   const { t } = useI18n();
 
   return (
@@ -37,9 +42,7 @@ export function AboutTab({ appVersion, updateCheck, checkingUpdate, onCheckUpdat
           </div>
           <div className="flex items-center justify-between py-2 border-b border-gray-100">
             <span className="text-sm text-gray-600">{t("Tech Stack")}</span>
-            <span className="text-sm font-medium text-gray-900">
-              Tauri, React, and SQLite
-            </span>
+            <span className="text-sm font-medium text-gray-900">Tauri, React, and SQLite</span>
           </div>
         </div>
       </div>
@@ -60,12 +63,12 @@ export function AboutTab({ appVersion, updateCheck, checkingUpdate, onCheckUpdat
         </div>
 
         {updateCheck && (
-          <div className={cn(
-            "rounded-lg border p-4 space-y-2",
-            updateCheck.hasUpdate
-              ? "bg-green-50 border-green-200"
-              : "bg-gray-50 border-gray-200"
-          )}>
+          <div
+            className={cn(
+              "rounded-lg border p-4 space-y-2",
+              updateCheck.hasUpdate ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200",
+            )}
+          >
             {updateCheck.hasUpdate ? (
               <>
                 <div className="flex items-center gap-2">

@@ -44,8 +44,7 @@ export interface SaveBusinessProfilePayload {
   filing_notes?: string;
 }
 
-export const getBusinessProfile = (): Promise<BusinessProfile> =>
-  invoke("get_business_profile");
+export const getBusinessProfile = (): Promise<BusinessProfile> => invoke("get_business_profile");
 
 export const saveBusinessProfile = (payload: SaveBusinessProfilePayload): Promise<void> =>
   invoke("save_business_profile", { payload });

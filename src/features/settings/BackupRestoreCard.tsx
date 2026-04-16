@@ -1,6 +1,6 @@
-import { type LucideIcon } from "lucide-react";
-import { cn } from "../../lib/utils";
+import type { LucideIcon } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 
 interface BackupRestoreCardProps {
   title: string;
@@ -39,7 +39,7 @@ export function BackupRestoreCard({
           "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
           variant === "danger"
             ? "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
-            : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+            : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
         )}
       >
         {loading ? (

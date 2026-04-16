@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
-import { UnlockScreen } from "./features/unlock/UnlockScreen";
+import { useCallback, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { KeyboardShortcutsHelp } from "./components/KeyboardShortcutsHelp";
+import { UnlockScreen } from "./features/unlock/UnlockScreen";
 import { useKeyboardShortcuts } from "./lib/use-keyboard-shortcuts";
 
 export default function App() {

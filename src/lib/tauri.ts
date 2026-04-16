@@ -169,8 +169,7 @@ export const unlock = (passphrase: string): Promise<boolean> =>
   invoke("unlock_app", { passphrase });
 
 // Clients
-export const listClients = (): Promise<Client[]> =>
-  invoke("list_clients");
+export const listClients = (): Promise<Client[]> => invoke("list_clients");
 
 export const createClient = (payload: CreateClientPayload): Promise<Client> =>
   invoke("create_client", { payload });
@@ -178,12 +177,10 @@ export const createClient = (payload: CreateClientPayload): Promise<Client> =>
 export const switchClient = (clientId: string): Promise<void> =>
   invoke("switch_client", { clientId });
 
-export const getActiveClientId = (): Promise<string | null> =>
-  invoke("get_active_client_id");
+export const getActiveClientId = (): Promise<string | null> => invoke("get_active_client_id");
 
 // Accounts
-export const listAccounts = (): Promise<Account[]> =>
-  invoke("list_accounts");
+export const listAccounts = (): Promise<Account[]> => invoke("list_accounts");
 
 export const getAccountBalance = (accountId: string, asOfDate: string): Promise<string> =>
   invoke("get_account_balance", { accountId, asOfDate });
@@ -201,9 +198,8 @@ export const listTransactions = (params?: {
   });
 
 export const createTransaction = (
-  payload: CreateTransactionPayload
-): Promise<TransactionWithEntries> =>
-  invoke("create_transaction", { payload });
+  payload: CreateTransactionPayload,
+): Promise<TransactionWithEntries> => invoke("create_transaction", { payload });
 
 export interface UpdateTransactionPayload {
   txnId: string;
@@ -231,8 +227,7 @@ export const getCashFlow = (dateFrom: string, dateTo: string): Promise<CashFlowR
 export const setActiveClientPref = (clientId: string): Promise<void> =>
   invoke("set_active_client_pref", { clientId });
 
-export const getActiveClientPref = (): Promise<string | null> =>
-  invoke("get_active_client_pref");
+export const getActiveClientPref = (): Promise<string | null> => invoke("get_active_client_pref");
 
 export interface ExtractedReceipt {
   vendor: string | null;
@@ -249,24 +244,33 @@ export interface CategorizeSuggestion {
   reason: string;
 }
 
-export const glmocrAvailable = (): Promise<boolean> =>
-  invoke("glmocr_available");
+export const glmocrAvailable = (): Promise<boolean> => invoke("glmocr_available");
 
 export const scanReceipt = (filePath: string): Promise<ExtractedReceipt> =>
   invoke("scan_receipt", { filePath });
 
 export const suggestCategory = (
   description: string,
-  amountStr: string
-): Promise<CategorizeSuggestion> =>
-  invoke("suggest_category", { description, amountStr });
+  amountStr: string,
+): Promise<CategorizeSuggestion> => invoke("suggest_category", { description, amountStr });
 
 const FILE_FILTERS = [
   {
     name: "Documents & Images",
     extensions: [
-      "jpg", "jpeg", "png", "webp", "heic", "heif", "tiff", "tif", "bmp", "gif",
-      "pdf", "csv", "txt",
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "heic",
+      "heif",
+      "tiff",
+      "tif",
+      "bmp",
+      "gif",
+      "pdf",
+      "csv",
+      "txt",
     ],
   },
 ];
@@ -277,8 +281,7 @@ export const pickReceiptFile = (): Promise<string | null> =>
 export const pickReceiptFiles = (): Promise<string[] | null> =>
   openDialog({ multiple: true, filters: FILE_FILTERS }) as Promise<string[] | null>;
 
-export const listDirFiles = (path: string): Promise<string[]> =>
-  invoke("list_dir_files", { path });
+export const listDirFiles = (path: string): Promise<string[]> => invoke("list_dir_files", { path });
 
 // ── B4: Period range — single source of truth ─────────────────────────────────
 
@@ -314,9 +317,8 @@ export type PeriodTypeInput =
 export const reportPeriodFor = (
   clientId: string,
   periodType: PeriodTypeInput,
-  anchorDate: string
-): Promise<PeriodRange> =>
-  invoke("report_period_for", { clientId, periodType, anchorDate });
+  anchorDate: string,
+): Promise<PeriodRange> => invoke("report_period_for", { clientId, periodType, anchorDate });
 
 // ─── Tax News ────────────────────────────────────────────────────────────────
 

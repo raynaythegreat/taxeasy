@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react";
 import type { Account } from "../../../lib/tauri";
 import { cn } from "../../../lib/utils";
-import { EntryRow } from "./EntryRow";
 import type { EntryRowData } from "./EntryRow";
+import { EntryRow } from "./EntryRow";
 
 interface EntryRowsProps {
   entries: EntryRowData[];
@@ -79,8 +79,7 @@ export function EntryRows({
                   <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM8 4a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
                   </svg>
-                  Difference:{" "}
-                  {fmt(Math.abs(totalDebit - totalCredit))}
+                  Difference: {fmt(Math.abs(totalDebit - totalCredit))}
                 </span>
               )
             ) : null}
@@ -98,12 +97,12 @@ export function EntryRows({
       </button>
 
       {(totalDebit > 0 || totalCredit > 0) && (
-        <div className={cn(
-          "mt-3 flex items-center gap-4 px-4 py-2.5 rounded-lg border",
-          isBalanced
-            ? "bg-green-50 border-green-200"
-            : "bg-red-50 border-red-200"
-        )}>
+        <div
+          className={cn(
+            "mt-3 flex items-center gap-4 px-4 py-2.5 rounded-lg border",
+            isBalanced ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200",
+          )}
+        >
           <div className="flex-1 grid grid-cols-3 gap-4 text-xs">
             <div>
               <span className="text-gray-500">Total Debits</span>
@@ -115,21 +114,29 @@ export function EntryRows({
             </div>
             <div>
               <span className="text-gray-500">Difference</span>
-              <div className={cn(
-                "font-semibold tabular-nums",
-                isBalanced ? "text-green-600" : "text-red-600"
-              )}>
+              <div
+                className={cn(
+                  "font-semibold tabular-nums",
+                  isBalanced ? "text-green-600" : "text-red-600",
+                )}
+              >
                 {fmt(Math.abs(totalDebit - totalCredit))}
               </div>
             </div>
           </div>
-          <div className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-full",
-            isBalanced ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-          )}>
+          <div
+            className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-full",
+              isBalanced ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600",
+            )}
+          >
             {isBalanced ? (
               <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                  clipRule="evenodd"
+                />
               </svg>
             ) : (
               <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">

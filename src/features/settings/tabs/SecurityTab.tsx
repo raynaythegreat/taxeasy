@@ -49,7 +49,8 @@ export function SecurityTab({ saving, onSave }: SecurityTabProps) {
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-2">{t("Current PIN")}</h3>
         <p className="text-sm text-gray-500">
-          {t("Your app is currently protected with a 4-digit PIN. Default PIN is")} <span className="font-mono">0000</span>
+          {t("Your app is currently protected with a 4-digit PIN. Default PIN is")}{" "}
+          <span className="font-mono">0000</span>
         </p>
       </div>
     </div>

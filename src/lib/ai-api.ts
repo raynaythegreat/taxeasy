@@ -80,7 +80,7 @@ export async function storeEvidence(
     extractedFields?: string;
     modelUsed?: string;
     confidence?: number;
-  }
+  },
 ): Promise<Evidence> {
   return invoke<Evidence>("store_evidence", {
     clientId,

@@ -1,19 +1,19 @@
-import { useState, useEffect, type FormEvent, type ChangeEvent } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Archive } from "lucide-react";
-import {
-  listClients,
-  createClient,
-  switchClient,
-  getActiveClientId,
-  setActiveClientPref,
-} from "../../lib/tauri";
-import type { Client, EntityType, AccountingMethod, CreateClientPayload } from "../../lib/tauri";
-import { cn } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Archive, Pencil } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { ClientWorkspace } from "../../components/ClientWorkspace";
-import { ClientEditModal } from "./ClientEditModal";
+import { useI18n } from "../../lib/i18n";
+import type { AccountingMethod, Client, CreateClientPayload, EntityType } from "../../lib/tauri";
+import {
+  createClient,
+  getActiveClientId,
+  listClients,
+  setActiveClientPref,
+  switchClient,
+} from "../../lib/tauri";
+import { cn } from "../../lib/utils";
 import { ClientArchiveConfirm } from "./ClientArchiveConfirm";
+import { ClientEditModal } from "./ClientEditModal";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -26,8 +26,18 @@ const ENTITY_LABELS: Record<EntityType, string> = {
 };
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // ── New-client form state ─────────────────────────────────────────────────────
@@ -67,26 +77,18 @@ function Spinner() {
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
   );
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function ClientsPage({ initialClientId, onBack }: {
+export function ClientsPage({
+  initialClientId,
+  onBack,
+}: {
   initialClientId?: string | null;
   onBack: () => void;
 }) {
@@ -205,7 +207,13 @@ export function ClientsPage({ initialClientId, onBack }: {
               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
               title={t("Back to Dashboard")}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -256,9 +264,7 @@ export function ClientsPage({ initialClientId, onBack }: {
               role="alert"
               className="mx-3 mt-3 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
             >
-              {fetchError instanceof Error
-                ? fetchError.message
-                : t("Failed to load clients.")}
+              {fetchError instanceof Error ? fetchError.message : t("Failed to load clients.")}
             </div>
           )}
 
@@ -295,7 +301,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                         "w-full text-left px-4 py-3 flex items-center gap-2 border-l-2 transition-colors hover:bg-gray-50 focus:outline-none focus:bg-gray-50",
                         isActive
                           ? "border-l-blue-600 bg-blue-50 hover:bg-blue-50"
-                          : "border-l-transparent"
+                          : "border-l-transparent",
                       )}
                       aria-current={isActive ? "true" : undefined}
                     >
@@ -303,7 +309,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                         <span
                           className={cn(
                             "text-sm font-medium truncate",
-                            isActive ? "text-blue-700" : "text-gray-800"
+                            isActive ? "text-blue-700" : "text-gray-800",
                           )}
                         >
                           {client.name}
@@ -364,7 +370,11 @@ export function ClientsPage({ initialClientId, onBack }: {
           <div className="p-6 max-w-lg">
             <h2 className="text-lg font-semibold text-gray-900 mb-5">{t("New Client")}</h2>
 
-            <form onSubmit={handleSubmit} noValidate className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5"
+            >
               {/* Business Name */}
               <div>
                 <label
@@ -415,12 +425,8 @@ export function ClientsPage({ initialClientId, onBack }: {
 
               {/* EIN */}
               <div>
-                <label
-                  htmlFor="ein"
-                  className="block text-sm font-medium text-gray-700 mb-1.5"
-                >
-                  {t("EIN")}{" "}
-                  <span className="text-gray-400 font-normal">(optional)</span>
+                <label htmlFor="ein" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t("EIN")} <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
                   id="ein"
@@ -428,9 +434,8 @@ export function ClientsPage({ initialClientId, onBack }: {
                   value={form.ein}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                    const formatted = digits.length > 2
-                      ? digits.slice(0, 2) + "-" + digits.slice(2)
-                      : digits;
+                    const formatted =
+                      digits.length > 2 ? digits.slice(0, 2) + "-" + digits.slice(2) : digits;
                     updateField("ein", formatted);
                   }}
                   placeholder="XX-XXXXXXX"
@@ -474,10 +479,7 @@ export function ClientsPage({ initialClientId, onBack }: {
                   </legend>
                   <div className="flex gap-6">
                     {(["cash", "accrual"] as AccountingMethod[]).map((method) => (
-                      <label
-                        key={method}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
+                      <label key={method} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="radio"
                           name="accounting-method"
@@ -487,7 +489,9 @@ export function ClientsPage({ initialClientId, onBack }: {
                           className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                           disabled={createMutation.isPending}
                         />
-                        <span className="text-sm text-gray-700">{method === "cash" ? t("Cash") : t("Accrual")}</span>
+                        <span className="text-sm text-gray-700">
+                          {method === "cash" ? t("Cash") : t("Accrual")}
+                        </span>
                       </label>
                     ))}
                   </div>

@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trash2, ChevronDown, Pencil, ArrowUpDown } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { deleteTransaction, updateTransaction } from "../../lib/tauri";
-import type { TransactionWithEntries } from "../../lib/tauri";
-import { cn, formatCurrency, formatDate } from "../../lib/utils";
+import { ArrowUpDown, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
+import type { TransactionWithEntries } from "../../lib/tauri";
+import { deleteTransaction, updateTransaction } from "../../lib/tauri";
+import { cn, formatCurrency, formatDate } from "../../lib/utils";
 
 interface LedgerViewProps {
   dateFrom?: string;
@@ -27,10 +27,10 @@ function getTransactionDisplayAmount(txn: TransactionWithEntries) {
   const totalDebit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0);
   const totalCredit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
   const hasExpenseDebit = txn.entries.some(
-    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense"
+    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense",
   );
   const isIncomeCredit = txn.entries.some(
-    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue"
+    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue",
   );
 
   if (hasExpenseDebit) return -totalDebit;
@@ -89,10 +89,10 @@ function TxnRow({
   const totalCredit = txn.entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
 
   const hasExpenseDebit = txn.entries.some(
-    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense"
+    (e) => parseFloat(e.debit) > 0 && e.account_type === "expense",
   );
   const isIncomeCredit = txn.entries.some(
-    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue"
+    (e) => parseFloat(e.credit) > 0 && e.account_type === "revenue",
   );
   const isTransfer = !hasExpenseDebit && !isIncomeCredit;
 
@@ -209,7 +209,7 @@ function TxnRow({
                 className={cn(
                   amountLabel === "expense" && "text-red-600",
                   amountLabel === "income" && "text-green-600",
-                  amountLabel === "transfer" && "text-blue-600"
+                  amountLabel === "transfer" && "text-blue-600",
                 )}
               >
                 {displayAmount < 0 ? "-" : "+"}
@@ -245,7 +245,7 @@ function TxnRow({
           )}
         </>
       ) : (
-          <tr
+        <tr
           className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
           onClick={() => setExpanded((e) => !e)}
         >
@@ -255,9 +255,7 @@ function TxnRow({
           <td className="px-4 py-2.5 text-sm text-gray-900 max-w-[200px] truncate">
             {txn.description}
           </td>
-          <td className="px-4 py-2.5 text-sm text-gray-500">
-            {txn.reference ?? "—"}
-          </td>
+          <td className="px-4 py-2.5 text-sm text-gray-500">{txn.reference ?? "—"}</td>
           <td className="px-4 py-2.5 text-sm text-gray-600 max-w-[180px] truncate">
             {accountNames}
           </td>
@@ -266,7 +264,7 @@ function TxnRow({
               className={cn(
                 amountLabel === "expense" && "text-red-600",
                 amountLabel === "income" && "text-green-600",
-                amountLabel === "transfer" && "text-blue-600"
+                amountLabel === "transfer" && "text-blue-600",
               )}
             >
               {displayAmount < 0 ? "-" : "+"}
@@ -319,7 +317,7 @@ function TxnRow({
               <ChevronDown
                 className={cn(
                   "w-4 h-4 text-gray-400 transition-transform",
-                  expanded && "rotate-180"
+                  expanded && "rotate-180",
                 )}
               />
             </div>
@@ -342,22 +340,14 @@ function TxnRow({
               <tbody>
                 {txn.entries.map((entry) => (
                   <tr key={entry.id} className="border-t border-blue-100 dark:border-blue-800">
-                    <td className="py-1 text-gray-700">
-                      {entry.account_name ?? entry.account_id}
+                    <td className="py-1 text-gray-700">{entry.account_name ?? entry.account_id}</td>
+                    <td className="py-1 text-right pr-8 tabular-nums text-gray-700">
+                      {parseFloat(entry.debit) > 0 ? formatCurrency(entry.debit) : "—"}
                     </td>
                     <td className="py-1 text-right pr-8 tabular-nums text-gray-700">
-                      {parseFloat(entry.debit) > 0
-                        ? formatCurrency(entry.debit)
-                        : "—"}
+                      {parseFloat(entry.credit) > 0 ? formatCurrency(entry.credit) : "—"}
                     </td>
-                    <td className="py-1 text-right pr-8 tabular-nums text-gray-700">
-                      {parseFloat(entry.credit) > 0
-                        ? formatCurrency(entry.credit)
-                        : "—"}
-                    </td>
-                    <td className="py-1 text-gray-500 italic">
-                      {entry.memo ?? ""}
-                    </td>
+                    <td className="py-1 text-gray-500 italic">{entry.memo ?? ""}</td>
                   </tr>
                 ))}
               </tbody>
@@ -369,11 +359,22 @@ function TxnRow({
   );
 }
 
-export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteTxn, onEditTxn }: LedgerViewProps) {
+export function LedgerView({
+  dateFrom,
+  dateTo,
+  accountId,
+  searchQuery,
+  onDeleteTxn,
+  onEditTxn,
+}: LedgerViewProps) {
   const { t } = useI18n();
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const { data: transactions, isLoading, error } = useQuery({
+  const {
+    data: transactions,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["transactions", dateFrom, dateTo, accountId, searchQuery],
     queryFn: () =>
       invoke<TransactionWithEntries[]>("list_transactions", {
@@ -394,9 +395,15 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
       } else if (sortKey === "description") {
         result = a.description.localeCompare(b.description, undefined, { sensitivity: "base" });
       } else if (sortKey === "reference") {
-        result = (a.reference ?? "").localeCompare(b.reference ?? "", undefined, { sensitivity: "base" });
+        result = (a.reference ?? "").localeCompare(b.reference ?? "", undefined, {
+          sensitivity: "base",
+        });
       } else if (sortKey === "accounts") {
-        result = getTransactionAccountNames(a).localeCompare(getTransactionAccountNames(b), undefined, { sensitivity: "base" });
+        result = getTransactionAccountNames(a).localeCompare(
+          getTransactionAccountNames(b),
+          undefined,
+          { sensitivity: "base" },
+        );
       } else if (sortKey === "amount") {
         result = getTransactionDisplayAmount(a) - getTransactionDisplayAmount(b);
       }
@@ -421,13 +428,21 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
     });
   };
 
-  const SortHeader = ({ label, keyName, align = "left" }: { label: string; keyName: SortKey; align?: "left" | "right" }) => (
+  const SortHeader = ({
+    label,
+    keyName,
+    align = "left",
+  }: {
+    label: string;
+    keyName: SortKey;
+    align?: "left" | "right";
+  }) => (
     <button
       type="button"
       onClick={() => toggleSort(keyName)}
       className={cn(
         "inline-flex items-center gap-1 hover:text-gray-700 transition-colors",
-        align === "right" && "ml-auto"
+        align === "right" && "ml-auto",
       )}
     >
       <span>{label}</span>
@@ -497,11 +512,11 @@ export function LedgerView({ dateFrom, dateTo, accountId, searchQuery, onDeleteT
         {!isLoading && sortedTransactions.length > 0 && (
           <tfoot>
             <tr>
-              <td
-                colSpan={6}
-                className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100"
-              >
-                {t("Showing {count} transaction{s}", { count: String(sortedTransactions.length), s: sortedTransactions.length !== 1 ? "s" : "" })}
+              <td colSpan={6} className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100">
+                {t("Showing {count} transaction{s}", {
+                  count: String(sortedTransactions.length),
+                  s: sortedTransactions.length !== 1 ? "s" : "",
+                })}
               </td>
             </tr>
           </tfoot>

@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -33,9 +33,7 @@ export function today(): string {
 export function fiscalYearRange(year: number, startMonth = 1): { from: string; to: string } {
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
-    console.warn(
-      "fiscalYearRange() is deprecated — use reportPeriodFor() from src/lib/tauri.ts"
-    );
+    console.warn("fiscalYearRange() is deprecated — use reportPeriodFor() from src/lib/tauri.ts");
   }
   const from = `${year}-${String(startMonth).padStart(2, "0")}-01`;
   const endYear = startMonth === 1 ? year : year + 1;
@@ -49,12 +47,12 @@ export type ReportPeriod = "annual" | "h1" | "h2" | "q1" | "q2" | "q3" | "q4";
 
 const PERIOD_RANGES: Record<ReportPeriod, { startM: number; endM: number }> = {
   annual: { startM: 1, endM: 12 },
-  h1:     { startM: 1, endM: 6 },
-  h2:     { startM: 7, endM: 12 },
-  q1:     { startM: 1, endM: 3 },
-  q2:     { startM: 4, endM: 6 },
-  q3:     { startM: 7, endM: 9 },
-  q4:     { startM: 10, endM: 12 },
+  h1: { startM: 1, endM: 6 },
+  h2: { startM: 7, endM: 12 },
+  q1: { startM: 1, endM: 3 },
+  q2: { startM: 4, endM: 6 },
+  q3: { startM: 7, endM: 9 },
+  q4: { startM: 10, endM: 12 },
 };
 
 export const PERIOD_LABELS: Record<ReportPeriod, string> = {

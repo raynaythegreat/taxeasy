@@ -12,7 +12,7 @@ export async function createDraft(
     creditAccountId?: string;
     amount?: number;
     notes?: string;
-  }
+  },
 ): Promise<DraftTransaction> {
   return invoke<DraftTransaction>("create_draft", {
     clientId,
@@ -38,7 +38,7 @@ export async function updateDraft(
     creditAccountId?: string;
     amount?: number;
     notes?: string;
-  }
+  },
 ): Promise<DraftTransaction> {
   return invoke<DraftTransaction>("update_draft", {
     clientId,

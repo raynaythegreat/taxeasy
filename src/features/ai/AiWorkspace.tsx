@@ -1,10 +1,10 @@
+import { ChevronDown, ChevronUp, Cpu, ListChecks, MessageSquare, Upload } from "lucide-react";
 import { useState } from "react";
-import { MessageSquare, Upload, ListChecks, ChevronDown, ChevronUp, Cpu } from "lucide-react";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 import { ChatPanel } from "./ChatPanel";
-import { ImportPanel } from "./ImportPanel";
 import { DraftQueue } from "./DraftQueue";
+import { ImportPanel } from "./ImportPanel";
 
 type AiTab = "chat" | "import";
 
@@ -35,7 +35,7 @@ export function AiWorkspace({ clientId }: { clientId: string }) {
                 "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 activeTab === "chat"
                   ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                  : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                  : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
               )}
             >
               <MessageSquare className="w-3.5 h-3.5" />
@@ -49,7 +49,7 @@ export function AiWorkspace({ clientId }: { clientId: string }) {
                 "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 activeTab === "import"
                   ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                  : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                  : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
               )}
             >
               <Upload className="w-3.5 h-3.5" />
@@ -63,7 +63,7 @@ export function AiWorkspace({ clientId }: { clientId: string }) {
               "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
               showDraftQueue
                 ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700",
             )}
           >
             <ListChecks className="w-3.5 h-3.5" />

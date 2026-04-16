@@ -1,16 +1,10 @@
-import { useState, useCallback } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useI18n } from "../../../lib/i18n";
 import type { Account, AccountType } from "../../../lib/tauri";
 import { cn } from "../../../lib/utils";
-import { useI18n } from "../../../lib/i18n";
 
-const ACCOUNT_TYPE_ORDER: AccountType[] = [
-  "asset",
-  "liability",
-  "equity",
-  "revenue",
-  "expense",
-];
+const ACCOUNT_TYPE_ORDER: AccountType[] = ["asset", "liability", "equity", "revenue", "expense"];
 
 export interface AccountSelectProps {
   value: string;
@@ -37,20 +31,14 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
   const filtered = accounts.filter((a) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (
-      a.code.toLowerCase().includes(q) ||
-      a.name.toLowerCase().includes(q)
-    );
+    return a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
   });
 
-  const grouped = ACCOUNT_TYPE_ORDER.reduce<Record<string, Account[]>>(
-    (acc, type) => {
-      const items = filtered.filter((a) => a.account_type === type);
-      if (items.length > 0) acc[type] = items;
-      return acc;
-    },
-    {}
-  );
+  const grouped = ACCOUNT_TYPE_ORDER.reduce<Record<string, Account[]>>((acc, type) => {
+    const items = filtered.filter((a) => a.account_type === type);
+    if (items.length > 0) acc[type] = items;
+    return acc;
+  }, {});
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -58,7 +46,7 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
       setOpen(false);
       setSearch("");
     },
-    [onChange]
+    [onChange],
   );
 
   return (
@@ -69,7 +57,7 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
         className={cn(
           "w-full flex items-center justify-between gap-1 px-2 py-1.5 text-sm border rounded bg-white text-left",
           "border-gray-300 hover:border-gray-400 focus:outline-none focus:border-blue-500",
-          !selected && "text-gray-400"
+          !selected && "text-gray-400",
         )}
       >
         <span className="truncate">
@@ -106,7 +94,7 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
                     onClick={() => handleSelect(a.id)}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 flex gap-2",
-                      a.id === value && "bg-blue-50 text-blue-700"
+                      a.id === value && "bg-blue-50 text-blue-700",
                     )}
                   >
                     <span className="font-mono text-gray-500 w-12 shrink-0">{a.code}</span>
@@ -116,7 +104,9 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
               </div>
             ))}
             {Object.keys(grouped).length === 0 && (
-              <div className="px-3 py-4 text-sm text-gray-400 text-center">{t("No accounts found")}</div>
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">
+                {t("No accounts found")}
+              </div>
             )}
           </div>
         </div>

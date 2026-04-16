@@ -1,10 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "./lib/theme";
-import { SidebarProvider } from "./lib/sidebar";
-import { I18nProvider } from "./lib/i18n";
 import App from "./App";
+import { I18nProvider } from "./lib/i18n";
+import { SidebarProvider } from "./lib/sidebar";
+import { ThemeProvider } from "./lib/theme";
 import "./index.css";
 
 const queryClient = new QueryClient({

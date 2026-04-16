@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
-import { cn } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
+import { cn } from "../lib/utils";
 
 interface KeyboardShortcutsHelpProps {
   open: boolean;
@@ -24,16 +24,13 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
           "relative w-full max-w-md rounded-xl border shadow-2xl",
           "bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl",
           "border-gray-200 dark:border-slate-700",
-          "text-gray-900 dark:text-slate-100"
+          "text-gray-900 dark:text-slate-100",
         )}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-slate-700">
@@ -48,13 +45,8 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
         </div>
         <div className="px-5 py-3 space-y-1">
           {SHORTCUT_KEYS.map((s) => (
-            <div
-              key={s.labelKey}
-              className="flex items-center justify-between py-1.5"
-            >
-              <span className="text-sm text-gray-600 dark:text-slate-400">
-                {t(s.labelKey)}
-              </span>
+            <div key={s.labelKey} className="flex items-center justify-between py-1.5">
+              <span className="text-sm text-gray-600 dark:text-slate-400">{t(s.labelKey)}</span>
               <div className="flex items-center gap-0.5">
                 {s.keys.map((k, i) => (
                   <kbd
@@ -63,7 +55,7 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
                       "inline-flex items-center justify-center min-w-[24px] h-6 px-1.5",
                       "text-xs font-mono font-medium rounded",
                       "bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300",
-                      "border border-gray-200 dark:border-slate-600"
+                      "border border-gray-200 dark:border-slate-600",
                     )}
                   >
                     {k}
@@ -75,7 +67,11 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
         </div>
         <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700">
           <p className="text-xs text-gray-400 dark:text-slate-500 text-center">
-            {t("Press")} <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-[10px] font-mono">?</kbd> {t("to toggle this panel")}
+            {t("Press")}{" "}
+            <kbd className="px-1 py-0.5 rounded bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-[10px] font-mono">
+              ?
+            </kbd>{" "}
+            {t("to toggle this panel")}
           </p>
         </div>
       </div>

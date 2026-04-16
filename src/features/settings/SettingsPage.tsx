@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings, BrainCircuit, Palette, Database, Info, Lock } from "lucide-react";
-import { getSettings, saveSettings } from "../../lib/settings-api";
-import type { SaveSettingsPayload } from "../../lib/settings-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BrainCircuit, Database, Info, Lock, Palette, Settings } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import type { SaveSettingsPayload } from "../../lib/settings-api";
+import { getSettings, saveSettings } from "../../lib/settings-api";
 import { useTheme } from "../../lib/theme";
-import { checkForUpdates, getAppVersion } from "../../lib/updater-api";
 import type { UpdateCheck } from "../../lib/updater-api";
+import { checkForUpdates, getAppVersion } from "../../lib/updater-api";
+import { cn } from "../../lib/utils";
+import { AboutTab } from "./tabs/AboutTab";
 import { AiSettingsTab } from "./tabs/AiSettingsTab";
 import { AppearanceTab } from "./tabs/AppearanceTab";
+import { ConfirmRestoreModal } from "./tabs/ConfirmRestoreModal";
 import { DataManagementTab } from "./tabs/DataManagementTab";
 import { SecurityTab } from "./tabs/SecurityTab";
-import { AboutTab } from "./tabs/AboutTab";
-import { ConfirmRestoreModal } from "./tabs/ConfirmRestoreModal";
 import { useAiSettings } from "./tabs/useAiSettings";
 
 type SettingsTab = "ai" | "appearance" | "data" | "security" | "about";
@@ -42,7 +42,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   const ai = useAiSettings();
 
   useEffect(() => {
-    getAppVersion().then(setAppVersion).catch(() => setAppVersion("0.1.0"));
+    getAppVersion()
+      .then(setAppVersion)
+      .catch(() => setAppVersion("0.1.0"));
   }, []);
 
   const { data: settings, isLoading } = useQuery({
@@ -54,7 +56,8 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   useEffect(() => {
     if (settings) {
       ai.initFromSettings(settings);
-      if (settings.theme && settings.theme !== theme) setTheme(settings.theme as "light" | "dark" | "system");
+      if (settings.theme && settings.theme !== theme)
+        setTheme(settings.theme as "light" | "dark" | "system");
       setExportPath(settings.default_export_path || "");
     }
   }, [settings]);
@@ -66,35 +69,68 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const saveMutation = useMutation({
     mutationFn: (payload: SaveSettingsPayload) => saveSettings(payload),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["settings"] }); showToast(t("Settings saved"), "success"); },
-    onError: (err: unknown) => { const msg = err instanceof Error ? err.message : String(err); showToast(`${t("Failed to save")}: ${msg}`, "error"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      showToast(t("Settings saved"), "success");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`${t("Failed to save")}: ${msg}`, "error");
+    },
   });
 
   const backupMutation = useMutation({
     mutationFn: backupDatabase,
     onSuccess: (path) => showToast(t("Backup saved to {path}", { path }), "success"),
-    onError: (err: unknown) => { const msg = err instanceof Error ? err.message : String(err); showToast(`${t("Backup failed")}: ${msg}`, "error"); },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`${t("Backup failed")}: ${msg}`, "error");
+    },
   });
 
   const restoreMutation = useMutation({
     mutationFn: restoreDatabase,
-    onSuccess: () => { setConfirmRestore(false); showToast(t("Data restored successfully"), "success"); queryClient.invalidateQueries(); },
-    onError: (err: unknown) => { setConfirmRestore(false); const msg = err instanceof Error ? err.message : String(err); showToast(`${t("Restore failed")}: ${msg}`, "error"); },
+    onSuccess: () => {
+      setConfirmRestore(false);
+      showToast(t("Data restored successfully"), "success");
+      queryClient.invalidateQueries();
+    },
+    onError: (err: unknown) => {
+      setConfirmRestore(false);
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`${t("Restore failed")}: ${msg}`, "error");
+    },
   });
 
   const handleCheckUpdate = useCallback(async () => {
     setCheckingUpdate(true);
-    try { const result = await checkForUpdates(); setUpdateCheck(result); }
-    catch { setUpdateCheck(null); }
-    finally { setCheckingUpdate(false); }
+    try {
+      const result = await checkForUpdates();
+      setUpdateCheck(result);
+    } catch {
+      setUpdateCheck(null);
+    } finally {
+      setCheckingUpdate(false);
+    }
   }, []);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          />
         </svg>
       </div>
     );
@@ -119,7 +155,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors",
-                  activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                  activeTab === tab.id
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100",
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -152,7 +190,10 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               glmocrDetails={ai.glmocrDetails}
               testingGlmocr={ai.testingGlmocr}
               saving={saveMutation.isPending}
-              onProviderChange={(p) => { ai.setAiProvider(p); ai.setProviderStatus(null); }}
+              onProviderChange={(p) => {
+                ai.setAiProvider(p);
+                ai.setProviderStatus(null);
+              }}
               onUrlChange={ai.setCurrentUrl}
               onModelChange={ai.setCurrentModel}
               onTestProvider={ai.testProvider}
@@ -162,7 +203,12 @@ export function SettingsPage(_props: { onBack?: () => void }) {
             />
           )}
           {activeTab === "appearance" && (
-            <AppearanceTab theme={theme} saving={saveMutation.isPending} onThemeChange={setTheme} onSave={(p) => saveMutation.mutate(p)} />
+            <AppearanceTab
+              theme={theme}
+              saving={saveMutation.isPending}
+              onThemeChange={setTheme}
+              onSave={(p) => saveMutation.mutate(p)}
+            />
           )}
           {activeTab === "data" && (
             <DataManagementTab
@@ -179,7 +225,12 @@ export function SettingsPage(_props: { onBack?: () => void }) {
             <SecurityTab saving={saveMutation.isPending} onSave={(p) => saveMutation.mutate(p)} />
           )}
           {activeTab === "about" && (
-            <AboutTab appVersion={appVersion} updateCheck={updateCheck} checkingUpdate={checkingUpdate} onCheckUpdate={handleCheckUpdate} />
+            <AboutTab
+              appVersion={appVersion}
+              updateCheck={updateCheck}
+              checkingUpdate={checkingUpdate}
+              onCheckUpdate={handleCheckUpdate}
+            />
           )}
         </div>
       </div>
@@ -193,10 +244,12 @@ export function SettingsPage(_props: { onBack?: () => void }) {
       )}
 
       {toast && (
-        <div className={cn(
-          "fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all",
-          toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-        )}>
+        <div
+          className={cn(
+            "fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all",
+            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white",
+          )}
+        >
           {toast.message}
         </div>
       )}

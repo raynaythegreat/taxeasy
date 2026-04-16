@@ -1,19 +1,31 @@
-import { useState, useMemo, lazy, Suspense } from "react";
-import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles, Loader2, FileText, Receipt } from "lucide-react";
-import { triggerPrint } from "../lib/print-utils";
-import type { Client } from "../lib/tauri";
-import { TransactionsPage } from "../features/transactions/TransactionsPage";
+import {
+  Building2,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Loader2,
+  Printer,
+  Receipt,
+  Sparkles,
+} from "lucide-react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
-import { InvoicesPage } from "../features/invoices/InvoicesPage";
 import { ClientEditModal } from "../features/clients/ClientEditModal";
 import { DocumentsPage } from "../features/documents/DocumentsPage";
-import { PnLView } from "../features/reports/PnLView";
+import { InvoicesPage } from "../features/invoices/InvoicesPage";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
-import { cn, periodRange, type ReportPeriod, PERIOD_LABELS, formatDate } from "../lib/utils";
+import { PnLView } from "../features/reports/PnLView";
+import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { useI18n } from "../lib/i18n";
+import { triggerPrint } from "../lib/print-utils";
+import type { Client } from "../lib/tauri";
+import { cn, formatDate, PERIOD_LABELS, periodRange, type ReportPeriod } from "../lib/utils";
 
-const AiWorkspace = lazy(() => import("../features/ai/AiWorkspace").then(m => ({ default: m.AiWorkspace })));
+const AiWorkspace = lazy(() =>
+  import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
+);
 
 type WorkspaceTab = "overview" | "transactions" | "invoices" | "documents" | "reports" | "ai";
 
@@ -35,7 +47,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
     () => Array.from({ length: 6 }, (_, i) => currentYear - i),
-    [currentYear]
+    [currentYear],
   );
   const [taxYear, setTaxYear] = useState(currentYear);
   const isRecent = recentYears.includes(taxYear);
@@ -71,7 +83,9 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               {ENTITY_LABELS[client.entity_type]}
             </span>
             {client.ein && (
-              <span className="text-xs text-gray-500 shrink-0">{t("EIN")}: {client.ein}</span>
+              <span className="text-xs text-gray-500 shrink-0">
+                {t("EIN")}: {client.ein}
+              </span>
             )}
             <span className="ml-auto text-xs text-gray-400 capitalize shrink-0">
               {client.accounting_method} {t("basis")}
@@ -88,9 +102,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               onClick={() => setTab(wt.id)}
               className={cn(
                 "px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1.5",
-                tab === wt.id
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                tab === wt.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100",
               )}
             >
               {wt.icon}
@@ -172,7 +184,9 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                           {client.accounting_method} {t("basis")}
                         </span>
                         {client.ein && (
-                          <span className="text-xs text-gray-500">{t("EIN")}: {client.ein}</span>
+                          <span className="text-xs text-gray-500">
+                            {t("EIN")}: {client.ein}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -216,12 +230,21 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-900">{t("Address")}</h3>
                   <div className="text-sm text-gray-900 leading-6">
-                    {client.address_line1 || client.address_line2 || client.city || client.state || client.postal_code || client.country ? (
+                    {client.address_line1 ||
+                    client.address_line2 ||
+                    client.city ||
+                    client.state ||
+                    client.postal_code ||
+                    client.country ? (
                       <>
                         {client.address_line1 && <div>{client.address_line1}</div>}
                         {client.address_line2 && <div>{client.address_line2}</div>}
                         {(client.city || client.state || client.postal_code) && (
-                          <div>{[client.city, client.state, client.postal_code].filter(Boolean).join(", ")}</div>
+                          <div>
+                            {[client.city, client.state, client.postal_code]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </div>
                         )}
                         {client.country && <div>{client.country}</div>}
                       </>
@@ -234,12 +257,20 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               {(client.tax_preparer_notes || client.filing_notes) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5 pt-5 border-t border-gray-100">
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">{t("Tax Preparer Notes")}</h4>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{client.tax_preparer_notes || "—"}</p>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                      {t("Tax Preparer Notes")}
+                    </h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                      {client.tax_preparer_notes || "—"}
+                    </p>
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">{t("Filing Notes")}</h4>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{client.filing_notes || "—"}</p>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                      {t("Filing Notes")}
+                    </h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                      {client.filing_notes || "—"}
+                    </p>
                   </div>
                 </div>
               )}
@@ -274,10 +305,14 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                         "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                         reportType === rt
                           ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
                       )}
                     >
-                      {rt === "pnl" ? t("Profit & Loss") : rt === "balance_sheet" ? t("Balance Sheet") : t("Cash Flow")}
+                      {rt === "pnl"
+                        ? t("Profit & Loss")
+                        : rt === "balance_sheet"
+                          ? t("Balance Sheet")
+                          : t("Cash Flow")}
                     </button>
                   ))}
                 </div>
@@ -293,7 +328,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                         "px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors",
                         period === p
                           ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
                       )}
                     >
                       {PERIOD_LABELS[p]}
@@ -311,14 +346,26 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               </div>
             </div>
             <div className="flex-1 bg-gray-50 print:bg-white min-h-full py-6 print:py-0 overflow-auto">
-              {reportType === "pnl" && <PnLView dateFrom={from} dateTo={to} clientName={client.name} />}
-              {reportType === "balance_sheet" && <BalanceSheetView asOfDate={to} clientName={client.name} />}
-              {reportType === "cash_flow" && <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />}
+              {reportType === "pnl" && (
+                <PnLView dateFrom={from} dateTo={to} clientName={client.name} />
+              )}
+              {reportType === "balance_sheet" && (
+                <BalanceSheetView asOfDate={to} clientName={client.name} />
+              )}
+              {reportType === "cash_flow" && (
+                <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
+              )}
             </div>
           </div>
         )}
         {tab === "ai" && (
-          <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            }
+          >
             <AiWorkspace clientId={client.id} />
           </Suspense>
         )}

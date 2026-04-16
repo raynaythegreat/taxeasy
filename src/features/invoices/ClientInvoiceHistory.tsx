@@ -1,26 +1,18 @@
-import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Plus,
-  Receipt,
-  Calculator,
-  Pencil,
-  Trash2,
-  ChevronRight,
-  FilePlus2,
-} from "lucide-react";
-import {
-  listInvoices,
-  getInvoice,
-  deleteInvoice,
-  updateInvoiceStatus,
-  centsToDollars,
-} from "../../lib/invoice-api";
-import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
-import { cn, formatDate } from "../../lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calculator, ChevronRight, FilePlus2, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useI18n } from "../../lib/i18n";
-import { InvoiceForm } from "./InvoiceForm";
+import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
+import {
+  centsToDollars,
+  deleteInvoice,
+  getInvoice,
+  listInvoices,
+  updateInvoiceStatus,
+} from "../../lib/invoice-api";
+import { cn, formatDate } from "../../lib/utils";
 import { InvoiceDetailPanel } from "./InvoiceDetailPanel";
+import { InvoiceForm } from "./InvoiceForm";
 
 const TYPE_BADGE: Record<string, string> = {
   invoice: "bg-blue-100 text-blue-700",
@@ -85,8 +77,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      updateInvoiceStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateInvoiceStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
@@ -125,7 +116,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
       setFormDefaultType(type);
       setShowForm(true);
     },
-    [clientName]
+    [clientName],
   );
 
   const openEdit = useCallback(() => {
@@ -141,9 +132,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
         invoice={detail}
         onEdit={openEdit}
         onDelete={() => setDeleteConfirm(detail.id)}
-        onStatusChange={(status) =>
-          statusMutation.mutate({ id: detail.id, status })
-        }
+        onStatusChange={(status) => statusMutation.mutate({ id: detail.id, status })}
         onBack={() => setSelectedId(null)}
       />
     );
@@ -158,9 +147,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-700">
-          {t("Invoice History")}
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700">{t("Invoice History")}</h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -192,18 +179,14 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
       <div className="grid grid-cols-4 gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
         <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
           <p className="text-xs text-gray-500 font-medium">{t("Total")}</p>
-          <p className="text-lg font-bold text-gray-900 mt-0.5">
-            {invoices.length}
-          </p>
+          <p className="text-lg font-bold text-gray-900 mt-0.5">{invoices.length}</p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
           <p className="text-xs text-green-600 font-medium">{t("Paid")}</p>
           <p className="text-lg font-bold text-green-700 mt-0.5">{paidCount}</p>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-          <p className="text-xs text-blue-600 font-medium">
-            {t("Outstanding")}
-          </p>
+          <p className="text-xs text-blue-600 font-medium">{t("Outstanding")}</p>
           <p className="text-lg font-bold text-blue-700 mt-0.5">
             ${centsToDollars(totalOutstanding)}
           </p>
@@ -211,15 +194,13 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
         <div
           className={cn(
             "border rounded-lg p-3 text-center",
-            overdueCount > 0
-              ? "bg-red-50 border-red-200"
-              : "bg-gray-50 border-gray-200"
+            overdueCount > 0 ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-200",
           )}
         >
           <p
             className={cn(
               "text-xs font-medium",
-              overdueCount > 0 ? "text-red-600" : "text-gray-500"
+              overdueCount > 0 ? "text-red-600" : "text-gray-500",
             )}
           >
             {t("Overdue")}
@@ -227,7 +208,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
           <p
             className={cn(
               "text-lg font-bold mt-0.5",
-              overdueCount > 0 ? "text-red-700" : "text-gray-400"
+              overdueCount > 0 ? "text-red-700" : "text-gray-400",
             )}
           >
             {overdueCount}
@@ -243,9 +224,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
         ) : invoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <FilePlus2 className="w-12 h-12 text-gray-300 mb-3" />
-            <p className="text-sm text-gray-500 font-medium">
-              {t("No invoices yet")}
-            </p>
+            <p className="text-sm text-gray-500 font-medium">{t("No invoices yet")}</p>
             <p className="text-xs text-gray-400 mt-1">
               {t("Create your first invoice to get started.")}
             </p>
@@ -299,7 +278,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
                     <span
                       className={cn(
                         "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-                        TYPE_BADGE[inv.invoice_type]
+                        TYPE_BADGE[inv.invoice_type],
                       )}
                     >
                       {t(TYPE_LABEL[inv.invoice_type] ?? inv.invoice_type)}
@@ -312,9 +291,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
                     {inv.due_date ? (
                       <span
                         className={cn(
-                          inv.status === "overdue"
-                            ? "text-red-600 font-medium"
-                            : "text-gray-600"
+                          inv.status === "overdue" ? "text-red-600 font-medium" : "text-gray-600",
                         )}
                       >
                         {formatDate(inv.due_date)}
@@ -330,7 +307,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
                     <span
                       className={cn(
                         "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-                        STATUS_BADGE[inv.status]
+                        STATUS_BADGE[inv.status],
                       )}
                     >
                       {t(STATUS_LABEL[inv.status] ?? inv.status)}
@@ -340,9 +317,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
                     <div className="flex items-center justify-end gap-1">
                       {deleteConfirm === inv.id ? (
                         <>
-                          <span className="text-xs text-red-600 mr-1">
-                            {t("Delete?")}
-                          </span>
+                          <span className="text-xs text-red-600 mr-1">{t("Delete?")}</span>
                           <button
                             type="button"
                             onClick={(e) => {

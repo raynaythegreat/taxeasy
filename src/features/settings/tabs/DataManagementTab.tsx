@@ -1,7 +1,7 @@
-import { HardDriveUpload, HardDriveDownload, FileDown } from "lucide-react";
+import { FileDown, HardDriveDownload, HardDriveUpload } from "lucide-react";
 import { useI18n } from "../../../lib/i18n";
-import { BackupRestoreCard } from "../BackupRestoreCard";
 import type { SaveSettingsPayload } from "../../../lib/settings-api";
+import { BackupRestoreCard } from "../BackupRestoreCard";
 
 interface DataManagementTabProps {
   exportPath: string;
@@ -28,7 +28,9 @@ export function DataManagementTab({
     <div className="space-y-4">
       <BackupRestoreCard
         title={t("Backup Client Data")}
-        description={t("Create a complete backup of all client data, transactions, and settings. The backup will be saved as a file you choose.")}
+        description={t(
+          "Create a complete backup of all client data, transactions, and settings. The backup will be saved as a file you choose.",
+        )}
         buttonText={t("Backup Client Data")}
         buttonIcon={HardDriveUpload}
         onAction={onBackup}
@@ -38,7 +40,9 @@ export function DataManagementTab({
 
       <BackupRestoreCard
         title={t("Restore from Backup")}
-        description={t("Restore all data from a previously created backup file. This will replace all current data.")}
+        description={t(
+          "Restore all data from a previously created backup file. This will replace all current data.",
+        )}
         buttonText={t("Restore from Backup")}
         buttonIcon={HardDriveDownload}
         onAction={onRestoreRequest}

@@ -104,12 +104,8 @@ function NewsRow({ item }: { item: NewsItem }) {
         <span className="flex-1">{item.title}</span>
         <ExternalLink className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
       </a>
-      {item.summary && (
-        <p className="text-xs text-gray-500 line-clamp-1">{item.summary}</p>
-      )}
-      {whyLine && (
-        <p className="text-xs text-blue-600 font-medium">{whyLine}</p>
-      )}
+      {item.summary && <p className="text-xs text-gray-500 line-clamp-1">{item.summary}</p>}
+      {whyLine && <p className="text-xs text-blue-600 font-medium">{whyLine}</p>}
     </div>
   );
 }
@@ -151,7 +147,11 @@ export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedPr
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-gray-800">Tax Law News</h3>
-          {(isError || isStale) && <OfflinePill since={isStale && dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : undefined} />}
+          {(isError || isStale) && (
+            <OfflinePill
+              since={isStale && dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : undefined}
+            />
+          )}
         </div>
         {onViewAll && (
           <button

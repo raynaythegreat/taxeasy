@@ -1,10 +1,10 @@
-import { useState, type FormEvent, type ChangeEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 import { updateClient } from "../../lib/client-api";
-import type { Client, EntityType, AccountingMethod } from "../../lib/tauri";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import type { AccountingMethod, Client, EntityType } from "../../lib/tauri";
+import { cn } from "../../lib/utils";
 
 const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
   { value: "sole_prop", label: "Sole Proprietor" },
@@ -15,8 +15,18 @@ const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
 ];
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 interface ClientEditModalProps {
@@ -124,12 +134,16 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
             <select
               id="edit-entity"
               value={entityType}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setEntityType(e.target.value as EntityType)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                setEntityType(e.target.value as EntityType)
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             >
               {ENTITY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{t(o.label)}</option>
+                <option key={o.value} value={o.value}>
+                  {t(o.label)}
+                </option>
               ))}
             </select>
           </div>
@@ -144,7 +158,8 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               value={ein}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                const formatted = digits.length > 2 ? digits.slice(0, 2) + "-" + digits.slice(2) : digits;
+                const formatted =
+                  digits.length > 2 ? digits.slice(0, 2) + "-" + digits.slice(2) : digits;
                 setEin(formatted);
               }}
               placeholder="XX-XXXXXXX"
@@ -168,9 +183,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("Phone")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Phone")}</label>
               <input
                 type="text"
                 value={phone}
@@ -183,9 +196,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("Email")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Email")}</label>
               <input
                 type="email"
                 value={email}
@@ -195,9 +206,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("Website")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Website")}</label>
               <input
                 type="text"
                 value={website}
@@ -236,9 +245,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("City")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("City")}</label>
               <input
                 type="text"
                 value={city}
@@ -248,9 +255,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("State")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("State")}</label>
               <input
                 type="text"
                 value={stateName}
@@ -275,9 +280,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("Country")}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("Country")}</label>
               <input
                 type="text"
                 value={country}
@@ -295,19 +298,25 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
             <select
               id="edit-fiscal"
               value={fiscalMonth}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFiscalMonth(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                setFiscalMonth(Number(e.target.value))
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             >
               {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{t(m)}</option>
+                <option key={m} value={i + 1}>
+                  {t(m)}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
             <fieldset>
-              <legend className="block text-sm font-medium text-gray-700 mb-2">{t("Accounting Method")}</legend>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">
+                {t("Accounting Method")}
+              </legend>
               <div className="flex gap-6">
                 {(["cash", "accrual"] as AccountingMethod[]).map((m) => (
                   <label key={m} className="flex items-center gap-2 cursor-pointer">
@@ -320,7 +329,9 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                       disabled={mutation.isPending}
                     />
-                    <span className="text-sm text-gray-700">{m === "cash" ? t("Cash") : t("Accrual")}</span>
+                    <span className="text-sm text-gray-700">
+                      {m === "cash" ? t("Cash") : t("Accrual")}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -333,7 +344,9 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
             </label>
             <textarea
               value={taxPreparerNotes}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTaxPreparerNotes(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                setTaxPreparerNotes(e.target.value)
+              }
               rows={3}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
@@ -375,7 +388,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
                 "px-4 py-2 rounded-lg text-sm font-semibold transition-colors",
                 mutation.isPending
                   ? "bg-blue-400 text-white cursor-wait"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-blue-600 text-white hover:bg-blue-700",
               )}
             >
               {mutation.isPending ? t("Saving…") : t("Save Changes")}

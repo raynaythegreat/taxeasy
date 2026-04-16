@@ -19,10 +19,7 @@ export interface ExportResult {
   documentCount: number;
 }
 
-export async function listDocuments(
-  category?: string,
-  taxYear?: number
-): Promise<TaxDocument[]> {
+export async function listDocuments(category?: string, taxYear?: number): Promise<TaxDocument[]> {
   return invoke<TaxDocument[]>("listDocuments", {
     category: category ?? null,
     taxYear: taxYear ?? null,
@@ -58,14 +55,12 @@ export async function updateDocument(params: {
 
 export async function exportClientDocuments(
   clientId: string,
-  outputFolder: string
+  outputFolder: string,
 ): Promise<ExportResult> {
   return invoke<ExportResult>("exportClientDocuments", { clientId, outputFolder });
 }
 
-export async function exportAllClientsDocuments(
-  outputFolder: string
-): Promise<ExportResult> {
+export async function exportAllClientsDocuments(outputFolder: string): Promise<ExportResult> {
   return invoke<ExportResult>("exportAllClientsDocuments", { outputFolder });
 }
 
@@ -76,9 +71,24 @@ export async function pickDocumentFile(): Promise<string | null> {
       {
         name: "Documents",
         extensions: [
-          "pdf", "jpg", "jpeg", "png", "webp", "heic", "heif",
-          "tiff", "tif", "bmp", "gif", "csv", "txt", "xlsx",
-          "xls", "doc", "docx", "zip",
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+          "heic",
+          "heif",
+          "tiff",
+          "tif",
+          "bmp",
+          "gif",
+          "csv",
+          "txt",
+          "xlsx",
+          "xls",
+          "doc",
+          "docx",
+          "zip",
         ],
       },
     ],

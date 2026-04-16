@@ -29,7 +29,9 @@ export function ConfirmRestoreModal({ restoring, onConfirm, onCancel }: ConfirmR
           <h3 className="text-base font-semibold text-gray-900">{t("Confirm Restore")}</h3>
         </div>
         <p className="text-sm text-gray-600 leading-relaxed">
-          {t("This will overwrite all your current data with the backup. This action cannot be undone.")}
+          {t(
+            "This will overwrite all your current data with the backup. This action cannot be undone.",
+          )}
         </p>
         <div className="flex items-center gap-3 justify-end pt-2">
           <button

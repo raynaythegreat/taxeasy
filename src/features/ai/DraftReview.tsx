@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle } from "lucide-react";
-import type { Evidence, DraftTransaction } from "../../lib/ai-api";
+import { useMemo, useState } from "react";
+import type { DraftTransaction, Evidence } from "../../lib/ai-api";
 import { approveDraft, rejectDraft } from "../../lib/draft-api";
 import { useI18n } from "../../lib/i18n";
+import { DraftRowEditor } from "./DraftRowEditor";
 import { EvidencePreview } from "./EvidencePreview";
 import { OcrRawText } from "./OcrRawText";
-import { DraftRowEditor } from "./DraftRowEditor";
 
 export function DraftReview({
   evidence,

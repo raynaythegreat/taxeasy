@@ -1,8 +1,8 @@
-import { ArrowLeft, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { useI18n } from "../../lib/i18n";
 import type { InvoiceDetail } from "../../lib/invoice-api";
 import { centsToDollars } from "../../lib/invoice-api";
 import { cn, formatDate } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 interface InvoiceDetailPanelProps {
   invoice: InvoiceDetail;
@@ -69,13 +69,11 @@ export function InvoiceDetailPanel({
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <h1 className="text-sm font-semibold text-gray-900 truncate">
-            {invoice.invoice_number}
-          </h1>
+          <h1 className="text-sm font-semibold text-gray-900 truncate">{invoice.invoice_number}</h1>
           <span
             className={cn(
               "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0",
-              TYPE_BADGE[invoice.invoice_type]
+              TYPE_BADGE[invoice.invoice_type],
             )}
           >
             {t(TYPE_LABEL[invoice.invoice_type])}
@@ -83,7 +81,7 @@ export function InvoiceDetailPanel({
           <span
             className={cn(
               "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0",
-              STATUS_BADGE[invoice.status]
+              STATUS_BADGE[invoice.status],
             )}
           >
             {t(STATUS_LABEL[invoice.status] ?? invoice.status)}
@@ -160,11 +158,7 @@ export function InvoiceDetailPanel({
               {invoice.due_date && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">{t("Due")}</span>
-                  <span
-                    className={cn(
-                      invoice.status === "overdue" && "text-red-600 font-medium"
-                    )}
-                  >
+                  <span className={cn(invoice.status === "overdue" && "text-red-600 font-medium")}>
                     {formatDate(invoice.due_date)}
                   </span>
                 </div>
@@ -233,7 +227,9 @@ export function InvoiceDetailPanel({
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">{t("Tax")} ({invoice.tax_rate}%)</span>
+              <span className="text-gray-500">
+                {t("Tax")} ({invoice.tax_rate}%)
+              </span>
               <span className="text-gray-700 tabular-nums">
                 ${centsToDollars(invoice.tax_cents)}
               </span>

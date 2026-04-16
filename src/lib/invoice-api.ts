@@ -85,7 +85,10 @@ export async function createInvoice(payload: CreateInvoicePayload): Promise<Invo
   return invoke("create_invoice", { payload });
 }
 
-export async function updateInvoice(id: string, payload: UpdateInvoicePayload): Promise<InvoiceDetail> {
+export async function updateInvoice(
+  id: string,
+  payload: UpdateInvoicePayload,
+): Promise<InvoiceDetail> {
   return invoke("update_invoice", { id, payload });
 }
 

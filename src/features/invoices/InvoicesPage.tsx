@@ -1,12 +1,18 @@
-import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, FileText, Receipt, Calculator, Pencil, Trash2, ChevronRight } from "lucide-react";
-import { listInvoices, getInvoice, deleteInvoice, updateInvoiceStatus, centsToDollars } from "../../lib/invoice-api";
-import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
-import { cn, formatDate } from "../../lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calculator, ChevronRight, FileText, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useI18n } from "../../lib/i18n";
-import { InvoiceForm } from "./InvoiceForm";
+import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
+import {
+  centsToDollars,
+  deleteInvoice,
+  getInvoice,
+  listInvoices,
+  updateInvoiceStatus,
+} from "../../lib/invoice-api";
+import { cn, formatDate } from "../../lib/utils";
 import { InvoiceDetailPanel } from "./InvoiceDetailPanel";
+import { InvoiceForm } from "./InvoiceForm";
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
   { value: "", label: "All" },
@@ -69,7 +75,7 @@ function TypeBadge({ type }: { type: string }) {
     <span
       className={cn(
         "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-        TYPE_BADGE[type]
+        TYPE_BADGE[type],
       )}
     >
       {t(TYPE_LABEL[type] ?? type)}
@@ -83,7 +89,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
-        STATUS_BADGE[status]
+        STATUS_BADGE[status],
       )}
     >
       {t(STATUS_LABEL[status] ?? status)}
@@ -128,8 +134,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      updateInvoiceStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateInvoiceStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
@@ -165,9 +170,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
         onDelete={() => {
           setDeleteConfirm(detail.id);
         }}
-        onStatusChange={(status) =>
-          statusMutation.mutate({ id: detail.id, status })
-        }
+        onStatusChange={(status) => statusMutation.mutate({ id: detail.id, status })}
         onBack={() => setSelectedId(null)}
       />
     );
@@ -177,19 +180,37 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
     return (
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">{t("Invoices")}</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">
+            {t("Invoices")}
+          </h2>
         </div>
         {invoices.length === 0 ? (
           <p className="text-xs text-gray-400">{t("No invoices yet")}</p>
         ) : (
           <div className="space-y-1 max-h-48 overflow-auto">
             {invoices.slice(0, 6).map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800">
+              <div
+                key={inv.id}
+                className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800"
+              >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500 dark:text-neutral-400">{inv.invoice_number}</span>
-                  <span className="text-sm text-gray-700 dark:text-neutral-300 truncate max-w-[120px]">{inv.client_name}</span>
+                  <span className="text-xs font-medium text-gray-500 dark:text-neutral-400">
+                    {inv.invoice_number}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-neutral-300 truncate max-w-[120px]">
+                    {inv.client_name}
+                  </span>
                 </div>
-                <span className={cn("text-xs font-medium", inv.status === "paid" ? "text-green-600" : inv.status === "sent" ? "text-amber-600" : "text-gray-500")}>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    inv.status === "paid"
+                      ? "text-green-600"
+                      : inv.status === "sent"
+                        ? "text-amber-600"
+                        : "text-gray-500",
+                  )}
+                >
                   {inv.total_cents ? `$${(inv.total_cents / 100).toFixed(2)}` : "—"}
                 </span>
               </div>
@@ -246,7 +267,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
                 "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
                 typeFilter === f.value
                   ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-500 hover:text-gray-700",
               )}
             >
               {t(f.label)}
@@ -266,7 +287,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
                 "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
                 statusFilter === f.value
                   ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-500 hover:text-gray-700",
               )}
             >
               {t(f.label)}
@@ -350,9 +371,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
                     {inv.due_date ? (
                       <span
                         className={cn(
-                          inv.status === "overdue"
-                            ? "text-red-600 font-medium"
-                            : "text-gray-600"
+                          inv.status === "overdue" ? "text-red-600 font-medium" : "text-gray-600",
                         )}
                       >
                         {formatDate(inv.due_date)}

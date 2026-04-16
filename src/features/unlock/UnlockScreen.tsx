@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
-import { unlock } from "../../lib/tauri";
+import { type FormEvent, useState } from "react";
 import { useI18n } from "../../lib/i18n";
+import { unlock } from "../../lib/tauri";
 
 interface UnlockScreenProps {
   onUnlocked: () => void;
@@ -22,9 +22,13 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
       await unlock(pin || "0000");
       onUnlocked();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : String(err);
-      if (message.toLowerCase().includes("passphrase") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("pin")) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (
+        message.toLowerCase().includes("passphrase") ||
+        message.toLowerCase().includes("invalid") ||
+        message.toLowerCase().includes("wrong") ||
+        message.toLowerCase().includes("pin")
+      ) {
         setError(t("Incorrect PIN. Please try again."));
       } else {
         setError(t("Unable to unlock. Please try again."));
@@ -64,10 +68,7 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-5">
-              <label
-                htmlFor="pin"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-              >
+              <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-1.5">
                 {t("PIN")}
               </label>
               <input
@@ -103,7 +104,7 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
 
             <button
               type="submit"
-              disabled={loading || pin.length > 0 && pin.length < 4}
+              disabled={loading || (pin.length > 0 && pin.length < 4)}
               className="w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (

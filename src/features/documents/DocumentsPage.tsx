@@ -1,31 +1,31 @@
-import { useState, useMemo, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload,
-  Trash2,
-  Download,
-  FolderOpen,
-  FileText,
-  Image,
-  File,
+  Archive,
   ChevronLeft,
   ChevronRight,
-  Archive,
+  Download,
+  File,
+  FileText,
+  FolderOpen,
+  Image,
   Search,
+  Trash2,
+  Upload,
 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import {
-  listDocuments,
   addDocument,
   deleteDocument,
+  exportAllClientsDocuments,
+  exportClientDocuments,
+  formatFileSize,
+  listDocuments,
   pickDocumentFile,
   pickExportFolder,
-  exportClientDocuments,
-  exportAllClientsDocuments,
-  formatFileSize,
 } from "../../lib/documents-api";
+import { useI18n } from "../../lib/i18n";
 import { getActiveClientId } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 const CATEGORIES = [
   { value: "general", label: "General" },
@@ -72,7 +72,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
     () => Array.from({ length: 8 }, (_, i) => currentYear - i),
-    [currentYear]
+    [currentYear],
   );
   const [filterYear, setFilterYear] = useState<number | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
@@ -95,7 +95,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       (d) =>
         d.fileName.toLowerCase().includes(q) ||
         d.description?.toLowerCase().includes(q) ||
-        d.category.toLowerCase().includes(q)
+        d.category.toLowerCase().includes(q),
     );
   }, [documents, searchQuery]);
 
@@ -149,7 +149,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
           count: String(result.documentCount),
           folder: result.folder,
         }),
-        "success"
+        "success",
       );
     } catch (e) {
       showToast(`${t("Export failed")}: ${e}`, "error");
@@ -169,7 +169,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
           count: String(result.documentCount),
           clients: String(result.clientCount),
         }),
-        "success"
+        "success",
       );
     } catch (e) {
       showToast(`${t("Export failed")}: ${e}`, "error");
@@ -188,7 +188,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-900">{t("Documents")}</h3>
-          <span className="text-xs text-gray-500">{documents.length} {t("files")}</span>
+          <span className="text-xs text-gray-500">
+            {documents.length} {t("files")}
+          </span>
         </div>
         {documents.length === 0 ? (
           <p className="text-sm text-gray-500">{t("No documents")}</p>
@@ -218,7 +220,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setFilterYear((y) => (y === null ? currentYear : Math.max(2000, y - 1)))}
+              onClick={() =>
+                setFilterYear((y) => (y === null ? currentYear : Math.max(2000, y - 1)))
+              }
               disabled={filterYear === null}
               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
             >
@@ -230,7 +234,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
                 onClick={() => setFilterYear(null)}
                 className={cn(
                   "px-2 py-1 text-xs font-medium rounded-md transition-colors",
-                  filterYear === null ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  filterYear === null
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700",
                 )}
               >
                 {t("All")}
@@ -242,7 +248,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
                   onClick={() => setFilterYear(y)}
                   className={cn(
                     "px-2 py-1 text-xs font-medium rounded-md transition-colors",
-                    filterYear === y ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    filterYear === y
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700",
                   )}
                 >
                   {y}
@@ -251,7 +259,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
             </div>
             <button
               type="button"
-              onClick={() => setFilterYear((y) => (y === null ? currentYear : Math.min(currentYear, y + 1)))}
+              onClick={() =>
+                setFilterYear((y) => (y === null ? currentYear : Math.min(currentYear, y + 1)))
+              }
               disabled={filterYear === null || filterYear >= currentYear}
               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
             >
@@ -319,8 +329,19 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <svg className="animate-spin w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
             </svg>
           </div>
         ) : filteredDocs.length === 0 ? (
@@ -370,29 +391,31 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
                     <div className="flex items-center gap-2">
                       {fileIcon(doc.mimeType)}
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-900 truncate max-w-[200px]">{doc.fileName}</p>
+                        <p className="text-sm text-gray-900 truncate max-w-[200px]">
+                          {doc.fileName}
+                        </p>
                         <p className="text-xs text-gray-400">{formatFileSize(doc.fileSize)}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-5 py-2.5">
-                    <span className={cn(
-                      "inline-flex px-2 py-0.5 rounded text-xs font-medium",
-                      doc.category === "w2" && "bg-blue-50 text-blue-700",
-                      doc.category === "1099" && "bg-green-50 text-green-700",
-                      doc.category === "k1" && "bg-purple-50 text-purple-700",
-                      doc.category === "receipt" && "bg-amber-50 text-amber-700",
-                      doc.category === "bank_statement" && "bg-teal-50 text-teal-700",
-                      doc.category === "tax_return" && "bg-red-50 text-red-700",
-                      doc.category === "general" && "bg-gray-100 text-gray-600",
-                      doc.category === "other" && "bg-gray-100 text-gray-600",
-                    )}>
+                    <span
+                      className={cn(
+                        "inline-flex px-2 py-0.5 rounded text-xs font-medium",
+                        doc.category === "w2" && "bg-blue-50 text-blue-700",
+                        doc.category === "1099" && "bg-green-50 text-green-700",
+                        doc.category === "k1" && "bg-purple-50 text-purple-700",
+                        doc.category === "receipt" && "bg-amber-50 text-amber-700",
+                        doc.category === "bank_statement" && "bg-teal-50 text-teal-700",
+                        doc.category === "tax_return" && "bg-red-50 text-red-700",
+                        doc.category === "general" && "bg-gray-100 text-gray-600",
+                        doc.category === "other" && "bg-gray-100 text-gray-600",
+                      )}
+                    >
                       {CATEGORIES.find((c) => c.value === doc.category)?.label ?? doc.category}
                     </span>
                   </td>
-                  <td className="px-5 py-2.5 text-sm text-gray-700">
-                    {doc.taxYear ?? "—"}
-                  </td>
+                  <td className="px-5 py-2.5 text-sm text-gray-700">{doc.taxYear ?? "—"}</td>
                   <td className="px-5 py-2.5 text-sm text-gray-500 max-w-[180px] truncate">
                     {doc.description ?? "—"}
                   </td>
@@ -436,7 +459,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
         <div
           className={cn(
             "fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all",
-            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+            toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white",
           )}
         >
           {toast.message}

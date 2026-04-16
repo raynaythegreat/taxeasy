@@ -1,7 +1,7 @@
-import { FileText, MessageSquare, Image } from "lucide-react";
+import { FileText, Image, MessageSquare } from "lucide-react";
 import type { Evidence } from "../../lib/ai-api";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 
 function confidenceColor(score: number | null): string {
   if (score === null) return "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-400";
@@ -20,10 +20,8 @@ function confidenceLabel(score: number | null): string {
 export function EvidencePreview({ evidence }: { evidence: Evidence }) {
   const { t } = useI18n();
   const isImage =
-    evidence.sourceFilePath &&
-    /\.(png|jpe?g|gif|bmp|webp)$/i.test(evidence.sourceFilePath);
-  const isPdf =
-    evidence.sourceFilePath && /\.pdf$/i.test(evidence.sourceFilePath);
+    evidence.sourceFilePath && /\.(png|jpe?g|gif|bmp|webp)$/i.test(evidence.sourceFilePath);
+  const isPdf = evidence.sourceFilePath && /\.pdf$/i.test(evidence.sourceFilePath);
   const isChat = evidence.sourceType === "chat";
 
   return (
@@ -79,12 +77,11 @@ export function EvidencePreview({ evidence }: { evidence: Evidence }) {
           <span
             className={cn(
               "inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium",
-              confidenceColor(evidence.confidenceScore)
+              confidenceColor(evidence.confidenceScore),
             )}
           >
             {confidenceLabel(evidence.confidenceScore)}
-            {evidence.confidenceScore !== null &&
-              ` ${Math.round(evidence.confidenceScore * 100)}%`}
+            {evidence.confidenceScore !== null && ` ${Math.round(evidence.confidenceScore * 100)}%`}
           </span>
         </div>
       </div>

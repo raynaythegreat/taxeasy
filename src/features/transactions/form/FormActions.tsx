@@ -1,5 +1,5 @@
-import { cn } from "../../../lib/utils";
 import { useI18n } from "../../../lib/i18n";
+import { cn } from "../../../lib/utils";
 
 interface FormActionsProps {
   canSave: boolean;
@@ -29,7 +29,7 @@ export function FormActions({ canSave, submitting, onClose, onSaveAndNew }: Form
             "px-4 py-1.5 text-sm font-medium rounded",
             canSave
               ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed",
           )}
         >
           {submitting ? "Saving…" : t("Save & New")}
@@ -42,7 +42,7 @@ export function FormActions({ canSave, submitting, onClose, onSaveAndNew }: Form
           "px-4 py-1.5 text-sm font-medium rounded",
           canSave
             ? "bg-blue-600 text-white hover:bg-blue-700"
-            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            : "bg-gray-200 text-gray-400 cursor-not-allowed",
         )}
       >
         {submitting ? "Saving…" : t("Save Transaction")}

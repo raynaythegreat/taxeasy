@@ -1,34 +1,28 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Plus,
-  Search,
   ChevronDown,
   ChevronRight,
   Pencil,
-  X,
+  Plus,
+  Search,
   ToggleLeft,
   ToggleRight,
+  X,
 } from "lucide-react";
-import { listAccounts } from "../../lib/tauri";
-import type { Account, AccountType } from "../../lib/tauri";
+import { useMemo, useState } from "react";
 import {
-  createAccount,
-  updateAccount,
-  toggleAccountActive,
   type CreateAccountPayload,
+  createAccount,
+  toggleAccountActive,
   type UpdateAccountPayload,
+  updateAccount,
 } from "../../lib/account-api";
-import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import type { Account, AccountType } from "../../lib/tauri";
+import { listAccounts } from "../../lib/tauri";
+import { cn } from "../../lib/utils";
 
-const ACCOUNT_TYPE_ORDER: AccountType[] = [
-  "asset",
-  "liability",
-  "equity",
-  "revenue",
-  "expense",
-];
+const ACCOUNT_TYPE_ORDER: AccountType[] = ["asset", "liability", "equity", "revenue", "expense"];
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   asset: "Assets",
@@ -73,7 +67,12 @@ const EMPTY_FORM: AccountFormState = {
 function TypeBadge({ type }: { type: AccountType }) {
   const { t } = useI18n();
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium", ACCOUNT_TYPE_COLORS[type])}>
+    <span
+      className={cn(
+        "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
+        ACCOUNT_TYPE_COLORS[type],
+      )}
+    >
       {t(ACCOUNT_TYPE_LABELS[type])}
     </span>
   );
@@ -103,7 +102,7 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
       (a) =>
         a.code.toLowerCase().includes(q) ||
         a.name.toLowerCase().includes(q) ||
-        a.schedule_c_line?.toLowerCase().includes(q)
+        a.schedule_c_line?.toLowerCase().includes(q),
     );
   }, [accounts, search]);
 
@@ -210,13 +209,20 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
     return (
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">{t("Accounts")}</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-neutral-100">
+            {t("Accounts")}
+          </h2>
         </div>
         <div className="space-y-1 max-h-48 overflow-auto">
           {filtered.slice(0, 8).map((account) => (
-            <div key={account.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800">
+            <div
+              key={account.id}
+              className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-neutral-800"
+            >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-gray-500 dark:text-neutral-400">{account.code}</span>
+                <span className="text-xs font-mono text-gray-500 dark:text-neutral-400">
+                  {account.code}
+                </span>
                 <span className="text-sm text-gray-700 dark:text-neutral-300">{account.name}</span>
               </div>
               <TypeBadge type={account.account_type} />
@@ -224,7 +230,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
           ))}
         </div>
         {filtered.length > 8 && (
-          <p className="text-xs text-gray-400 mt-2 text-center">{filtered.length - 8} more accounts...</p>
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            {filtered.length - 8} more accounts...
+          </p>
         )}
       </div>
     );
@@ -264,8 +272,19 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
         {isLoading && (
           <div className="flex items-center justify-center py-16">
             <svg className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
             </svg>
           </div>
         )}
@@ -288,7 +307,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                       <ChevronDown className="w-4 h-4 text-gray-400" />
                     )}
                     <div className={cn("w-2.5 h-2.5 rounded-full", ACCOUNT_TYPE_DOT[type])} />
-                    <span className="text-sm font-semibold text-gray-700">{t(ACCOUNT_TYPE_LABELS[type])}</span>
+                    <span className="text-sm font-semibold text-gray-700">
+                      {t(ACCOUNT_TYPE_LABELS[type])}
+                    </span>
                     <span className="text-xs text-gray-400 ml-1">({items.length})</span>
                   </button>
 
@@ -306,7 +327,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                           >
                             <div className="grid grid-cols-[80px_1fr_120px_120px] gap-3 items-end">
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Code")}</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  {t("Code")}
+                                </label>
                                 <input
                                   type="text"
                                   value={editForm.code}
@@ -317,7 +340,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Name")}</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  {t("Name")}
+                                </label>
                                 <input
                                   type="text"
                                   value={editForm.name}
@@ -328,7 +353,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">{t("Sch C Line")}</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  {t("Sch C Line")}
+                                </label>
                                 <input
                                   type="text"
                                   value={editForm.schedule_c_line}
@@ -364,8 +391,15 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                           </form>
                         ) : (
                           <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 group transition-colors">
-                            <span className="font-mono text-sm text-gray-500 w-16 shrink-0">{account.code}</span>
-                            <span className={cn("text-sm flex-1 truncate", !account.active && "text-gray-400 line-through")}>
+                            <span className="font-mono text-sm text-gray-500 w-16 shrink-0">
+                              {account.code}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-sm flex-1 truncate",
+                                !account.active && "text-gray-400 line-through",
+                              )}
+                            >
                               {account.name}
                             </span>
                             <TypeBadge type={account.account_type} />
@@ -376,7 +410,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                             )}
                             <button
                               type="button"
-                              onClick={() => toggleMutation.mutate({ id: account.id, active: !account.active })}
+                              onClick={() =>
+                                toggleMutation.mutate({ id: account.id, active: !account.active })
+                              }
                               className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               title={account.active ? t("Deactivate") : t("Activate")}
                             >
@@ -462,7 +498,7 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("Name")} <span className="text-red-500">*</span>
+                  {t("Name")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -476,7 +512,8 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("Parent Account")} <span className="text-gray-400 font-normal">(optional)</span>
+                  {t("Parent Account")}{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <select
                   value={addForm.parent_id}
@@ -497,7 +534,8 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("Schedule C Line")} <span className="text-gray-400 font-normal">(optional)</span>
+                  {t("Schedule C Line")}{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -535,7 +573,7 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                     "px-4 py-2 rounded-lg text-sm font-semibold transition-colors",
                     createMutation.isPending
                       ? "bg-blue-400 text-white cursor-wait"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-blue-600 text-white hover:bg-blue-700",
                   )}
                 >
                   {createMutation.isPending ? t("Creating…") : t("Create Account")}

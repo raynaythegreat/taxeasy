@@ -1,12 +1,12 @@
-import { useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, Upload } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { useI18n } from "../../lib/i18n";
 import { listAccounts } from "../../lib/tauri";
 import { fiscalYearRange, today } from "../../lib/utils";
+import { ImportWizard } from "./ImportWizard";
 import { LedgerView } from "./LedgerView";
 import { TransactionForm } from "./TransactionForm";
-import { ImportWizard } from "./ImportWizard";
-import { useI18n } from "../../lib/i18n";
 
 const MIN_YEAR = 2000;
 
@@ -17,7 +17,7 @@ export function TransactionsPage() {
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
     () => Array.from({ length: 8 }, (_, i) => currentYear - i),
-    [currentYear]
+    [currentYear],
   );
   const [taxYear, setTaxYear] = useState(currentYear);
   const [accountId, setAccountId] = useState("");
@@ -52,10 +52,13 @@ export function TransactionsPage() {
     queryClient.invalidateQueries({ queryKey: ["cash_flow"], refetchType: "all" });
   }, [queryClient]);
 
-  const handleDeleteTxn = useCallback((_id: string) => {
-    invalidateTxns();
-    invalidateReports();
-  }, [invalidateTxns, invalidateReports]);
+  const handleDeleteTxn = useCallback(
+    (_id: string) => {
+      invalidateTxns();
+      invalidateReports();
+    },
+    [invalidateTxns, invalidateReports],
+  );
 
   const handleEditTxn = useCallback(() => {
     invalidateTxns();
@@ -108,9 +111,7 @@ export function TransactionsPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-gray-700">
-            {t("Transactions")}
-          </h1>
+          <h1 className="text-sm font-semibold text-gray-700">{t("Transactions")}</h1>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -202,10 +203,7 @@ export function TransactionsPage() {
 
       <div className="flex-1 overflow-auto">
         {showImport ? (
-          <ImportWizard
-            onClose={() => setShowImport(false)}
-            onImported={handleImported}
-          />
+          <ImportWizard onClose={() => setShowImport(false)} onImported={handleImported} />
         ) : (
           <LedgerView
             dateFrom={from}

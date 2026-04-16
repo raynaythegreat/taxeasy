@@ -1,16 +1,22 @@
-import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { listAccounts, createTransaction, scanReceipt, suggestCategory, pickReceiptFile } from "../../lib/tauri";
-import type { EntryPayload, CategorizeSuggestion } from "../../lib/tauri";
+import { useCallback, useState } from "react";
+import type { CategorizeSuggestion, EntryPayload } from "../../lib/tauri";
+import {
+  createTransaction,
+  listAccounts,
+  pickReceiptFile,
+  scanReceipt,
+  suggestCategory,
+} from "../../lib/tauri";
 import { today } from "../../lib/utils";
-import { SimpleForm, makeSimpleState } from "./form/SimpleForm";
-import type { SimpleState } from "./form/SimpleForm";
-import { EntryRows } from "./form/EntryRows";
-import type { EntryRowData } from "./form/EntryRow";
-import { FormActions } from "./form/FormActions";
 import { AdvancedFields } from "./form/AdvancedFields";
-import { FormHeader } from "./form/FormHeader";
 import { AiSuggestionChip } from "./form/AiSuggestionChip";
+import type { EntryRowData } from "./form/EntryRow";
+import { EntryRows } from "./form/EntryRows";
+import { FormActions } from "./form/FormActions";
+import { FormHeader } from "./form/FormHeader";
+import type { SimpleState } from "./form/SimpleForm";
+import { makeSimpleState, SimpleForm } from "./form/SimpleForm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,7 +41,8 @@ function isSimpleValid(s: SimpleState): boolean {
   if (!s.date) return false;
   if (s.txnType === "expense") return !!(s.paidFrom && s.category);
   if (s.txnType === "income") return !!(s.depositedTo && s.source);
-  if (s.txnType === "transfer") return !!(s.fromAccount && s.toAccount && s.fromAccount !== s.toAccount);
+  if (s.txnType === "transfer")
+    return !!(s.fromAccount && s.toAccount && s.fromAccount !== s.toAccount);
   return false;
 }
 
@@ -63,11 +70,17 @@ function buildSimpleEntries(s: SimpleState): EntryPayload[] {
 
 // ── TransactionForm ───────────────────────────────────────────────────────────
 
-export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate: defaultDateProp, onDateUsed }: TransactionFormProps) {
+export function TransactionForm({
+  onClose,
+  onCreated,
+  onSaveAndNew,
+  defaultDate: defaultDateProp,
+  onDateUsed,
+}: TransactionFormProps) {
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
 
   const [simple, setSimple] = useState<SimpleState>(() =>
-    makeSimpleState(defaultDateProp || today())
+    makeSimpleState(defaultDateProp || today()),
   );
 
   const [txnDate, setTxnDate] = useState(() => defaultDateProp || today());
@@ -96,11 +109,9 @@ export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate:
 
   const updateEntry = useCallback(
     (id: string, field: keyof Omit<EntryRowData, "id">, value: string) => {
-      setEntries((prev) =>
-        prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-      );
+      setEntries((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
     },
-    []
+    [],
   );
 
   const removeEntry = useCallback((id: string) => {
@@ -117,7 +128,7 @@ export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate:
     <K extends keyof SimpleState>(field: K, value: SimpleState[K]) => {
       setSimple((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   // ── Scan Receipt ──────────────────────────────────────────────────────────
@@ -175,9 +186,18 @@ export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate:
     setError(null);
     try {
       if (mode === "simple") {
-        await createTransaction({ txn_date: simple.date, description: simple.description.trim(), entries: buildSimpleEntries(simple) });
+        await createTransaction({
+          txn_date: simple.date,
+          description: simple.description.trim(),
+          entries: buildSimpleEntries(simple),
+        });
       } else {
-        await createTransaction({ txn_date: txnDate, description: description.trim(), reference: reference.trim() || undefined, entries: buildAdvancedPayloads() });
+        await createTransaction({
+          txn_date: txnDate,
+          description: description.trim(),
+          reference: reference.trim() || undefined,
+          entries: buildAdvancedPayloads(),
+        });
       }
       onCreated();
       if (onDateUsed) onDateUsed();
@@ -196,9 +216,18 @@ export function TransactionForm({ onClose, onCreated, onSaveAndNew, defaultDate:
     setError(null);
     try {
       if (mode === "simple") {
-        await createTransaction({ txn_date: simple.date, description: simple.description.trim(), entries: buildSimpleEntries(simple) });
+        await createTransaction({
+          txn_date: simple.date,
+          description: simple.description.trim(),
+          entries: buildSimpleEntries(simple),
+        });
       } else {
-        await createTransaction({ txn_date: txnDate, description: description.trim(), reference: reference.trim() || undefined, entries: buildAdvancedPayloads() });
+        await createTransaction({
+          txn_date: txnDate,
+          description: description.trim(),
+          reference: reference.trim() || undefined,
+          entries: buildAdvancedPayloads(),
+        });
       }
       onCreated();
       const newDate = defaultDateProp || today();

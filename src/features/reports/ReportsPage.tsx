@@ -1,14 +1,14 @@
-import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Printer, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { listClients, getActiveClientId } from "../../lib/tauri";
-import { periodRange, cn, type ReportPeriod, PERIOD_LABELS } from "../../lib/utils";
+import { ChevronLeft, ChevronRight, Download, Printer } from "lucide-react";
+import { useMemo, useState } from "react";
 import { handleExportReport } from "../../lib/export-api";
 import { useI18n } from "../../lib/i18n";
 import { triggerPrint } from "../../lib/print-utils";
-import { PnLView } from "./PnLView";
+import { getActiveClientId, listClients } from "../../lib/tauri";
+import { cn, PERIOD_LABELS, periodRange, type ReportPeriod } from "../../lib/utils";
 import { BalanceSheetView } from "./BalanceSheetView";
 import { CashFlowView } from "./CashFlowView";
+import { PnLView } from "./PnLView";
 
 type ReportTab = "pnl" | "balance_sheet" | "cash_flow";
 
@@ -30,7 +30,7 @@ export function ReportsPage() {
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
     () => Array.from({ length: 6 }, (_, i) => currentYear - i),
-    [currentYear]
+    [currentYear],
   );
   const [taxYear, setTaxYear] = useState(currentYear);
   const isRecent = recentYears.includes(taxYear);
@@ -81,7 +81,7 @@ export function ReportsPage() {
                   "px-3 py-1.5 rounded text-sm font-medium transition-colors",
                   activeTab === tab.id
                     ? "bg-blue-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
+                    : "text-gray-600 hover:bg-gray-100",
                 )}
               >
                 {t(tab.label)}
@@ -168,7 +168,7 @@ export function ReportsPage() {
                   "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
                   period === p
                     ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    : "text-gray-500 hover:text-gray-700",
                 )}
               >
                 {PERIOD_LABELS[p]}
@@ -190,9 +190,7 @@ export function ReportsPage() {
 
       <div className="flex-1 overflow-auto bg-gray-50 print:bg-white print:overflow-visible">
         <div className="min-h-full py-6 print:py-0">
-          {activeTab === "pnl" && (
-            <PnLView dateFrom={from} dateTo={to} clientName={clientName} />
-          )}
+          {activeTab === "pnl" && <PnLView dateFrom={from} dateTo={to} clientName={clientName} />}
           {activeTab === "balance_sheet" && (
             <BalanceSheetView asOfDate={to} clientName={clientName} />
           )}

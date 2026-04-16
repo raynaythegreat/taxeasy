@@ -1,6 +1,6 @@
-import { cn } from "../../../lib/utils";
 import { useI18n } from "../../../lib/i18n";
 import type { SaveSettingsPayload } from "../../../lib/settings-api";
+import { cn } from "../../../lib/utils";
 
 function Spinner() {
   return (
@@ -32,9 +32,7 @@ export function AppearanceTab({ theme, saving, onThemeChange, onSave }: Appearan
             onClick={() => onThemeChange(th)}
             className={cn(
               "rounded-xl border-2 p-4 text-center transition-colors focus:outline-none",
-              theme === th
-                ? "border-blue-600 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
+              theme === th ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300",
             )}
           >
             <div
@@ -42,13 +40,13 @@ export function AppearanceTab({ theme, saving, onThemeChange, onSave }: Appearan
                 "w-8 h-8 rounded-lg mx-auto mb-2 border",
                 th === "light" && "bg-white border-gray-300",
                 th === "dark" && "bg-gray-900 border-gray-700",
-                th === "system" && "bg-gradient-to-br from-white to-gray-900 border-gray-400"
+                th === "system" && "bg-gradient-to-br from-white to-gray-900 border-gray-400",
               )}
             />
             <span
               className={cn(
                 "text-sm font-medium",
-                theme === th ? "text-blue-700" : "text-gray-700"
+                theme === th ? "text-blue-700" : "text-gray-700",
               )}
             >
               {t(th === "light" ? "Light" : th === "dark" ? "Dark" : "System")}

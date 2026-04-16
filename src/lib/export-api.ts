@@ -4,7 +4,11 @@ export async function exportTransactionsCsv(dateFrom: string, dateTo: string): P
   return invoke("export_transactions_csv", { dateFrom, dateTo });
 }
 
-export async function exportReportCsv(reportType: string, dateFrom: string, dateTo: string): Promise<string> {
+export async function exportReportCsv(
+  reportType: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<string> {
   return invoke("export_report_csv", { reportType, dateFrom, dateTo });
 }
 

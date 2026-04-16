@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useI18n } from "../../lib/i18n";
 import { getPnl, type PnlLineItem } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 interface PnLViewProps {
   dateFrom: string;
@@ -69,9 +69,7 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
   return (
     <div className="report-sheet">
       <div className="text-center mb-6 print:mb-4">
-        {clientName && (
-          <p className="text-base font-semibold text-gray-900">{clientName}</p>
-        )}
+        {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Profit & Loss")}</h2>
         <p className="text-sm text-gray-500 mt-1">
           {formatDate(dateFrom)} &ndash; {formatDate(dateTo)}
@@ -80,7 +78,9 @@ export function PnLView({ dateFrom, dateTo, clientName }: PnLViewProps) {
 
       {hasRevenue && (
         <section className="report-section">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Revenue")}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+            {t("Revenue")}
+          </p>
           {data.revenue_lines.map((item) => (
             <LineRow key={item.account_id} item={item} />
           ))}

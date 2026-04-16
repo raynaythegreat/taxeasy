@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Send, Trash2, User, Bot, Loader2, MessageSquare } from "lucide-react";
-import { getChatHistory, sendChatMessage, clearChatHistory } from "../../lib/ai-api";
-import { cn } from "../../lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bot, Loader2, MessageSquare, Send, Trash2, User } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { clearChatHistory, getChatHistory, sendChatMessage } from "../../lib/ai-api";
 import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 
 export function ChatPanel({ clientId }: { clientId: string }) {
   const { t } = useI18n();
@@ -39,10 +39,28 @@ export function ChatPanel({ clientId }: { clientId: string }) {
   const allMessages = [
     ...messages,
     ...(sendMutation.isPending
-      ? [{ id: "pending", clientId, role: "user", content: input, evidenceId: null, createdAt: new Date().toISOString() }]
+      ? [
+          {
+            id: "pending",
+            clientId,
+            role: "user",
+            content: input,
+            evidenceId: null,
+            createdAt: new Date().toISOString(),
+          },
+        ]
       : []),
     ...(sendMutation.isPending
-      ? [{ id: "thinking", clientId, role: "assistant", content: "", evidenceId: null, createdAt: new Date().toISOString() }]
+      ? [
+          {
+            id: "thinking",
+            clientId,
+            role: "assistant",
+            content: "",
+            evidenceId: null,
+            createdAt: new Date().toISOString(),
+          },
+        ]
       : []),
   ];
 
@@ -139,9 +157,7 @@ export function ChatPanel({ clientId }: { clientId: string }) {
                 <div
                   className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
-                    isUser
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 dark:bg-neutral-800"
+                    isUser ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-neutral-800",
                   )}
                 >
                   {isUser ? (
@@ -155,16 +171,14 @@ export function ChatPanel({ clientId }: { clientId: string }) {
                     "max-w-[70%] px-3.5 py-2.5 rounded-lg text-sm",
                     isUser
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-neutral-100"
+                      : "bg-gray-100 dark:bg-neutral-800 text-gray-900 dark:text-neutral-100",
                   )}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   <span
                     className={cn(
                       "block mt-1 text-[10px]",
-                      isUser
-                        ? "text-blue-200"
-                        : "text-gray-400 dark:text-neutral-500"
+                      isUser ? "text-blue-200" : "text-gray-400 dark:text-neutral-500",
                     )}
                   >
                     {new Date(msg.createdAt).toLocaleTimeString([], {

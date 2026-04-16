@@ -1,6 +1,6 @@
+import { useI18n } from "../../../lib/i18n";
 import type { Account } from "../../../lib/tauri";
 import { cn } from "../../../lib/utils";
-import { useI18n } from "../../../lib/i18n";
 import { AccountSelect } from "./AccountSelect";
 
 export type SimpleType = "expense" | "income" | "transfer";
@@ -48,13 +48,13 @@ export function makeSimpleState(defaultDate?: string): SimpleState {
 export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
   const { t } = useI18n();
   const balanceSheetAccounts = accounts.filter((a) =>
-    ["asset", "liability", "equity"].includes(a.account_type)
+    ["asset", "liability", "equity"].includes(a.account_type),
   );
   const debitAccounts = accounts.filter((a) =>
-    ["expense", "asset", "liability", "equity"].includes(a.account_type)
+    ["expense", "asset", "liability", "equity"].includes(a.account_type),
   );
   const creditAccounts = accounts.filter((a) =>
-    ["revenue", "liability", "equity"].includes(a.account_type)
+    ["revenue", "liability", "equity"].includes(a.account_type),
   );
 
   const SIMPLE_TYPE_OPTIONS: { value: SimpleType; label: string; sub: string }[] = [
@@ -76,7 +76,7 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
               "flex flex-col items-center px-2 py-2.5 rounded-lg border text-center transition-colors",
               simple.txnType === opt.value
                 ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50",
             )}
           >
             <span className="text-sm font-medium">{opt.label}</span>
@@ -118,7 +118,9 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
           {t("Amount")} <span className="text-red-400">*</span>
         </label>
         <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+            $
+          </span>
           <input
             type="number"
             min="0"

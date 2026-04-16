@@ -1,17 +1,17 @@
-import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, Upload, Sparkles, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader, Sparkles, Upload, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "../../lib/i18n";
+import type { Account, AccountType, CategorizeSuggestion } from "../../lib/tauri";
 import {
+  createTransaction,
   listAccounts,
   listDirFiles,
   pickReceiptFiles,
   scanReceipt,
   suggestCategory,
-  createTransaction,
 } from "../../lib/tauri";
-import type { Account, AccountType, CategorizeSuggestion } from "../../lib/tauri";
 import { cn, today } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 interface ImportRow {
   id: string;
@@ -40,12 +40,21 @@ interface ImportWizardProps {
 
 const ACCOUNT_TYPE_ORDER: AccountType[] = ["asset", "liability", "equity", "revenue", "expense"];
 const TYPE_LABELS: Record<AccountType, string> = {
-  asset: "Assets", liability: "Liabilities", equity: "Equity",
-  revenue: "Revenue", expense: "Expenses",
+  asset: "Assets",
+  liability: "Liabilities",
+  equity: "Equity",
+  revenue: "Revenue",
+  expense: "Expenses",
 };
 
-function AccountDropdown({ value, accounts, onChange }: {
-  value: string; accounts: Account[]; onChange: (id: string) => void;
+function AccountDropdown({
+  value,
+  accounts,
+  onChange,
+}: {
+  value: string;
+  accounts: Account[];
+  onChange: (id: string) => void;
 }) {
   const { t } = useI18n();
   const grouped = ACCOUNT_TYPE_ORDER.reduce<Record<string, Account[]>>((acc, type) => {
@@ -63,7 +72,9 @@ function AccountDropdown({ value, accounts, onChange }: {
       {Object.entries(grouped).map(([type, items]) => (
         <optgroup key={type} label={t(TYPE_LABELS[type as AccountType])}>
           {items.map((a) => (
-            <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+            <option key={a.id} value={a.id}>
+              {a.code} — {a.name}
+            </option>
           ))}
         </optgroup>
       ))}
@@ -73,13 +84,16 @@ function AccountDropdown({ value, accounts, onChange }: {
 
 function QueuePill({ item }: { item: QueueItem }) {
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-      item.status === "pending" && "bg-gray-100 text-gray-600",
-      item.status === "scanning" && "bg-blue-50 text-blue-700",
-      item.status === "done" && "bg-green-50 text-green-700",
-      item.status === "error" && "bg-red-50 text-red-700",
-    )} title={item.error}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+        item.status === "pending" && "bg-gray-100 text-gray-600",
+        item.status === "scanning" && "bg-blue-50 text-blue-700",
+        item.status === "done" && "bg-green-50 text-green-700",
+        item.status === "error" && "bg-red-50 text-red-700",
+      )}
+      title={item.error}
+    >
       {item.status === "scanning" && <Loader className="w-3 h-3 animate-spin" />}
       {item.status === "done" && <CheckCircle className="w-3 h-3" />}
       {item.status === "error" && <AlertCircle className="w-3 h-3" />}
@@ -130,14 +144,17 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
     setQueue((prev) => [...prev, ...items]);
   }, []);
 
-  const handleDroppedPaths = useCallback(async (paths: string[]) => {
-    const expanded: string[] = [];
-    for (const p of paths) {
-      const files = await listDirFiles(p);
-      expanded.push(...files);
-    }
-    if (expanded.length > 0) enqueue(expanded);
-  }, [enqueue]);
+  const handleDroppedPaths = useCallback(
+    async (paths: string[]) => {
+      const expanded: string[] = [];
+      for (const p of paths) {
+        const files = await listDirFiles(p);
+        expanded.push(...files);
+      }
+      if (expanded.length > 0) enqueue(expanded);
+    },
+    [enqueue],
+  );
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -155,22 +172,26 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
             setDragActive(false);
           }
         })
-        .then((fn) => { unlisten = fn; });
+        .then((fn) => {
+          unlisten = fn;
+        });
     });
 
-    return () => { unlisten?.(); };
+    return () => {
+      unlisten?.();
+    };
   }, [handleDroppedPaths]);
 
   const updateQueue = useCallback(
     (id: string, patch: Partial<QueueItem>) =>
       setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q))),
-    []
+    [],
   );
 
   const updateRow = useCallback(
     (id: string, patch: Partial<ImportRow>) =>
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r))),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -189,7 +210,7 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
 
         if (result.line_items.length > 0) {
           extracted = result.line_items.map((item) =>
-            makeRow(item.description, item.amount ?? "0", fallbackDate)
+            makeRow(item.description, item.amount ?? "0", fallbackDate),
           );
         } else if (result.total) {
           extracted = [makeRow(result.vendor ?? next.name, result.total, fallbackDate)];
@@ -230,14 +251,14 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
         } catch {
           updateRow(row.id, { suggesting: false });
         }
-      })
+      }),
     );
     setSuggestingAll(false);
   };
 
   const handleImport = async () => {
     const toImport = rows.filter(
-      (r) => r.include && r.categoryAccountId && r.amount && r.date && bankAccountId
+      (r) => r.include && r.categoryAccountId && r.amount && r.date && bankAccountId,
     );
     if (!toImport.length) return;
     setImporting(true);
@@ -247,8 +268,14 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
       const amt = parseFloat(row.amount).toFixed(2);
       const entries =
         row.txnType === "credit"
-          ? [{ account_id: row.categoryAccountId, debit: amt }, { account_id: bankAccountId, credit: amt }]
-          : [{ account_id: bankAccountId, debit: amt }, { account_id: row.categoryAccountId, credit: amt }];
+          ? [
+              { account_id: row.categoryAccountId, debit: amt },
+              { account_id: bankAccountId, credit: amt },
+            ]
+          : [
+              { account_id: bankAccountId, debit: amt },
+              { account_id: row.categoryAccountId, credit: amt },
+            ];
       try {
         await createTransaction({ txn_date: row.date, description: row.description, entries });
       } catch {
@@ -259,19 +286,26 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
     if (failed === 0) {
       onImported();
     } else {
-      setImportError(t("{failed} transaction(s) failed. The rest were saved.", { failed: String(failed) }));
+      setImportError(
+        t("{failed} transaction(s) failed. The rest were saved.", { failed: String(failed) }),
+      );
     }
   };
 
   const includedCount = rows.filter((r) => r.include).length;
-  const readyCount = rows.filter((r) => r.include && r.categoryAccountId && r.amount && r.date).length;
+  const readyCount = rows.filter(
+    (r) => r.include && r.categoryAccountId && r.amount && r.date,
+  ).length;
   const isScanning = queue.some((q) => q.status === "scanning" || q.status === "pending");
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
         <h2 className="text-sm font-semibold text-gray-900">{t("Import Transactions")}</h2>
-        <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+        <button
+          onClick={onClose}
+          className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -286,7 +320,9 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
         </button>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-600 whitespace-nowrap font-medium">{t("Bank Account")}</label>
+          <label className="text-xs text-gray-600 whitespace-nowrap font-medium">
+            {t("Bank Account")}
+          </label>
           <select
             value={bankAccountId}
             onChange={(e) => setBankAccountId(e.target.value)}
@@ -294,14 +330,18 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
           >
             <option value="">{t("Select…")}</option>
             {assetAccounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+              <option key={a.id} value={a.id}>
+                {a.code} — {a.name}
+              </option>
             ))}
           </select>
         </div>
 
         {queue.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {queue.map((item) => <QueuePill key={item.id} item={item} />)}
+            {queue.map((item) => (
+              <QueuePill key={item.id} item={item} />
+            ))}
           </div>
         )}
       </div>
@@ -312,10 +352,13 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
             "flex-1 flex flex-col items-center justify-center gap-4 m-5 rounded-xl border-2 border-dashed transition-colors",
             dragActive
               ? "border-blue-400 bg-blue-50"
-              : "border-gray-300 bg-gray-50 hover:border-gray-400"
+              : "border-gray-300 bg-gray-50 hover:border-gray-400",
           )}
           onDragOver={(e) => e.preventDefault()}
-          onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setDragActive(true);
+          }}
           onDragLeave={() => setDragActive(false)}
         >
           {isScanning ? (
@@ -327,7 +370,12 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
             <>
               <Upload className={cn("w-10 h-10", dragActive ? "text-blue-500" : "text-gray-300")} />
               <div className="text-center">
-                <p className={cn("text-sm font-medium", dragActive ? "text-blue-700" : "text-gray-500")}>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    dragActive ? "text-blue-700" : "text-gray-500",
+                  )}
+                >
                   {dragActive ? t("Drop to scan") : t("Drop files, photos or folders here")}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
@@ -344,15 +392,24 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
               "shrink-0 mx-5 mt-3 mb-1 px-4 py-2 rounded-lg border border-dashed text-xs text-center transition-colors cursor-default",
               dragActive
                 ? "border-blue-400 bg-blue-50 text-blue-700"
-                : "border-gray-200 text-gray-400 hover:border-gray-300"
+                : "border-gray-200 text-gray-400 hover:border-gray-300",
             )}
             onDragOver={(e) => e.preventDefault()}
-            onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
             onDragLeave={() => setDragActive(false)}
           >
-            {isScanning
-              ? <span className="inline-flex items-center gap-1"><Loader className="w-3 h-3 animate-spin" /> {t("Scanning…")}</span>
-              : dragActive ? t("Drop to add more files") : t("Drop more files here to add them")}
+            {isScanning ? (
+              <span className="inline-flex items-center gap-1">
+                <Loader className="w-3 h-3 animate-spin" /> {t("Scanning…")}
+              </span>
+            ) : dragActive ? (
+              t("Drop to add more files")
+            ) : (
+              t("Drop more files here to add them")
+            )}
           </div>
 
           <div className="flex-1 overflow-auto">
@@ -370,7 +427,10 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id} className={cn("border-b border-gray-100", !row.include && "opacity-40")}>
+                  <tr
+                    key={row.id}
+                    className={cn("border-b border-gray-100", !row.include && "opacity-40")}
+                  >
                     <td className="px-3 py-1.5">
                       <input
                         type="checkbox"
@@ -406,7 +466,9 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
                     <td className="px-2 py-1.5">
                       <select
                         value={row.txnType}
-                        onChange={(e) => updateRow(row.id, { txnType: e.target.value as "credit" | "debit" })}
+                        onChange={(e) =>
+                          updateRow(row.id, { txnType: e.target.value as "credit" | "debit" })
+                        }
                         className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 w-full"
                       >
                         <option value="credit">{t("Credit — outflow")}</option>
@@ -443,7 +505,10 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
 
           <div className="shrink-0 flex items-center gap-3 px-5 py-3 border-t border-gray-200 bg-white flex-wrap">
             <span className="text-xs text-gray-500">
-              {t("{count} selected · {ready} ready to import", { count: String(includedCount), ready: String(readyCount) })}
+              {t("{count} selected · {ready} ready to import", {
+                count: String(includedCount),
+                ready: String(readyCount),
+              })}
             </span>
             <button
               onClick={handleSuggestAll}
@@ -459,7 +524,9 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
               disabled={importing || readyCount === 0 || !bankAccountId}
               className="ml-auto px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40"
             >
-              {importing ? t("Importing…") : t("Import {count} Transaction(s)", { count: String(readyCount) })}
+              {importing
+                ? t("Importing…")
+                : t("Import {count} Transaction(s)", { count: String(readyCount) })}
             </button>
           </div>
         </>

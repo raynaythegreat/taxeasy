@@ -1,12 +1,12 @@
+import { LayoutDashboard, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClientsPage } from "../features/clients/ClientsPage";
-import { DashboardPage } from "./DashboardPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { useI18n } from "../lib/i18n";
 import { getActiveClientPref, switchClient } from "../lib/tauri";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
-import { Settings, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useI18n } from "../lib/i18n";
+import { DashboardPage } from "./DashboardPage";
 
 type AppView = "dashboard" | "clients" | "settings";
 
@@ -62,7 +62,7 @@ export function AppShell() {
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   view === item.id
                     ? "bg-blue-600 text-white"
-                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]",
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -77,7 +77,7 @@ export function AppShell() {
             onClick={() => setLocale(locale === "en" ? "es" : "en")}
             className={cn(
               "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
-              "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]"
+              "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
             )}
           >
             <span>{locale === "en" ? "🇺🇸 EN" : "🇪🇸 ES"}</span>
@@ -93,10 +93,7 @@ export function AppShell() {
           />
         )}
         {view === "clients" && (
-          <ClientsPage
-            initialClientId={initialClientId}
-            onBack={() => setView("dashboard")}
-          />
+          <ClientsPage initialClientId={initialClientId} onBack={() => setView("dashboard")} />
         )}
         {view === "settings" && <SettingsPage onBack={() => setView("dashboard")} />}
       </main>

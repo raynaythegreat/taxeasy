@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, Rss, ExternalLink, WifiOff, X } from "lucide-react";
-import { fetchTaxNews, refreshTaxNews, type NewsItem } from "../lib/tax-news-api";
+import { ExternalLink, RefreshCw, Rss, Search, WifiOff, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { fetchTaxNews, type NewsItem, refreshTaxNews } from "../lib/tax-news-api";
 import { cn } from "../lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -26,9 +26,7 @@ function SourceBadge({ source }: { source: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium",
-        isNewsroom
-          ? "bg-blue-50 text-blue-700"
-          : "bg-teal-50 text-teal-700"
+        isNewsroom ? "bg-blue-50 text-blue-700" : "bg-teal-50 text-teal-700",
       )}
     >
       <Rss className="w-3 h-3" />
@@ -67,10 +65,7 @@ function NewsCard({ item }: { item: NewsItem }) {
           <span className="text-xs text-gray-400">{relativeDate(item.published_at)}</span>
         )}
         {item.categories.slice(0, 2).map((cat) => (
-          <span
-            key={cat}
-            className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"
-          >
+          <span key={cat} className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
             {cat}
           </span>
         ))}
@@ -86,9 +81,7 @@ function NewsCard({ item }: { item: NewsItem }) {
         <ExternalLink className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
       </a>
 
-      {item.summary && (
-        <p className="text-xs text-gray-500 line-clamp-2">{item.summary}</p>
-      )}
+      {item.summary && <p className="text-xs text-gray-500 line-clamp-2">{item.summary}</p>}
 
       {item.relevance_tags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
@@ -131,16 +124,13 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
   const items = data ?? [];
 
   // Collect unique sources and categories for filter dropdowns
-  const sources = useMemo(
-    () => Array.from(new Set(items.map((i) => i.source))).sort(),
-    [items]
-  );
+  const sources = useMemo(() => Array.from(new Set(items.map((i) => i.source))).sort(), [items]);
   const categories = useMemo(
     () =>
       Array.from(new Set(items.flatMap((i) => i.categories)))
         .filter(Boolean)
         .sort(),
-    [items]
+    [items],
   );
 
   // Client-side filter + search
@@ -148,11 +138,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
     const q = search.toLowerCase().trim();
     return items.filter((item) => {
       if (sourceFilter !== "all" && item.source !== sourceFilter) return false;
-      if (
-        categoryFilter !== "all" &&
-        !item.categories.includes(categoryFilter)
-      )
-        return false;
+      if (categoryFilter !== "all" && !item.categories.includes(categoryFilter)) return false;
       if (q) {
         const haystack = `${item.title} ${item.summary ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -190,7 +176,9 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
           {(isError || isStale) && (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
               <WifiOff className="w-3 h-3" />
-              {isStale ? `Last updated ${relativeDate(new Date(dataUpdatedAt).toISOString())}` : "Offline"}
+              {isStale
+                ? `Last updated ${relativeDate(new Date(dataUpdatedAt).toISOString())}`
+                : "Offline"}
             </span>
           )}
           <button
@@ -199,7 +187,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border",
               "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
+              "disabled:opacity-50 disabled:cursor-not-allowed",
             )}
           >
             <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />

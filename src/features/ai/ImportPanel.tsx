@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { ocrDocument } from "../../lib/ai-api";
-import { cn } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 import { open } from "@tauri-apps/plugin-dialog";
+import { AlertCircle, CheckCircle, FileText, Loader2, Upload } from "lucide-react";
+import { useCallback, useState } from "react";
+import { ocrDocument } from "../../lib/ai-api";
+import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 
 interface FileEntry {
   path: string;
@@ -45,7 +45,7 @@ export function ImportPanel({ clientId }: { clientId: string }) {
   const ocrMutation = useMutation({
     mutationFn: async (filePath: string) => {
       setFiles((prev) =>
-        prev.map((f) => (f.path === filePath ? { ...f, status: "processing" as const } : f))
+        prev.map((f) => (f.path === filePath ? { ...f, status: "processing" as const } : f)),
       );
       return ocrDocument(clientId, filePath);
     },
@@ -54,8 +54,8 @@ export function ImportPanel({ clientId }: { clientId: string }) {
         prev.map((f) =>
           f.path === filePath
             ? { ...f, status: "complete" as const, draftCount: result.drafts.length }
-            : f
-        )
+            : f,
+        ),
       );
       queryClient.invalidateQueries({ queryKey: ["drafts", clientId] });
       queryClient.invalidateQueries({ queryKey: ["evidence", clientId] });
@@ -63,10 +63,8 @@ export function ImportPanel({ clientId }: { clientId: string }) {
     onError: (err, filePath) => {
       setFiles((prev) =>
         prev.map((f) =>
-          f.path === filePath
-            ? { ...f, status: "error" as const, error: String(err) }
-            : f
-        )
+          f.path === filePath ? { ...f, status: "error" as const, error: String(err) } : f,
+        ),
       );
     },
   });
@@ -108,7 +106,7 @@ export function ImportPanel({ clientId }: { clientId: string }) {
       }
       if (paths.length > 0) addFiles(paths);
     },
-    [addFiles]
+    [addFiles],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -134,7 +132,7 @@ export function ImportPanel({ clientId }: { clientId: string }) {
             "flex-1 flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors cursor-pointer",
             isDragOver
               ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
-              : "border-gray-300 dark:border-neutral-600 bg-gray-50 dark:bg-neutral-800/50 hover:border-gray-400 dark:hover:border-neutral-500"
+              : "border-gray-300 dark:border-neutral-600 bg-gray-50 dark:bg-neutral-800/50 hover:border-gray-400 dark:hover:border-neutral-500",
           )}
           onClick={handleBrowse}
         >
@@ -188,9 +186,7 @@ export function ImportPanel({ clientId }: { clientId: string }) {
             >
               <FileText className="w-5 h-5 text-gray-400 dark:text-neutral-500 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 dark:text-neutral-100 truncate">
-                  {f.name}
-                </p>
+                <p className="text-sm text-gray-900 dark:text-neutral-100 truncate">{f.name}</p>
                 {f.status === "complete" && (
                   <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
                     {t("ai.draftsExtracted", { count: String(f.draftCount) })}
@@ -210,12 +206,12 @@ export function ImportPanel({ clientId }: { clientId: string }) {
                 {f.status === "processing" && (
                   <div className="flex items-center gap-1.5">
                     <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                    <span className="text-xs text-blue-600 dark:text-blue-400">{t("ai.processing")}</span>
+                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                      {t("ai.processing")}
+                    </span>
                   </div>
                 )}
-                {f.status === "complete" && (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                )}
+                {f.status === "complete" && <CheckCircle className="w-4 h-4 text-green-500" />}
                 {f.status === "error" && (
                   <button
                     type="button"

@@ -1,14 +1,10 @@
-import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { X, Plus, Trash2 } from "lucide-react";
-import { createInvoice, updateInvoice } from "../../lib/invoice-api";
-import type {
-  InvoiceDetail,
-  InvoiceType,
-  CreateInvoiceLinePayload,
-} from "../../lib/invoice-api";
-import { cn, today } from "../../lib/utils";
+import { Plus, Trash2, X } from "lucide-react";
+import { useState } from "react";
 import { useI18n } from "../../lib/i18n";
+import type { CreateInvoiceLinePayload, InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
+import { createInvoice, updateInvoice } from "../../lib/invoice-api";
+import { cn, today } from "../../lib/utils";
 
 interface InvoiceFormProps {
   invoice?: InvoiceDetail;
@@ -55,22 +51,18 @@ function payloadToLines(lines: InvoiceDetail["lines"]): LineState[] {
 export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceFormProps) {
   const { t } = useI18n();
   const [invoiceType, setInvoiceType] = useState<InvoiceType>(
-    invoice?.invoice_type ?? defaultType ?? "invoice"
+    invoice?.invoice_type ?? defaultType ?? "invoice",
   );
-  const [invoiceNumber, setInvoiceNumber] = useState(
-    invoice?.invoice_number ?? "INV-001"
-  );
+  const [invoiceNumber, setInvoiceNumber] = useState(invoice?.invoice_number ?? "INV-001");
   const [issueDate, setIssueDate] = useState(invoice?.issue_date ?? today());
   const [dueDate, setDueDate] = useState(invoice?.due_date ?? "");
   const [clientName, setClientName] = useState(invoice?.client_name ?? "");
   const [clientEmail, setClientEmail] = useState(invoice?.client_email ?? "");
   const [clientAddress, setClientAddress] = useState(invoice?.client_address ?? "");
-  const [taxRate, setTaxRate] = useState(
-    invoice ? String(invoice.tax_rate) : "0"
-  );
+  const [taxRate, setTaxRate] = useState(invoice ? String(invoice.tax_rate) : "0");
   const [notes, setNotes] = useState(invoice?.notes ?? "");
   const [lines, setLines] = useState<LineState[]>(
-    invoice ? payloadToLines(invoice.lines) : [emptyLine()]
+    invoice ? payloadToLines(invoice.lines) : [emptyLine()],
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -113,9 +105,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
   });
 
   function updateLine(index: number, field: keyof LineState, value: string) {
-    setLines((prev) =>
-      prev.map((l, i) => (i === index ? { ...l, [field]: value } : l))
-    );
+    setLines((prev) => prev.map((l, i) => (i === index ? { ...l, [field]: value } : l)));
   }
 
   function addLine() {
@@ -158,7 +148,12 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
       <div className="h-full w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h2 className="text-base font-semibold text-gray-900">
-            {invoice ? t("Edit") : t("New")} {invoiceType === "invoice" ? t("Invoice") : invoiceType === "receipt" ? t("Receipt") : t("Estimate")}
+            {invoice ? t("Edit") : t("New")}{" "}
+            {invoiceType === "invoice"
+              ? t("Invoice")
+              : invoiceType === "receipt"
+                ? t("Receipt")
+                : t("Estimate")}
           </h2>
           <button
             type="button"
@@ -180,7 +175,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                   "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
                   invoiceType === opt.value
                     ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    : "text-gray-500 hover:text-gray-700",
                 )}
               >
                 {t(opt.label)}
@@ -388,7 +383,9 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                 <span className="text-gray-700 tabular-nums">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">{t("Tax")} ({taxRate || "0"}%)</span>
+                <span className="text-gray-500">
+                  {t("Tax")} ({taxRate || "0"}%)
+                </span>
                 <span className="text-gray-700 tabular-nums">${taxAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-1.5">
@@ -399,9 +396,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("Notes")}
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("Notes")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -434,7 +429,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                 "px-4 py-2 rounded-lg text-sm font-semibold transition-colors",
                 mutation.isPending
                   ? "bg-blue-400 text-white cursor-wait"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-blue-600 text-white hover:bg-blue-700",
               )}
             >
               {mutation.isPending ? t("Saving…") : invoice ? t("Update") : t("Create")}

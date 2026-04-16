@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { getBalanceSheet, type BalanceSheetLineItem } from "../../lib/tauri";
-import { formatCurrency, formatDate } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
+import { type BalanceSheetLineItem, getBalanceSheet } from "../../lib/tauri";
+import { formatCurrency, formatDate } from "../../lib/utils";
 
 interface BalanceSheetViewProps {
   asOfDate: string;
@@ -62,19 +62,19 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
   return (
     <div className="report-sheet">
       <div className="text-center mb-6 print:mb-4">
-        {clientName && (
-          <p className="text-base font-semibold text-gray-900">{clientName}</p>
-        )}
+        {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Balance Sheet")}</h2>
-        <p className="text-sm text-gray-500 mt-1">{t("As of")} {formatDate(asOfDate)}</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {t("As of")} {formatDate(asOfDate)}
+        </p>
       </div>
 
       <section className="report-section">
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Assets")}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Assets")}
+        </p>
         {data.asset_lines.length > 0 ? (
-          data.asset_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))
+          data.asset_lines.map((item) => <LineRow key={item.account_id} item={item} />)
         ) : (
           <p className="pl-4 text-sm text-gray-400 italic">{t("No asset accounts")}</p>
         )}
@@ -83,11 +83,11 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
       </section>
 
       <section className="report-section">
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Liabilities")}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Liabilities")}
+        </p>
         {data.liability_lines.length > 0 ? (
-          data.liability_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))
+          data.liability_lines.map((item) => <LineRow key={item.account_id} item={item} />)
         ) : (
           <p className="pl-4 text-sm text-gray-400 italic">{t("No liability accounts")}</p>
         )}
@@ -96,11 +96,11 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
       </section>
 
       <section className="report-section">
-        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">{t("Equity")}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Equity")}
+        </p>
         {data.equity_lines.length > 0 ? (
-          data.equity_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))
+          data.equity_lines.map((item) => <LineRow key={item.account_id} item={item} />)
         ) : (
           <p className="pl-4 text-sm text-gray-400 italic">{t("No equity accounts")}</p>
         )}
