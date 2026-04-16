@@ -45,6 +45,8 @@ impl ClientDb {
         self.apply_alter_migration(include_str!("../../migrations/007_accounts_system_role.sql"), 7)?;
         // C4: accounts.deductible flag for deductible-expense tracking.
         self.apply_alter_migration(include_str!("../../migrations/009_accounts_deductible.sql"), 9)?;
+        // Data entry: recurring transaction schedules.
+        self.apply_alter_migration(include_str!("../../migrations/010_recurring_transactions.sql"), 10)?;
         Ok(())
     }
 
