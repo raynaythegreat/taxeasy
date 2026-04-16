@@ -279,3 +279,41 @@ export const pickReceiptFiles = (): Promise<string[] | null> =>
 
 export const listDirFiles = (path: string): Promise<string[]> =>
   invoke("list_dir_files", { path });
+
+// ── B4: Period range — single source of truth ─────────────────────────────────
+
+/** Half-open date range [start, end) as returned by report_period_for. */
+export interface PeriodRange {
+  start: string;
+  end: string;
+}
+
+/**
+ * Period types understood by report_period_for.
+ * All types except "custom" are computed server-side using the client's
+ * fiscal_year_start_month so frontend and backend always agree.
+ */
+export type PeriodTypeInput =
+  | { type: "this_year" }
+  | { type: "ytd" }
+  | { type: "tax_year" }
+  | { type: "last_tax_year" }
+  | { type: "quarter" }
+  | { type: "this_month" }
+  | { type: "last_month" }
+  | { type: "custom"; start: string; end: string };
+
+/**
+ * Compute a half-open [start, end) period range on the backend.
+ * Pass today's ISO date as anchorDate so relative periods are stable.
+ *
+ * @example
+ *   const { start, end } = await reportPeriodFor(clientId, { type: "tax_year" }, today());
+ *   const report = await getPnl(start, end);
+ */
+export const reportPeriodFor = (
+  clientId: string,
+  periodType: PeriodTypeInput,
+  anchorDate: string
+): Promise<PeriodRange> =>
+  invoke("report_period_for", { clientId, periodType, anchorDate });

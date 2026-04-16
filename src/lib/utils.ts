@@ -24,7 +24,19 @@ export function today(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+/**
+ * @deprecated Use `reportPeriodFor` from `src/lib/tauri.ts` instead.
+ * This function computes fiscal-year ranges client-side and does not honour
+ * the client's `fiscal_year_start_month` correctly for non-January starts.
+ * It will be removed once all callers have migrated to the backend command.
+ */
 export function fiscalYearRange(year: number, startMonth = 1): { from: string; to: string } {
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "fiscalYearRange() is deprecated — use reportPeriodFor() from src/lib/tauri.ts"
+    );
+  }
   const from = `${year}-${String(startMonth).padStart(2, "0")}-01`;
   const endYear = startMonth === 1 ? year : year + 1;
   const endMonth = startMonth === 1 ? 12 : startMonth - 1;
@@ -55,10 +67,19 @@ export const PERIOD_LABELS: Record<ReportPeriod, string> = {
   q4: "Q4",
 };
 
+/**
+ * Returns a half-open [from, to) range for the given calendar year and period.
+ * `to` is the first day of the month AFTER the period ends, so SQL queries
+ * can use `txn_date >= from AND txn_date < to` without double-counting boundaries.
+ *
+ * Note: for fiscal-year-aware ranges use `reportPeriodFor` from `src/lib/tauri.ts`.
+ */
 export function periodRange(year: number, period: ReportPeriod): { from: string; to: string } {
   const { startM, endM } = PERIOD_RANGES[period];
   const from = `${year}-${String(startM).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, endM, 0).getDate();
-  const to = `${year}-${String(endM).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  // Half-open: to = first day of the month after endM.
+  const toYear = endM === 12 ? year + 1 : year;
+  const toMonth = endM === 12 ? 1 : endM + 1;
+  const to = `${toYear}-${String(toMonth).padStart(2, "0")}-01`;
   return { from, to };
 }

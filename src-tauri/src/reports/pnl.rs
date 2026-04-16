@@ -42,6 +42,8 @@ pub fn get_pnl(
     // Sum net activity per account for the period.
     // For revenue accounts: normal balance is credit → net = SUM(credit) - SUM(debit)
     // For expense/COGS accounts: normal balance is debit → net = SUM(debit) - SUM(credit)
+    // B3: half-open [date_from, date_to) — date_to is the exclusive upper bound.
+    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type, a.schedule_c_line,
                 COALESCE(SUM(e.debit_cents),0) AS dr,
@@ -49,7 +51,8 @@ pub fn get_pnl(
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
-             AND t.txn_date BETWEEN ?1 AND ?2
+             AND t.txn_date >= ?1 AND t.txn_date < ?2
+             AND t.status = 'posted'
          WHERE a.account_type IN ('revenue','expense') AND a.active = 1
          GROUP BY a.id
          ORDER BY a.sort_order, a.code",

@@ -42,6 +42,7 @@ pub fn run() {
             reports::balance_sheet::get_balance_sheet,
             reports::cash_flow::get_cash_flow,
             commands::dashboard::get_dashboard_stats,
+            commands::period::report_period_for,
             commands::export::export_transactions_csv,
             commands::export::export_report_csv,
             commands::export::save_csv_file,

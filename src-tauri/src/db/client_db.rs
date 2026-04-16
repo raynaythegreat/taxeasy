@@ -39,6 +39,27 @@ impl ClientDb {
         self.conn.execute_batch(documents)?;
         let ai_workspace = include_str!("../../migrations/005_ai_workspace.sql");
         self.conn.execute_batch(ai_workspace)?;
+        // B1: transactions.status column (draft/posted/void lifecycle).
+        self.apply_alter_migration(include_str!("../../migrations/006_transactions_status.sql"), 6)?;
+        // B2: accounts.system_account_role column (stable FK for cash-flow matching).
+        self.apply_alter_migration(include_str!("../../migrations/007_accounts_system_role.sql"), 7)?;
+        Ok(())
+    }
+
+    /// Run a migration SQL that may include ALTER TABLE statements, which are
+    /// not idempotent.  Guard the entire block behind a schema_migrations check.
+    fn apply_alter_migration(&self, sql: &str, version: i64) -> Result<()> {
+        let already_applied: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM schema_migrations WHERE version = ?1",
+                rusqlite::params![version],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+        if !already_applied {
+            self.conn.execute_batch(sql)?;
+        }
         Ok(())
     }
 

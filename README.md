@@ -178,6 +178,21 @@ taxeasy/
 | Encryption | AES-256-GCM, Argon2 key derivation |
 | AI | Ollama / LM Studio (local, no cloud) |
 
+## Known Limitations
+
+**Single currency only.** Taxeasy stores all monetary amounts as integer cents
+in a single unnamed currency (assumed USD for US-based sole proprietors and
+small businesses).  There is no per-transaction currency field, no exchange
+rate table, and no multi-currency conversion.  Do not rely on report totals if
+your business records transactions in more than one currency — the amounts
+would be summed without conversion and the totals would be meaningless.
+
+**Accounting method not yet enforced in reports.** The `accounting_method`
+setting (cash vs accrual) is stored per-client but all reports currently run
+identical queries regardless of the selected method.  See
+[docs/ACCOUNTING-METHOD.md](docs/ACCOUNTING-METHOD.md) for a full gap
+analysis and the recommended path to closing this gap.
+
 ## License
 
 MIT
