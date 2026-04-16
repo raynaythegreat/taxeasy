@@ -6,12 +6,13 @@ import {
   Download,
   File,
   FileText,
-  FolderOpen,
+  FolderSearch,
   Image,
   Search,
   Trash2,
   Upload,
 } from "lucide-react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useCallback, useMemo, useState } from "react";
 import {
   addDocument,
@@ -348,21 +349,13 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
             </svg>
           </div>
         ) : filteredDocs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <FolderOpen className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-600 font-medium">{t("No documents yet")}</p>
-            <p className="text-gray-400 text-sm mt-1">
-              {t("Upload tax documents, receipts, W-2s, and other supporting files.")}
-            </p>
-            <button
-              type="button"
-              onClick={handleUpload}
-              className="mt-4 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t("Add Documents")}
-            </button>
+          <div className="flex items-center justify-center h-64">
+            <EmptyState
+              icon={<FolderSearch className="w-6 h-6" />}
+              title={t("No documents yet")}
+              description={t("Upload tax documents, receipts, W-2s, and other supporting files.")}
+              action={{ label: t("Add Documents"), onClick: handleUpload }}
+            />
           </div>
         ) : (
           <table className="w-full text-left">

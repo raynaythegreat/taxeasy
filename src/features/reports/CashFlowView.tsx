@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3 } from "lucide-react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
 import { type CashFlowLineItem, getCashFlow } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
@@ -7,6 +9,7 @@ interface CashFlowViewProps {
   dateFrom: string;
   dateTo: string;
   clientName?: string;
+  onChangePeriod?: () => void;
 }
 
 function LineRow({ item, indent }: { item: CashFlowLineItem; indent?: boolean }) {
@@ -40,7 +43,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps) {
+export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: CashFlowViewProps) {
   const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
     queryKey: ["cash_flow", dateFrom, dateTo],
@@ -58,6 +61,28 @@ export function CashFlowView({ dateFrom, dateTo, clientName }: CashFlowViewProps
   }
 
   if (!data) return null;
+
+  const isEmpty =
+    parseFloat(data.net_income) === 0 &&
+    parseFloat(data.net_change_in_cash) === 0 &&
+    parseFloat(data.beginning_cash) === 0 &&
+    parseFloat(data.ending_cash) === 0 &&
+    data.operating_adjustments.length === 0 &&
+    data.investing_activities.length === 0 &&
+    data.financing_activities.length === 0;
+
+  if (isEmpty) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <EmptyState
+          icon={<BarChart3 className="w-6 h-6" />}
+          title={t("No activity in this period")}
+          description={t("There are no cash flow transactions recorded for the selected date range.")}
+          action={onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined}
+        />
+      </div>
+    );
+  }
 
   const netChangeNum = parseFloat(data.net_change_in_cash);
   const netChangeColor = netChangeNum >= 0 ? "text-green-700" : "text-red-600";
