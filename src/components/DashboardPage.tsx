@@ -122,7 +122,7 @@ export function DashboardPage({
             </button>
             <button
               type="button"
-              onClick={() => onNavigate("reports")}
+              onClick={() => onNavigate("clients")}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <FileText className="w-4 h-4" />

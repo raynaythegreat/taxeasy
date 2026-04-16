@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lastDayOf } from "./ReportsPage";
+import { lastDayOf } from "./date-utils";
 
 describe("lastDayOf", () => {
   it("converts Q1 half-open end (Apr 1) to inclusive last day (Mar 31)", () => {

@@ -3,7 +3,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Download,
   FileText,
+  GitCompareArrows,
   Loader2,
   Printer,
   Receipt,
@@ -17,7 +19,9 @@ import { InvoicesPage } from "../features/invoices/InvoicesPage";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
 import { PnLView } from "../features/reports/PnLView";
+import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
+import { handleExportReport } from "../lib/export-api";
 import { useI18n } from "../lib/i18n";
 import { triggerPrint } from "../lib/print-utils";
 import type { Client } from "../lib/tauri";
@@ -42,6 +46,8 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>("overview");
   const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
   const [period, setPeriod] = useState<ReportPeriod>("annual");
+  const [compareYears, setCompareYears] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingClient, setEditingClient] = useState(false);
 
   const currentYear = new Date().getFullYear();
@@ -51,8 +57,6 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   );
   const [taxYear, setTaxYear] = useState(currentYear);
   const isRecent = recentYears.includes(taxYear);
-
-  const { from, to } = useMemo(() => periodRange(taxYear, period), [taxYear, period]);
 
   const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
@@ -71,7 +75,20 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
     partnership: t("Partnership"),
   };
 
-  const isReportTab = tab === "reports";
+  const { from, to: toHalfOpen } = useMemo(() => periodRange(taxYear, period), [taxYear, period]);
+  const { from: priorFrom, to: priorTo } = useMemo(
+    () => periodRange(taxYear - 1, period),
+    [taxYear, period],
+  );
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await handleExportReport(reportType, from, toHalfOpen);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -112,58 +129,6 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
           ))}
         </nav>
 
-        {isReportTab && (
-          <div className="flex items-center gap-1.5 ml-auto">
-            <button
-              type="button"
-              onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
-              disabled={taxYear <= MIN_YEAR}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-              {recentYears.map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => setTaxYear(y)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                    taxYear === y
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setTaxYear((y) => Math.min(currentYear, y + 1))}
-              disabled={taxYear >= currentYear}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-            {!isRecent && (
-              <span className="px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
-                {taxYear}
-              </span>
-            )}
-            <span className="text-xs text-gray-400 tabular-nums ml-1">
-              {from} &mdash; {to}
-            </span>
-            <button
-              type="button"
-              onClick={triggerPrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-1"
-            >
-              <Printer className="w-4 h-4" />
-              {t("Print")}
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto print:overflow-visible">
@@ -293,21 +258,22 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         {tab === "documents" && <DocumentsPage />}
         {tab === "reports" && (
           <div className="flex flex-col h-full">
-            {/* Report type + period selector */}
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-5 py-2.5 print:hidden shadow-sm">
+            {/* Two-row sticky toolbar */}
+            <div className="sticky top-0 z-10 shrink-0 backdrop-blur bg-[var(--color-surface)]/95 border-b border-[var(--color-border)] px-5 py-3 print:hidden shadow-sm">
+              {/* Row 1: report-type segmented tabs + action buttons */}
               <div className="flex items-center gap-3 flex-wrap">
-                {/* Report type tabs */}
-                <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
+                <div className="flex items-center bg-[var(--color-hover)] rounded-lg p-1 gap-0.5">
                   {(["pnl", "balance_sheet", "cash_flow"] as const).map((rt) => (
                     <button
                       key={rt}
                       type="button"
                       onClick={() => setReportType(rt)}
                       className={cn(
-                        "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        "px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
+                        "focus-visible:ring-2 focus-visible:ring-primary outline-none",
                         reportType === rt
-                          ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
+                          ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]",
                       )}
                     >
                       {rt === "pnl"
@@ -319,18 +285,113 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                   ))}
                 </div>
 
-                {/* Period selector */}
-                <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5 gap-0.5">
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Compare to prior year toggle */}
+                  {reportType !== "cash_flow" && (
+                    <button
+                      type="button"
+                      onClick={() => setCompareYears((v) => !v)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer",
+                        "focus-visible:ring-2 focus-visible:ring-primary outline-none",
+                        compareYears
+                          ? "bg-blue-50 border-blue-300 text-blue-700"
+                          : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
+                      )}
+                    >
+                      <GitCompareArrows className="w-3.5 h-3.5" />
+                      {t("Compare to prior year")}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer",
+                      "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
+                      "focus-visible:ring-2 focus-visible:ring-primary outline-none disabled:opacity-50",
+                    )}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {exporting ? t("Exporting…") : t("Export")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={triggerPrint}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer",
+                      "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
+                      "focus-visible:ring-2 focus-visible:ring-primary outline-none",
+                    )}
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    {t("Print")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 2: year nav + period selector + date range label */}
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                {/* Year selector */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
+                    disabled={taxYear <= MIN_YEAR}
+                    className="p-1 rounded text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] disabled:opacity-30 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="flex items-center bg-[var(--color-hover)] rounded-lg p-0.5">
+                    {recentYears.map((y) => (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => setTaxYear(y)}
+                        className={cn(
+                          "px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer",
+                          "focus-visible:ring-2 focus-visible:ring-primary outline-none",
+                          taxYear === y
+                            ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                            : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
+                        )}
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTaxYear((y) => Math.min(currentYear, y + 1))}
+                    disabled={taxYear >= currentYear}
+                    className="p-1 rounded text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] disabled:opacity-30 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-primary outline-none"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  {!isRecent && (
+                    <span className="px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+                      {taxYear}
+                    </span>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-4 bg-[var(--color-border)]" />
+
+                {/* Period segmented control */}
+                <div className="flex items-center bg-[var(--color-hover)] rounded-lg p-0.5 gap-0.5">
                   {PERIODS.map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setPeriod(p)}
                       className={cn(
-                        "px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        "px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer",
+                        "focus-visible:ring-2 focus-visible:ring-primary outline-none",
                         period === p
-                          ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300",
+                          ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                          : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
                       )}
                     >
                       {PERIOD_LABELS[p]}
@@ -338,25 +399,40 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={triggerPrint}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
+                {/* Active date range */}
+                <span
+                  className="text-xs text-[var(--color-text-secondary)] tabular-nums ml-1"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  <Printer className="w-4 h-4" />
-                  {t("Print")}
-                </button>
+                  {from} &mdash; {toHalfOpen}
+                </span>
               </div>
             </div>
-            <div className="flex-1 bg-gray-50 print:bg-white min-h-full py-6 print:py-0 overflow-auto">
-              {reportType === "pnl" && (
-                <PnLView dateFrom={from} dateTo={to} clientName={client.name} />
-              )}
-              {reportType === "balance_sheet" && (
-                <BalanceSheetView asOfDate={to} clientName={client.name} />
-              )}
-              {reportType === "cash_flow" && (
-                <CashFlowView dateFrom={from} dateTo={to} clientName={client.name} />
+
+            {/* Report content */}
+            <div className="flex-1 bg-[var(--color-background)] print:bg-white min-h-full py-6 print:py-0 overflow-auto">
+              {compareYears && reportType !== "cash_flow" ? (
+                <YearOverYearView
+                  reportType={reportType}
+                  currentFrom={from}
+                  currentTo={toHalfOpen}
+                  priorFrom={priorFrom}
+                  priorTo={priorTo}
+                  clientName={client.name}
+                  currentYear={taxYear}
+                />
+              ) : (
+                <>
+                  {reportType === "pnl" && (
+                    <PnLView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />
+                  )}
+                  {reportType === "balance_sheet" && (
+                    <BalanceSheetView asOfDate={toHalfOpen} clientName={client.name} />
+                  )}
+                  {reportType === "cash_flow" && (
+                    <CashFlowView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />
+                  )}
+                </>
               )}
             </div>
           </div>
