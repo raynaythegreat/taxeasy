@@ -43,8 +43,18 @@ export function AppShell() {
 
   return (
     <div className="flex flex-col h-screen bg-[var(--color-background)]">
+      {/* Skip link — visible on focus for keyboard users */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only fixed top-2 left-2 bg-[var(--primary)] text-white px-3 py-2 rounded"
+        style={{ zIndex: "var(--z-toast)" }}
+      >
+        Skip to main content
+      </a>
+
       <header className="shrink-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-2 flex items-center gap-2 print:hidden">
         <button
+          type="button"
           onClick={() => setView("dashboard")}
           className="text-lg font-bold text-[var(--color-text)] hover:text-blue-600 transition-colors mr-6"
         >
@@ -56,6 +66,7 @@ export function AppShell() {
             const Icon = item.icon;
             return (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => setView(item.id)}
                 className={cn(
@@ -74,6 +85,7 @@ export function AppShell() {
 
         <div className="ml-auto flex items-center">
           <button
+            type="button"
             onClick={() => setLocale(locale === "en" ? "es" : "en")}
             className={cn(
               "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
@@ -84,7 +96,8 @@ export function AppShell() {
           </button>
         </div>
       </header>
-      <main className="flex-1 min-h-0 overflow-hidden">
+
+      <main id="main" className="flex-1 min-h-0 overflow-hidden">
         {view === "dashboard" && (
           <DashboardPage
             onSelectClient={handleSelectClient}
