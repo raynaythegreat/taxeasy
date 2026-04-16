@@ -68,6 +68,18 @@ export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: Balan
 
   const year = asOfDate.slice(0, 4);
 
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (error || !data) {
+    return (
+      <div role="alert" className="text-sm text-red-600 p-6">
+        {t("Failed to load Balance Sheet. Please try again.")}
+      </div>
+    );
+  }
+
   const isEmpty =
     data.asset_lines.length === 0 &&
     data.liability_lines.length === 0 &&
