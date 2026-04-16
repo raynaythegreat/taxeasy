@@ -599,11 +599,13 @@ fn ensure_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityTyp
         let account_type = seed["account_type"].as_str().unwrap_or("expense");
         let schedule_c_line = seed["schedule_c_line"].as_str();
         let sort_order = seed["sort_order"].as_i64().unwrap_or(0);
+        // B2: populate system_account_role from seed so cash-flow queries use FK.
+        let system_account_role = seed["system_account_role"].as_str();
 
         conn.execute(
-            "INSERT INTO accounts (id, code, name, account_type, parent_id, schedule_c_line, active, sort_order)
-             VALUES (?1, ?2, ?3, ?4, NULL, ?5, 1, ?6)",
-            params![id, code, name, account_type, schedule_c_line, sort_order],
+            "INSERT INTO accounts (id, code, name, account_type, parent_id, schedule_c_line, active, sort_order, system_account_role)
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, 1, ?6, ?7)",
+            params![id, code, name, account_type, schedule_c_line, sort_order, system_account_role],
         )?;
 
         existing.insert(code, id);
@@ -616,6 +618,20 @@ fn ensure_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityTyp
                 conn.execute(
                     "UPDATE accounts SET parent_id = ?1 WHERE id = ?2",
                     params![parent_id, id],
+                )?;
+            }
+        }
+    }
+
+    // B2: back-fill system_account_role for accounts that already exist but have no role.
+    for seed in &seeds {
+        let code = seed["code"].as_str().unwrap_or("");
+        if let Some(role) = seed["system_account_role"].as_str() {
+            if let Some(id) = existing.get(code) {
+                conn.execute(
+                    "UPDATE accounts SET system_account_role = ?1
+                     WHERE id = ?2 AND system_account_role IS NULL",
+                    params![role, id],
                 )?;
             }
         }
@@ -642,11 +658,13 @@ fn seed_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType)
         let account_type = seed["account_type"].as_str().unwrap_or("expense");
         let schedule_c_line = seed["schedule_c_line"].as_str();
         let sort_order = seed["sort_order"].as_i64().unwrap_or(0);
+        // B2: populate system_account_role from seed so cash-flow queries use FK.
+        let system_account_role = seed["system_account_role"].as_str();
 
         conn.execute(
-            "INSERT INTO accounts (id, code, name, account_type, parent_id, schedule_c_line, sort_order)
-             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)",
-            params![id, code, name, account_type, schedule_c_line, sort_order],
+            "INSERT INTO accounts (id, code, name, account_type, parent_id, schedule_c_line, sort_order, system_account_role)
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7)",
+            params![id, code, name, account_type, schedule_c_line, sort_order, system_account_role],
         )?;
     }
 
