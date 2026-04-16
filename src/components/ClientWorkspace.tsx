@@ -128,7 +128,6 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
             </button>
           ))}
         </nav>
-
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto print:overflow-visible">

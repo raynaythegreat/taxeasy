@@ -1,13 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "../../lib/i18n";
-import {
-  getBalanceSheet,
-  getPnl,
-  type BalanceSheetReport,
-  type PnlReport,
-} from "../../lib/tauri";
-import { formatCurrency, formatDate } from "../../lib/utils";
-import { cn } from "../../lib/utils";
+import { type BalanceSheetReport, getBalanceSheet, getPnl, type PnlReport } from "../../lib/tauri";
+import { cn, formatCurrency, formatDate } from "../../lib/utils";
 
 interface YearOverYearViewProps {
   reportType: "pnl" | "balance_sheet";
@@ -50,16 +44,19 @@ function CompareRow({
   colorCurrent?: string;
 }) {
   return (
-    <div className={cn("grid grid-cols-[1fr_auto_auto] gap-x-6 py-0.5 text-sm", bold && "font-semibold")}>
+    <div
+      className={cn(
+        "grid grid-cols-[1fr_auto_auto] gap-x-6 py-0.5 text-sm",
+        bold && "font-semibold",
+      )}
+    >
       <span className={cn("truncate", indent ? "pl-4 text-gray-700" : "text-gray-900")}>
         {label}
       </span>
       <span className={cn("tabular-nums text-right w-24", colorCurrent ?? "text-gray-900")}>
         {formatCurrency(current)}
       </span>
-      <span className="tabular-nums text-right w-24 text-gray-500">
-        {formatCurrency(prior)}
-      </span>
+      <span className="tabular-nums text-right w-24 text-gray-500">{formatCurrency(prior)}</span>
     </div>
   );
 }
@@ -92,8 +89,7 @@ function PnLComparison({
   currentTo: string;
 }) {
   const { t } = useI18n();
-  const netIncomeColor =
-    parseFloat(current.net_income) >= 0 ? "text-green-700" : "text-red-600";
+  const netIncomeColor = parseFloat(current.net_income) >= 0 ? "text-green-700" : "text-red-600";
 
   return (
     <div className="report-sheet">
@@ -101,7 +97,8 @@ function PnLComparison({
         {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Profit & Loss")}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          {t("Year-over-Year Comparison")} &mdash; {formatDate(currentFrom)} &ndash; {formatDate(currentTo)}
+          {t("Year-over-Year Comparison")} &mdash; {formatDate(currentFrom)} &ndash;{" "}
+          {formatDate(currentTo)}
         </p>
       </div>
 
@@ -167,10 +164,12 @@ function PnLComparison({
           <span className={cn("tabular-nums text-right w-24", netIncomeColor)}>
             {formatCurrency(current.net_income)}
           </span>
-          <span className={cn(
-            "tabular-nums text-right w-24",
-            parseFloat(prior.net_income) >= 0 ? "text-green-700" : "text-red-600",
-          )}>
+          <span
+            className={cn(
+              "tabular-nums text-right w-24",
+              parseFloat(prior.net_income) >= 0 ? "text-green-700" : "text-red-600",
+            )}
+          >
             {formatCurrency(prior.net_income)}
           </span>
         </div>
@@ -221,7 +220,12 @@ function BalanceSheetComparison({
           );
         })}
         <SectionDivider />
-        <CompareRow label={t("Total Assets")} current={current.total_assets} prior={prior.total_assets} bold />
+        <CompareRow
+          label={t("Total Assets")}
+          current={current.total_assets}
+          prior={prior.total_assets}
+          bold
+        />
       </section>
 
       <section className="report-section">
@@ -241,7 +245,12 @@ function BalanceSheetComparison({
           );
         })}
         <SectionDivider />
-        <CompareRow label={t("Total Liabilities")} current={current.total_liabilities} prior={prior.total_liabilities} bold />
+        <CompareRow
+          label={t("Total Liabilities")}
+          current={current.total_liabilities}
+          prior={prior.total_liabilities}
+          bold
+        />
       </section>
 
       <section className="report-section">
@@ -261,14 +270,23 @@ function BalanceSheetComparison({
           );
         })}
         <SectionDivider />
-        <CompareRow label={t("Total Equity")} current={current.total_equity} prior={prior.total_equity} bold />
+        <CompareRow
+          label={t("Total Equity")}
+          current={current.total_equity}
+          prior={prior.total_equity}
+          bold
+        />
       </section>
 
       <div className="report-divider-strong mt-4 pt-2 print:mt-3">
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 py-1 font-bold text-base">
           <span className="text-gray-900">{t("Total Liabilities & Equity")}</span>
-          <span className="tabular-nums text-right w-24">{formatCurrency(current.total_liabilities_and_equity)}</span>
-          <span className="tabular-nums text-right w-24 text-gray-500">{formatCurrency(prior.total_liabilities_and_equity)}</span>
+          <span className="tabular-nums text-right w-24">
+            {formatCurrency(current.total_liabilities_and_equity)}
+          </span>
+          <span className="tabular-nums text-right w-24 text-gray-500">
+            {formatCurrency(prior.total_liabilities_and_equity)}
+          </span>
         </div>
       </div>
     </div>
