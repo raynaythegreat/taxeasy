@@ -88,14 +88,18 @@ fn export_pnl_csv(date_from: &str, date_to: &str, state: &AppState) -> Result<St
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
+    // B3: half-open [date_from, date_to). B1: status='posted'.
+    // LEFT JOIN: wrap SUMs in CASE WHEN t.id IS NOT NULL so entries whose
+    // transactions fail the filter don't leak through (see pnl.rs for rationale).
     let mut stmt = conn.prepare(
         "SELECT a.code, a.name, a.account_type,
-                COALESCE(SUM(e.debit_cents),0) AS dr,
-                COALESCE(SUM(e.credit_cents),0) AS cr
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END), 0) AS dr,
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.credit_cents ELSE 0 END), 0) AS cr
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
-             AND t.txn_date BETWEEN ?1 AND ?2
+             AND t.txn_date >= ?1 AND t.txn_date < ?2
+             AND t.status = 'posted'
          WHERE a.account_type IN ('revenue','expense') AND a.active = 1
          GROUP BY a.id
          ORDER BY a.sort_order, a.code",
@@ -163,14 +167,17 @@ fn export_balance_sheet_csv(as_of_date: &str, state: &AppState) -> Result<String
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
+    // Balance Sheet is point-in-time: inclusive `<= as_of_date`. B1: status='posted'.
+    // LEFT JOIN: wrap SUMs in CASE WHEN t.id IS NOT NULL (see balance_sheet.rs rationale).
     let mut stmt = conn.prepare(
         "SELECT a.code, a.name, a.account_type,
-                COALESCE(SUM(e.debit_cents),0) AS dr,
-                COALESCE(SUM(e.credit_cents),0) AS cr
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END), 0) AS dr,
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.credit_cents ELSE 0 END), 0) AS cr
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
              AND t.txn_date <= ?1
+             AND t.status = 'posted'
          WHERE a.account_type IN ('asset','liability','equity') AND a.active = 1
          GROUP BY a.id
          ORDER BY a.sort_order, a.code",
