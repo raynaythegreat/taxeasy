@@ -1,10 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getBusinessProfile } from "../lib/business-profile-api";
 import { getDashboardStats } from "../lib/dashboard-api";
 import { useI18n } from "../lib/i18n";
-import { getActiveClientId, type PeriodRange } from "../lib/tauri";
+import { getActiveClientId, type PeriodRange, reportPeriodFor } from "../lib/tauri";
+
+/** Calendar-year YTD as a half-open [start, end) range — good default before
+ *  clientId loads so the dashboard renders immediately on cold start. */
+function calendarYtd(): PeriodRange {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  // end is half-open: first day AFTER today, so today's txns are included.
+  const tomorrow = new Date(Date.UTC(year, now.getUTCMonth(), now.getUTCDate() + 1));
+  return {
+    start: `${year}-01-01`,
+    end: tomorrow.toISOString().slice(0, 10),
+  };
+}
 import { BusinessProfileCard } from "./dashboard/BusinessProfileCard";
 import { ChartsRow } from "./dashboard/ChartsRow";
 import { DeductibleExpensesCard } from "./dashboard/DeductibleExpensesCard";
@@ -20,8 +33,6 @@ interface DashboardPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const DEFAULT_PERIOD: PeriodRange = { start: "", end: "" };
-
 export function DashboardPage({
   onSelectClient: _onSelectClient,
   onNewClient: _onNewClient,
@@ -30,12 +41,32 @@ export function DashboardPage({
   const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
 
-  const [period, setPeriod] = useState<PeriodRange>(DEFAULT_PERIOD);
+  // Initialize with calendar-YTD so charts render on first paint. Refined
+  // below to the client's fiscal-aware YTD once clientId resolves.
+  const [period, setPeriod] = useState<PeriodRange>(calendarYtd);
 
   const { data: clientId } = useQuery({
     queryKey: ["active_client_id"],
     queryFn: getActiveClientId,
   });
+
+  // Once we know the client, refine to the fiscal-year-aware YTD from the
+  // backend (honors fiscal_year_start_month). Only runs on the first client
+  // load — user-selected periods after that are preserved.
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (!clientId || initialized) return;
+    const today = new Date().toISOString().slice(0, 10);
+    reportPeriodFor(clientId, { type: "ytd" }, today)
+      .then((range) => {
+        setPeriod(range);
+        setInitialized(true);
+      })
+      .catch(() => {
+        // Non-fatal: keep the calendar-YTD fallback already in state.
+        setInitialized(true);
+      });
+  }, [clientId, initialized]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard_stats", period.start, period.end],
