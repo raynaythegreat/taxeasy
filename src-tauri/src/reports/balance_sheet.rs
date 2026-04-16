@@ -32,9 +32,14 @@ pub struct BalanceSheetReport {
     pub is_balanced: bool,
 }
 
+/// Period-scoped balance sheet. Callers pass an explicit half-open
+/// `[start, end)` range — NO year-sniffing adapter (that adapter used the
+/// year of `end` which for Jan-1 upper bounds maps to the WRONG tax year:
+/// `"2026-01-01"` → year 2026 instead of 2025).
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_balance_sheet(
-    as_of_date: String,
+    start: String,
+    end: String,
     state: tauri::State<AppState>,
 ) -> Result<BalanceSheetReport> {
     let client_id = {
@@ -66,13 +71,7 @@ pub fn get_balance_sheet(
         .ok_or(crate::error::AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
-    // Compatibility adapter: the Tauri command still accepts a single as_of_date
-    // string from callers that predate the period-scoped change. Treat it as the
-    // end of the tax year containing as_of_date (Jan-start fiscal) and compute
-    // period_start as Jan 1 of that year. Period-aware callers should migrate
-    // to pass an explicit start/end.
-    let (period_start, period_end) = as_of_to_period(&as_of_date);
-    compute_balance_sheet(conn, &period_start, &period_end, fiscal_year_start_month)
+    compute_balance_sheet(conn, &start, &end, fiscal_year_start_month)
 }
 
 /// Tauri command: cumulative balance sheet as of a date.
@@ -242,14 +241,6 @@ pub fn compute_balance_sheet_cumulative(
         net_income_ytd,
         is_balanced,
     })
-}
-
-/// Map a legacy `as_of_date` string ("YYYY-MM-DD") to a half-open [Jan-1 that year, Jan-1 next year).
-/// Used so existing frontend callers keep working while the new period-scoped
-/// Balance Sheet is the real semantic.
-fn as_of_to_period(as_of_date: &str) -> (String, String) {
-    let year: i32 = as_of_date.get(..4).and_then(|s| s.parse().ok()).unwrap_or(2025);
-    (format!("{year}-01-01"), format!("{}-01-01", year + 1))
 }
 
 /// Pure computation: run the Balance Sheet queries against `conn`.

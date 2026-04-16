@@ -427,7 +427,11 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                     <PnLView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />
                   )}
                   {reportType === "balance_sheet" && (
-                    <BalanceSheetView asOfDate={toHalfOpen} clientName={client.name} />
+                    <BalanceSheetView
+                      dateFrom={from}
+                      dateTo={toHalfOpen}
+                      clientName={client.name}
+                    />
                   )}
                   {reportType === "cash_flow" && (
                     <CashFlowView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />

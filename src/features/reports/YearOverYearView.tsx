@@ -301,14 +301,14 @@ export function YearOverYearView({
   });
 
   const bsCurrentQuery = useQuery({
-    queryKey: ["balance_sheet", "period", currentTo],
-    queryFn: () => getBalanceSheet(currentTo),
+    queryKey: ["balance_sheet", "period", currentFrom, currentTo],
+    queryFn: () => getBalanceSheet(currentFrom, currentTo),
     enabled: reportType === "balance_sheet",
   });
 
   const bsPriorQuery = useQuery({
-    queryKey: ["balance_sheet", "period", priorTo],
-    queryFn: () => getBalanceSheet(priorTo),
+    queryKey: ["balance_sheet", "period", priorFrom, priorTo],
+    queryFn: () => getBalanceSheet(priorFrom, priorTo),
     enabled: reportType === "balance_sheet",
   });
 

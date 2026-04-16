@@ -218,8 +218,9 @@ export const deleteTransaction = (txnId: string): Promise<void> =>
 export const getPnl = (dateFrom: string, dateTo: string): Promise<PnlReport> =>
   invoke("get_pnl", { dateFrom, dateTo });
 
-export const getBalanceSheet = (asOfDate: string): Promise<BalanceSheetReport> =>
-  invoke("get_balance_sheet", { asOfDate });
+/** Period-scoped balance sheet for a half-open [start, end) range. */
+export const getBalanceSheet = (start: string, end: string): Promise<BalanceSheetReport> =>
+  invoke("get_balance_sheet", { start, end });
 
 /** Cumulative balance sheet: sums all posted transactions with txn_date <= asOfDate.
  *  Traditional "as of year-end" semantics — every balance ever accumulated shows up. */

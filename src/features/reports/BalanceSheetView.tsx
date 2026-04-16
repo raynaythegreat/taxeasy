@@ -14,8 +14,10 @@ import { cn, formatCurrency, formatDate } from "../../lib/utils";
 type BalanceSheetMode = "period" | "cumulative";
 
 interface BalanceSheetViewProps {
-  /** Half-open upper bound date (first day of next period). */
-  asOfDate: string;
+  /** Half-open lower bound (first day of period, inclusive). */
+  dateFrom: string;
+  /** Half-open upper bound (first day of next period, exclusive). */
+  dateTo: string;
   clientName?: string;
   onChangePeriod?: () => void;
 }
@@ -52,22 +54,29 @@ function LoadingSkeleton() {
   );
 }
 
-export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: BalanceSheetViewProps) {
+export function BalanceSheetView({
+  dateFrom,
+  dateTo,
+  clientName,
+  onChangePeriod,
+}: BalanceSheetViewProps) {
   const { t } = useI18n();
   const [mode, setMode] = useState<BalanceSheetMode>("period");
 
-  // For period mode: asOfDate is already the half-open upper bound passed from
-  // periodRange(). getBalanceSheet() interprets this as the tax year range.
-  // For cumulative mode: we need the inclusive last day (subtract 1 day).
-  const inclusiveDate = lastDayOf(asOfDate);
+  // Cumulative mode wants an inclusive "as of" date: the last day of the period.
+  const inclusiveDate = lastDayOf(dateTo);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["balance_sheet", mode, asOfDate],
+    queryKey: ["balance_sheet", mode, dateFrom, dateTo],
     queryFn: () =>
-      mode === "period" ? getBalanceSheet(asOfDate) : getBalanceSheetCumulative(inclusiveDate),
+      mode === "period"
+        ? getBalanceSheet(dateFrom, dateTo)
+        : getBalanceSheetCumulative(inclusiveDate),
   });
 
-  const year = asOfDate.slice(0, 4);
+  // Use the inclusive last-day of the period for the year label (dateTo is the
+  // half-open next-period start, so parsing its year would give the wrong tax year).
+  const year = inclusiveDate.slice(0, 4);
 
   if (isLoading) {
     return <LoadingSkeleton />;
