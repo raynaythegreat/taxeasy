@@ -23,7 +23,10 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      ignored: ["**/src-tauri/**"],
+      // Ignore Tauri's Rust source and git worktrees. Without the worktree
+      // exclusion, parallel branch development under .worktrees/ causes
+      // constant full-page reloads in the dev server.
+      ignored: ["**/src-tauri/**", "**/.worktrees/**", "**/.superpowers/**"],
     },
   },
 }));
