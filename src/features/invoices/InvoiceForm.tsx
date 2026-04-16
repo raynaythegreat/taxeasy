@@ -318,6 +318,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
                         <td className="px-2 py-1.5">
                           <input
                             type="number"
+                            inputMode="decimal"
                             value={line.unitPrice}
                             onChange={(e) => updateLine(i, "unitPrice", e.target.value)}
                             min="0"
@@ -408,7 +409,7 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
           </div>
 
           {error && (
-            <div className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div role="alert" aria-live="polite" className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}

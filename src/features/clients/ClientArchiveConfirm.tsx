@@ -50,7 +50,7 @@ export function ClientArchiveConfirm({ client, onClose, onArchived }: ClientArch
           </p>
 
           {error && (
-            <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div role="alert" aria-live="polite" className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}

@@ -123,6 +123,7 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
           </span>
           <input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             value={simple.amount}

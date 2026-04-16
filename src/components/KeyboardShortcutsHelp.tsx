@@ -24,6 +24,8 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismissal, keyboard escape handled by AppShell */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: same */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
@@ -48,9 +50,9 @@ export function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpPr
             <div key={s.labelKey} className="flex items-center justify-between py-1.5">
               <span className="text-sm text-gray-600 dark:text-slate-400">{t(s.labelKey)}</span>
               <div className="flex items-center gap-0.5">
-                {s.keys.map((k, i) => (
+                {s.keys.map((k) => (
                   <kbd
-                    key={i}
+                    key={k}
                     className={cn(
                       "inline-flex items-center justify-center min-w-[24px] h-6 px-1.5",
                       "text-xs font-mono font-medium rounded",

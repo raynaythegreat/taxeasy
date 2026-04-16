@@ -124,6 +124,8 @@ export function ImportPanel({ clientId }: { clientId: string }) {
   return (
     <div className="flex flex-col h-full p-5">
       {!hasFiles ? (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: drop zone; keyboard users use the Browse button instead
+        // biome-ignore lint/a11y/noStaticElementInteractions: same
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
