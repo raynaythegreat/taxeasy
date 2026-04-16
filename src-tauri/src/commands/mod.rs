@@ -11,6 +11,7 @@ pub mod evidence;
 pub mod export;
 pub mod files;
 pub mod period;
+pub mod print_helper;
 pub mod settings;
 pub mod invoices;
 pub mod tax_news;

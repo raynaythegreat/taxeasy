@@ -46,6 +46,7 @@ pub fn run() {
             commands::dashboard::get_top_categories,
             commands::dashboard::get_deductible_expenses,
             commands::period::report_period_for,
+            commands::print_helper::print_html,
             commands::export::export_transactions_csv,
             commands::export::export_report_csv,
             commands::export::save_csv_file,

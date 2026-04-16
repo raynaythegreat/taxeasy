@@ -1,22 +1,67 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+/** Collect every accessible stylesheet rule as a single CSS blob — used to
+ *  inline the app's styles into the temp HTML opened by the macOS fallback. */
+function collectInlineStyles(): string {
+  const rules: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      for (const r of Array.from(sheet.cssRules)) rules.push(r.cssText);
+    } catch {
+      // Cross-origin sheet — ignore; Tauri-served assets should be same-origin.
+    }
+  }
+  return rules.join("\n");
+}
+
+/** macOS WKWebView workaround: write the current page's print view to a temp
+ *  HTML file and open it in the default browser (Safari), where window.print()
+ *  works natively. The temp page auto-invokes print on load. */
+async function printViaBrowserFallback(): Promise<void> {
+  const styles = collectInlineStyles();
+  const body = document.body.innerHTML;
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Taxeasy</title>
+<style>${styles}</style>
+<style>
+  @page {
+    margin: 0.5in 0.5in 0.75in 0.5in;
+    @bottom-right { content: counter(page); font-size: 9pt; color: #6b7280; }
+  }
+  body { background: white; color: #0f172a; }
+  /* Hide elements the app flags as screen-only. */
+  .print\\:hidden, nav, [role="toolbar"] { display: none !important; }
+</style>
+<script>
+  window.addEventListener('load', () => setTimeout(() => window.print(), 250));
+</script>
+</head>
+<body>${body}</body>
+</html>`;
+  await invoke("print_html", { html });
+}
+
 /**
- * Prints the active report with no browser-injected headers or footers.
+ * Prints the active report.
  *
- * Strategy:
- *  - Listen for the browser's own `beforeprint` event, which fires at the
- *    exact instant the print engine reads styles. Injecting CSS there (rather
- *    than before calling window.print) guarantees the rules are live when the
- *    print renderer evaluates @page.
- *  - Use content: ' ' (single space) for all margin boxes we want empty.
- *    This explicitly replaces the browser's default title / date / URL with
- *    invisible whitespace, which is more reliable across WebView2 versions
- *    than `content: none`.
- *  - Blank both document.title and the native Tauri window title so neither
- *    can appear in the header even if the margin-box approach is ignored.
- *  - `afterprint` restores everything and removes the injected style.
+ * - Windows (WebView2) / Linux: uses window.print() directly with an injected
+ *   @page rule to strip browser-default headers/footers.
+ * - macOS (WKWebView): writes a temp HTML snapshot and opens it in the default
+ *   browser. WKWebView in Tauri v2 doesn't implement window.print().
  */
 export function triggerPrint() {
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /mac/i.test(navigator.platform ?? navigator.userAgent ?? "");
+  if (isMac) {
+    void printViaBrowserFallback();
+    return;
+  }
+
   const tauriWin = getCurrentWindow();
   const prevDocTitle = document.title;
 
