@@ -2,11 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { useI18n } from "../../lib/i18n";
-import { type BalanceSheetLineItem, getBalanceSheet, getBalanceSheetCumulative } from "../../lib/tauri";
 import { lastDayOf } from "../../lib/date-utils";
-import { cn } from "../../lib/utils";
-import { formatCurrency, formatDate } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
+import {
+  type BalanceSheetLineItem,
+  getBalanceSheet,
+  getBalanceSheetCumulative,
+} from "../../lib/tauri";
+import { cn, formatCurrency, formatDate } from "../../lib/utils";
 
 type BalanceSheetMode = "period" | "cumulative";
 
@@ -61,9 +64,7 @@ export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: Balan
   const { data, isLoading, error } = useQuery({
     queryKey: ["balance_sheet", mode, asOfDate],
     queryFn: () =>
-      mode === "period"
-        ? getBalanceSheet(asOfDate)
-        : getBalanceSheetCumulative(inclusiveDate),
+      mode === "period" ? getBalanceSheet(asOfDate) : getBalanceSheetCumulative(inclusiveDate),
   });
 
   const year = asOfDate.slice(0, 4);
@@ -95,7 +96,9 @@ export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: Balan
           icon={<BarChart3 className="w-6 h-6" />}
           title={t("No activity in this period")}
           description={t("There are no balances recorded as of the selected date.")}
-          action={onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined}
+          action={
+            onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined
+          }
         />
       </div>
     );
@@ -119,9 +122,7 @@ export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: Balan
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
               )}
             >
-              {m === "period"
-                ? t("Period activity")
-                : t("As of year-end (cumulative)")}
+              {m === "period" ? t("Period activity") : t("As of year-end (cumulative)")}
             </button>
           ))}
         </div>
@@ -189,7 +190,9 @@ export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: Balan
           <div className="report-divider-strong mt-4 pt-2 print:mt-3">
             <div className="flex justify-between py-1 font-bold text-base">
               <span className="text-gray-900">{t("Total Liabilities & Equity")}</span>
-              <span className="tabular-nums">{formatCurrency(data.total_liabilities_and_equity)}</span>
+              <span className="tabular-nums">
+                {formatCurrency(data.total_liabilities_and_equity)}
+              </span>
             </div>
           </div>
         </>
