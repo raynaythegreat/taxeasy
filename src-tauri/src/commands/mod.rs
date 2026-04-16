@@ -10,6 +10,7 @@ pub mod drafts;
 pub mod evidence;
 pub mod export;
 pub mod files;
+pub mod period;
 pub mod settings;
 pub mod invoices;
 pub mod transactions;
