@@ -233,7 +233,12 @@ export function DraftQueue({ clientId }: { clientId: string }) {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <svg aria-hidden="true" className="animate-spin w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="animate-spin w-5 h-5 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle
                 className="opacity-25"
                 cx="12"
