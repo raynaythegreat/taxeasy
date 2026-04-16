@@ -13,6 +13,7 @@ pub mod files;
 pub mod period;
 pub mod settings;
 pub mod invoices;
+pub mod tax_news;
 pub mod transactions;
 pub mod unlock;
 pub mod updater;

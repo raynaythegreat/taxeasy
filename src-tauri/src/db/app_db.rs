@@ -38,6 +38,8 @@ impl AppDb {
         self.conn.execute_batch(schema)?;
         self.ensure_client_profile_columns()?;
         self.ensure_business_profile_table()?;
+        let tax_news = include_str!("../../migrations/008_tax_news_cache.sql");
+        self.conn.execute_batch(tax_news)?;
         Ok(())
     }
 

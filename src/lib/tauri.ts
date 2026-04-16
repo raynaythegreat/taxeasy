@@ -317,3 +317,13 @@ export const reportPeriodFor = (
   anchorDate: string
 ): Promise<PeriodRange> =>
   invoke("report_period_for", { clientId, periodType, anchorDate });
+
+// ─── Tax News ────────────────────────────────────────────────────────────────
+
+export type { NewsItem } from "./tax-news-api";
+
+export const fetchTaxNews = (clientId?: string): Promise<import("./tax-news-api").NewsItem[]> =>
+  invoke("fetch_tax_news", { clientId: clientId ?? null });
+
+export const refreshTaxNews = (clientId?: string): Promise<import("./tax-news-api").NewsItem[]> =>
+  invoke("refresh_tax_news", { clientId: clientId ?? null });
