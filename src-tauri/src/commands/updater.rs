@@ -19,6 +19,7 @@ pub struct GithubAsset {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateCheck {
     has_update: bool,
     current_version: String,

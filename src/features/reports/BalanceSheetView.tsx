@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
-import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { lastDayOf } from "../../lib/date-utils";
 import { useI18n } from "../../lib/i18n";
@@ -9,9 +8,9 @@ import {
   getBalanceSheet,
   getBalanceSheetCumulative,
 } from "../../lib/tauri";
-import { cn, formatCurrency, formatDate } from "../../lib/utils";
+import { formatCurrency, formatDate } from "../../lib/utils";
 
-type BalanceSheetMode = "period" | "cumulative";
+export type BalanceSheetMode = "period" | "cumulative";
 
 interface BalanceSheetViewProps {
   /** Half-open lower bound (first day of period, inclusive). */
@@ -19,6 +18,7 @@ interface BalanceSheetViewProps {
   /** Half-open upper bound (first day of next period, exclusive). */
   dateTo: string;
   clientName?: string;
+  mode: BalanceSheetMode;
   onChangePeriod?: () => void;
 }
 
@@ -45,10 +45,11 @@ function SubtotalRow({ label, amount }: { label: string; amount: string }) {
 }
 
 function LoadingSkeleton() {
+  const rows = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
   return (
     <div className="animate-pulse space-y-3 p-8">
-      {[...Array(10)].map((_, i) => (
-        <div key={i} className={`h-4 bg-gray-200 rounded ${i % 4 === 0 ? "w-1/3" : "w-full"}`} />
+      {rows.map((row, i) => (
+        <div key={row} className={`h-4 bg-gray-200 rounded ${i % 4 === 0 ? "w-1/3" : "w-full"}`} />
       ))}
     </div>
   );
@@ -58,10 +59,10 @@ export function BalanceSheetView({
   dateFrom,
   dateTo,
   clientName,
+  mode,
   onChangePeriod,
 }: BalanceSheetViewProps) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<BalanceSheetMode>("period");
 
   // Cumulative mode wants an inclusive "as of" date: the last day of the period.
   const inclusiveDate = lastDayOf(dateTo);
@@ -72,6 +73,7 @@ export function BalanceSheetView({
       mode === "period"
         ? getBalanceSheet(dateFrom, dateTo)
         : getBalanceSheetCumulative(inclusiveDate),
+    meta: { silent: true },
   });
 
   // Use the inclusive last-day of the period for the year label (dateTo is the
@@ -115,37 +117,7 @@ export function BalanceSheetView({
 
   return (
     <div className="report-sheet">
-      {/* Mode toggle — not printed */}
-      <div className="flex justify-center mb-5 print:hidden">
-        <div className="flex items-center bg-[var(--color-hover)] rounded-lg p-1 gap-0.5">
-          {(["period", "cumulative"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
-                "focus-visible:ring-2 focus-visible:ring-primary outline-none",
-                mode === m
-                  ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
-              )}
-            >
-              {m === "period" ? t("Period activity") : t("As of year-end (cumulative)")}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {isLoading && <LoadingSkeleton />}
-
-      {error && !isLoading && (
-        <div className="p-8 text-center text-red-600 text-sm">
-          {t("Failed to load Balance Sheet. Please try again.")}
-        </div>
-      )}
-
-      {data && !isLoading && (
+      {data && (
         <>
           <div className="text-center mb-6 print:mb-4">
             {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}

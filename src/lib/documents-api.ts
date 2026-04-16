@@ -20,7 +20,7 @@ export interface ExportResult {
 }
 
 export async function listDocuments(category?: string, taxYear?: number): Promise<TaxDocument[]> {
-  return invoke<TaxDocument[]>("listDocuments", {
+  return invoke<TaxDocument[]>("list_documents", {
     category: category ?? null,
     taxYear: taxYear ?? null,
   });
@@ -37,11 +37,11 @@ export interface AddDocumentPayload {
 }
 
 export async function addDocument(payload: AddDocumentPayload): Promise<TaxDocument> {
-  return invoke<TaxDocument>("addDocument", { payload });
+  return invoke<TaxDocument>("add_document", { payload });
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  return invoke("deleteDocument", { id });
+  return invoke("delete_document", { id });
 }
 
 export async function updateDocument(params: {
@@ -50,18 +50,18 @@ export async function updateDocument(params: {
   taxYear?: number;
   description?: string;
 }): Promise<void> {
-  return invoke("updateDocument", params);
+  return invoke("update_document", params);
 }
 
 export async function exportClientDocuments(
   clientId: string,
   outputFolder: string,
 ): Promise<ExportResult> {
-  return invoke<ExportResult>("exportClientDocuments", { clientId, outputFolder });
+  return invoke<ExportResult>("export_client_documents", { clientId, outputFolder });
 }
 
 export async function exportAllClientsDocuments(outputFolder: string): Promise<ExportResult> {
-  return invoke<ExportResult>("exportAllClientsDocuments", { outputFolder });
+  return invoke<ExportResult>("export_all_clients_documents", { outputFolder });
 }
 
 export async function pickDocumentFile(): Promise<string | null> {

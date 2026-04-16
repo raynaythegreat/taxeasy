@@ -31,11 +31,12 @@ function SubtotalRow({ label, amount, bold }: { label: string; amount: string; b
 }
 
 function LoadingSkeleton() {
+  const rows = ["a", "b", "c", "d", "e", "f", "g", "h"];
   return (
     <div className="animate-pulse space-y-3 p-8">
-      {[...Array(8)].map((_, i) => (
+      {rows.map((row, i) => (
         <div
-          key={i}
+          key={row}
           className={`h-4 bg-gray-200 rounded ${i === 0 ? "w-1/3 mx-auto" : "w-full"}`}
         />
       ))}
@@ -48,6 +49,7 @@ export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: C
   const { data, isLoading, error } = useQuery({
     queryKey: ["cash_flow", dateFrom, dateTo],
     queryFn: () => getCashFlow(dateFrom, dateTo),
+    meta: { silent: true },
   });
 
   if (isLoading) return <LoadingSkeleton />;
@@ -77,8 +79,12 @@ export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: C
         <EmptyState
           icon={<BarChart3 className="w-6 h-6" />}
           title={t("No activity in this period")}
-          description={t("There are no cash flow transactions recorded for the selected date range.")}
-          action={onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined}
+          description={t(
+            "There are no cash flow transactions recorded for the selected date range.",
+          )}
+          action={
+            onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined
+          }
         />
       </div>
     );
@@ -105,8 +111,8 @@ export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: C
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Operating Activities")}
         </p>
-        {data.operating_adjustments.map((item, i) => (
-          <LineRow key={i} item={item} indent />
+        {data.operating_adjustments.map((item) => (
+          <LineRow key={`${item.label}:${item.amount}`} item={item} indent />
         ))}
         {data.operating_adjustments.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No adjustments")}</p>
@@ -123,8 +129,8 @@ export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: C
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Investing Activities")}
         </p>
-        {data.investing_activities.map((item, i) => (
-          <LineRow key={i} item={item} indent />
+        {data.investing_activities.map((item) => (
+          <LineRow key={`${item.label}:${item.amount}`} item={item} indent />
         ))}
         {data.investing_activities.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>
@@ -141,8 +147,8 @@ export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: C
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
           {t("Financing Activities")}
         </p>
-        {data.financing_activities.map((item, i) => (
-          <LineRow key={i} item={item} indent />
+        {data.financing_activities.map((item) => (
+          <LineRow key={`${item.label}:${item.amount}`} item={item} indent />
         ))}
         {data.financing_activities.length === 0 && (
           <p className="pl-6 text-sm text-gray-400 italic py-0.5">{t("No activity")}</p>

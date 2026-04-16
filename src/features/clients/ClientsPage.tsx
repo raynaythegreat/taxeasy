@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, ChevronLeft, ChevronRight, Pencil, Users } from "lucide-react";
-import { EmptyState } from "../../components/ui/EmptyState";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
-import { ClientWorkspace } from "../../components/ClientWorkspace";
+import { ClientWorkspace, type WorkspaceTab } from "../../components/ClientWorkspace";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
 import { useSidebar } from "../../lib/sidebar";
 import type { AccountingMethod, Client, CreateClientPayload, EntityType } from "../../lib/tauri";
@@ -89,9 +89,11 @@ function Spinner() {
 
 export function ClientsPage({
   initialClientId,
+  initialTab,
   onBack,
 }: {
   initialClientId?: string | null;
+  initialTab?: WorkspaceTab;
   onBack: () => void;
 }) {
   const { t } = useI18n();
@@ -572,6 +574,7 @@ export function ClientsPage({
           <ClientWorkspace
             key={activeClientId}
             client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
+            initialTab={initialTab}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

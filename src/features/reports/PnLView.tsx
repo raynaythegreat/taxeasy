@@ -35,10 +35,11 @@ function SubtotalRow({ label, amount, bold }: { label: string; amount: string; b
 }
 
 function LoadingSkeleton() {
+  const rows = ["a", "b", "c", "d", "e", "f", "g", "h"];
   return (
     <div className="animate-pulse space-y-3 p-8">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className={`h-4 bg-gray-200 rounded ${i % 3 === 0 ? "w-1/3" : "w-full"}`} />
+      {rows.map((row, i) => (
+        <div key={row} className={`h-4 bg-gray-200 rounded ${i % 3 === 0 ? "w-1/3" : "w-full"}`} />
       ))}
     </div>
   );
@@ -49,6 +50,7 @@ export function PnLView({ dateFrom, dateTo, clientName, onChangePeriod }: PnLVie
   const { data, isLoading, error } = useQuery({
     queryKey: ["pnl", dateFrom, dateTo],
     queryFn: () => getPnl(dateFrom, dateTo),
+    meta: { silent: true },
   });
 
   if (isLoading) return <LoadingSkeleton />;
@@ -78,7 +80,9 @@ export function PnLView({ dateFrom, dateTo, clientName, onChangePeriod }: PnLVie
           icon={<BarChart3 className="w-6 h-6" />}
           title={t("No activity in this period")}
           description={t("There are no transactions recorded for the selected date range.")}
-          action={onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined}
+          action={
+            onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined
+          }
         />
       </div>
     );

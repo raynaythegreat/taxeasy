@@ -11,12 +11,12 @@ import {
   Receipt,
   Sparkles,
 } from "lucide-react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
 import { ClientEditModal } from "../features/clients/ClientEditModal";
 import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { InvoicesPage } from "../features/invoices/InvoicesPage";
-import { BalanceSheetView } from "../features/reports/BalanceSheetView";
+import { type BalanceSheetMode, BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
 import { PnLView } from "../features/reports/PnLView";
 import { YearOverYearView } from "../features/reports/YearOverYearView";
@@ -31,7 +31,13 @@ const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
 );
 
-type WorkspaceTab = "overview" | "transactions" | "invoices" | "documents" | "reports" | "ai";
+export type WorkspaceTab =
+  | "overview"
+  | "transactions"
+  | "invoices"
+  | "documents"
+  | "reports"
+  | "ai";
 
 const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 
@@ -39,16 +45,22 @@ const MIN_YEAR = 2000;
 
 interface ClientWorkspaceProps {
   client: Client;
+  initialTab?: WorkspaceTab;
 }
 
-export function ClientWorkspace({ client }: ClientWorkspaceProps) {
+export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorkspaceProps) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<WorkspaceTab>("overview");
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
+  const [balanceSheetMode, setBalanceSheetMode] = useState<BalanceSheetMode>("period");
   const [period, setPeriod] = useState<ReportPeriod>("annual");
   const [compareYears, setCompareYears] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [editingClient, setEditingClient] = useState(false);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
@@ -285,6 +297,31 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 </div>
 
                 <div className="ml-auto flex items-center gap-2">
+                  {reportType === "balance_sheet" && !compareYears && (
+                    <div className="flex items-center bg-[var(--color-hover)] rounded-lg p-1 gap-0.5">
+                      {(
+                        [
+                          ["period", t("Period activity")],
+                          ["cumulative", t("As of year-end (cumulative)")],
+                        ] as const
+                      ).map(([mode, label]) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setBalanceSheetMode(mode)}
+                          className={cn(
+                            "px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
+                            "focus-visible:ring-2 focus-visible:ring-primary outline-none",
+                            balanceSheetMode === mode
+                              ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {/* Compare to prior year toggle */}
                   {reportType !== "cash_flow" && (
                     <button
@@ -430,6 +467,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                       dateFrom={from}
                       dateTo={toHalfOpen}
                       clientName={client.name}
+                      mode={balanceSheetMode}
                     />
                   )}
                   {reportType === "cash_flow" && (

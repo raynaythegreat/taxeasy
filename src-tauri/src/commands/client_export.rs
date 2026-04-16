@@ -6,6 +6,7 @@ use crate::error::{AppError, Result};
 use crate::state::AppState;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExportResult {
     pub folder: String,
     pub client_count: i32,

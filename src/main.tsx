@@ -8,6 +8,32 @@ import { SidebarProvider } from "./lib/sidebar";
 import { ThemeProvider } from "./lib/theme";
 import "./index.css";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) {
+    return err.message;
+  }
+  if (typeof err === "string" && err.trim()) {
+    return err;
+  }
+  if (err && typeof err === "object") {
+    if ("message" in err && typeof err.message === "string" && err.message.trim()) {
+      return err.message;
+    }
+    if ("error" in err && typeof err.error === "string" && err.error.trim()) {
+      return err.error;
+    }
+    try {
+      const serialized = JSON.stringify(err);
+      if (serialized && serialized !== "{}") {
+        return serialized;
+      }
+    } catch {
+      // Fall through to the generic message below.
+    }
+  }
+  return "Request failed";
+}
+
 // Inner component so useToast can access the ToastProvider above it
 function AppWithQueryClient() {
   const toast = useToast();
@@ -22,12 +48,12 @@ function AppWithQueryClient() {
           onError: (err, query) => {
             // Opt-out per-query via meta: { silent: true }
             if (query.meta?.silent) return;
-            toast.error(err instanceof Error ? err.message : "Request failed");
+            toast.error(getErrorMessage(err));
           },
         }),
         mutationCache: new MutationCache({
           onError: (err) => {
-            toast.error(err instanceof Error ? err.message : "Request failed");
+            toast.error(getErrorMessage(err));
           },
         }),
       }),

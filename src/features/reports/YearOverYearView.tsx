@@ -18,10 +18,11 @@ function SectionDivider() {
 }
 
 function LoadingSkeleton() {
+  const rows = ["a", "b", "c", "d", "e", "f", "g", "h"];
   return (
     <div className="animate-pulse space-y-3 p-8">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className={`h-4 bg-gray-200 rounded ${i % 3 === 0 ? "w-1/3" : "w-full"}`} />
+      {rows.map((row, i) => (
+        <div key={row} className={`h-4 bg-gray-200 rounded ${i % 3 === 0 ? "w-1/3" : "w-full"}`} />
       ))}
     </div>
   );
@@ -310,24 +311,28 @@ export function YearOverYearView({
     queryKey: ["pnl", currentFrom, currentTo],
     queryFn: () => getPnl(currentFrom, currentTo),
     enabled: reportType === "pnl",
+    meta: { silent: true },
   });
 
   const pnlPriorQuery = useQuery({
     queryKey: ["pnl", priorFrom, priorTo],
     queryFn: () => getPnl(priorFrom, priorTo),
     enabled: reportType === "pnl",
+    meta: { silent: true },
   });
 
   const bsCurrentQuery = useQuery({
     queryKey: ["balance_sheet", "period", currentFrom, currentTo],
     queryFn: () => getBalanceSheet(currentFrom, currentTo),
     enabled: reportType === "balance_sheet",
+    meta: { silent: true },
   });
 
   const bsPriorQuery = useQuery({
     queryKey: ["balance_sheet", "period", priorFrom, priorTo],
     queryFn: () => getBalanceSheet(priorFrom, priorTo),
     enabled: reportType === "balance_sheet",
+    meta: { silent: true },
   });
 
   const isLoading =

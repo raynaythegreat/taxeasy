@@ -11,9 +11,9 @@ export interface UpdateCheck {
 }
 
 export async function checkForUpdates(): Promise<UpdateCheck> {
-  return invoke<UpdateCheck>("checkForUpdates");
+  return invoke<UpdateCheck>("check_for_updates");
 }
 
 export async function getAppVersion(): Promise<string> {
-  return invoke<string>("getAppVersion");
+  return invoke<string>("get_app_version");
 }

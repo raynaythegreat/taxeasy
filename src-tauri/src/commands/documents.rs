@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Document {
     pub id: String,
     pub file_name: String,
@@ -21,6 +22,7 @@ pub struct Document {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AddDocumentPayload {
     pub file_name: String,
     pub file_path: String,

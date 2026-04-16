@@ -6,14 +6,17 @@ import { useI18n } from "../lib/i18n";
 import { getActiveClientPref, switchClient } from "../lib/tauri";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { cn } from "../lib/utils";
+import type { WorkspaceTab } from "./ClientWorkspace";
 import { DashboardPage } from "./DashboardPage";
+import { TaxNewsPage } from "./TaxNewsPage";
 
-type AppView = "dashboard" | "clients" | "settings";
+type AppView = "dashboard" | "clients" | "settings" | "tax-news";
 
 export function AppShell() {
   const { t, locale, setLocale } = useI18n();
   const [view, setView] = useState<AppView>("dashboard");
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
+  const [initialClientTab, setInitialClientTab] = useState<WorkspaceTab>("overview");
 
   useEffect(() => {
     getActiveClientPref()
@@ -32,7 +35,46 @@ export function AppShell() {
 
   const handleSelectClient = (clientId: string) => {
     setInitialClientId(clientId);
+    setInitialClientTab("overview");
     setView("clients");
+  };
+
+  const handleNavigate = (page: string) => {
+    switch (page) {
+      case "dashboard":
+        setView("dashboard");
+        return;
+      case "settings":
+        setView("settings");
+        return;
+      case "tax-news":
+        setView("tax-news");
+        return;
+      case "transactions":
+      case "ledger":
+        setInitialClientTab("transactions");
+        setView("clients");
+        return;
+      case "invoices":
+        setInitialClientTab("invoices");
+        setView("clients");
+        return;
+      case "documents":
+        setInitialClientTab("documents");
+        setView("clients");
+        return;
+      case "reports":
+        setInitialClientTab("reports");
+        setView("clients");
+        return;
+      case "ai":
+        setInitialClientTab("ai");
+        setView("clients");
+        return;
+      default:
+        setInitialClientTab("overview");
+        setView("clients");
+    }
   };
 
   const NAV_ITEMS: { id: AppView; label: string; icon: typeof LayoutDashboard }[] = [
@@ -101,14 +143,19 @@ export function AppShell() {
         {view === "dashboard" && (
           <DashboardPage
             onSelectClient={handleSelectClient}
-            onNewClient={() => setView("clients")}
-            onNavigate={(page) => setView(page as AppView)}
+            onNewClient={() => handleNavigate("clients")}
+            onNavigate={handleNavigate}
           />
         )}
         {view === "clients" && (
-          <ClientsPage initialClientId={initialClientId} onBack={() => setView("dashboard")} />
+          <ClientsPage
+            initialClientId={initialClientId}
+            initialTab={initialClientTab}
+            onBack={() => setView("dashboard")}
+          />
         )}
         {view === "settings" && <SettingsPage onBack={() => setView("dashboard")} />}
+        {view === "tax-news" && <TaxNewsPage />}
       </main>
     </div>
   );

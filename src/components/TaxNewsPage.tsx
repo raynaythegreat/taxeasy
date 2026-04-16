@@ -38,10 +38,11 @@ function SourceBadge({ source }: { source: string }) {
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function PageSkeleton() {
+  const cards = ["a", "b", "c", "d", "e", "f"];
   return (
     <div className="space-y-3 animate-pulse">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+      {cards.map((card) => (
+        <div key={card} className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
           <div className="flex gap-2">
             <div className="h-4 bg-gray-200 rounded w-24" />
             <div className="h-4 bg-gray-100 rounded w-16" />
@@ -119,6 +120,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
     queryFn: () => fetchTaxNews(clientId),
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
+    meta: { silent: true },
   });
 
   const items = data ?? [];
@@ -182,6 +184,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
             </span>
           )}
           <button
+            type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
             className={cn(
@@ -209,6 +212,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
@@ -250,6 +254,7 @@ export function TaxNewsPage({ clientId }: TaxNewsPageProps) {
           {filtered.length} of {items.length} articles
           {(search || sourceFilter !== "all" || categoryFilter !== "all") && (
             <button
+              type="button"
               onClick={() => {
                 setSearch("");
                 setSourceFilter("all");

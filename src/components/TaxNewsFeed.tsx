@@ -135,6 +135,7 @@ export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedPr
     queryFn: () => fetchTaxNews(clientId),
     staleTime: 6 * 60 * 60 * 1000, // 6 hours — matches backend cache window
     retry: 1,
+    meta: { silent: true },
   });
 
   const items = (data ?? []).slice(0, maxItems);
@@ -155,6 +156,7 @@ export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedPr
         </div>
         {onViewAll && (
           <button
+            type="button"
             onClick={onViewAll}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium"
           >
