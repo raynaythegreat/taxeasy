@@ -102,11 +102,11 @@ This produces platform-native installers:
 
 | Platform | Output |
 |---|---|
-| macOS | `src-tauri/target/release/bundle/dmg/Taxeasy_0.1.0_aarch64.dmg` |
-| macOS (Intel) | `src-tauri/target/release/bundle/dmg/Taxeasy_0.1.0_x64.dmg` |
-| Windows | `src-tauri/target/release/bundle/msi/Taxeasy_0.1.0_x64-setup.msi` |
-| Linux | `src-tauri/target/release/bundle/deb/taxeasy_0.1.0_amd64.deb` |
-| Linux | `src-tauri/target/release/bundle/appimage/taxeasy_0.1.0_amd64.AppImage` |
+| macOS | `src-tauri/target/release/bundle/dmg/Taxeasy_0.2.0_aarch64.dmg` |
+| macOS (Intel) | `src-tauri/target/release/bundle/dmg/Taxeasy_0.2.0_x64.dmg` |
+| Windows | `src-tauri/target/release/bundle/msi/Taxeasy_0.2.0_x64-setup.msi` |
+| Linux | `src-tauri/target/release/bundle/deb/taxeasy_0.2.0_amd64.deb` |
+| Linux | `src-tauri/target/release/bundle/appimage/taxeasy_0.2.0_amd64.AppImage` |
 
 ## Optional: AI Features
 

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { lastDayOf } from "../../lib/date-utils";
 import { useI18n } from "../../lib/i18n";
 import { getPnl, type PnlLineItem } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
@@ -94,7 +95,7 @@ export function PnLView({ dateFrom, dateTo, clientName, onChangePeriod }: PnLVie
         {clientName && <p className="text-base font-semibold text-gray-900">{clientName}</p>}
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Profit & Loss")}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          {formatDate(dateFrom)} &ndash; {formatDate(dateTo)}
+          {formatDate(dateFrom)} &ndash; {formatDate(lastDayOf(dateTo))}
         </p>
       </div>
 

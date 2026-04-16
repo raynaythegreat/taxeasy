@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, FileText, Plus, Search, Upload } from "lucid
 import { useCallback, useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
 import { listAccounts } from "../../lib/tauri";
-import { fiscalYearRange, today } from "../../lib/utils";
+import { fiscalYearRange, formatDate, today } from "../../lib/utils";
 import { CsvImportWizard } from "./CsvImportWizard";
 import { ImportWizard } from "./ImportWizard";
 import { LedgerView } from "./LedgerView";
@@ -270,7 +270,7 @@ export function TransactionsPage() {
             ))}
           </select>
           <span className="ml-auto text-xs text-gray-400 tabular-nums">
-            {from} &mdash; {to}
+            {formatDate(from)} &mdash; {formatDate(to)}
           </span>
         </div>
       )}

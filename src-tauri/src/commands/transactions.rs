@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use crate::{
     domain::transaction::{
-        cents_to_decimal, CreateTransactionPayload, Entry, Transaction, TransactionWithEntries,
+        cents_to_decimal, CreateTransactionPayload, Entry, EntryPayload, Transaction,
+        TransactionWithEntries,
     },
     error::{AppError, Result},
     state::AppState,
@@ -240,18 +241,28 @@ pub fn create_transaction(
         })
     })();
     match result {
-        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
-        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+        Ok(v) => {
+            conn.execute_batch("COMMIT")?;
+            Ok(v)
+        }
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(e)
+        }
     }
 }
 
-/// Update a transaction header (date, description, reference). Entries are not modified.
+/// Update a transaction header (date, description, reference) and optionally
+/// replace all entries.  When `entries` is `None` only the header fields change;
+/// when provided the old entries are deleted and new ones are inserted after
+/// the standard debit = credit balance check.
 #[tauri::command(rename_all = "camelCase")]
 pub fn update_transaction(
     txn_id: String,
     txn_date: String,
     description: String,
     reference: Option<String>,
+    entries: Option<Vec<EntryPayload>>,
     state: tauri::State<AppState>,
 ) -> Result<()> {
     if txn_date.len() != 10 {
@@ -259,6 +270,22 @@ pub fn update_transaction(
     }
     if description.trim().is_empty() {
         return Err(AppError::Validation("description is required".into()));
+    }
+
+    // Validate entry balance before touching the DB
+    if let Some(ref new_entries) = entries {
+        let mut total_debit_cents: i64 = 0;
+        let mut total_credit_cents: i64 = 0;
+        for e in new_entries {
+            total_debit_cents += e.debit_cents()?;
+            total_credit_cents += e.credit_cents()?;
+        }
+        if total_debit_cents != total_credit_cents {
+            return Err(AppError::UnbalancedEntries {
+                debits: cents_to_decimal(total_debit_cents).to_string(),
+                credits: cents_to_decimal(total_credit_cents).to_string(),
+            });
+        }
     }
 
     let lock = state.active_client.lock().unwrap();
@@ -303,6 +330,24 @@ pub fn update_transaction(
             "UPDATE transactions SET txn_date = ?1, description = ?2, reference = ?3 WHERE id = ?4",
             params![txn_date, description.trim(), reference, txn_id],
         )?;
+
+        if let Some(new_entries) = entries {
+            conn.execute(
+                "DELETE FROM entries WHERE transaction_id = ?1",
+                params![txn_id],
+            )?;
+            for e in &new_entries {
+                let entry_id = Uuid::new_v4().to_string();
+                let debit_cents = e.debit_cents()?;
+                let credit_cents = e.credit_cents()?;
+                conn.execute(
+                    "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents, memo)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![entry_id, txn_id, e.account_id, debit_cents, credit_cents, e.memo],
+                )?;
+            }
+        }
+
         let audit_id = Uuid::new_v4().to_string();
         conn.execute(
             "INSERT INTO audit_log (id, action, entity_type, entity_id, before_json, after_json)
@@ -312,8 +357,14 @@ pub fn update_transaction(
         Ok(())
     })();
     match result {
-        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
-        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+        Ok(v) => {
+            conn.execute_batch("COMMIT")?;
+            Ok(v)
+        }
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(e)
+        }
     }
 }
 
@@ -357,7 +408,13 @@ pub fn delete_transaction(txn_id: String, state: tauri::State<AppState>) -> Resu
         Ok(())
     })();
     match result {
-        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
-        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+        Ok(v) => {
+            conn.execute_batch("COMMIT")?;
+            Ok(v)
+        }
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(e)
+        }
     }
 }

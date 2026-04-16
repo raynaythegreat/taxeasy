@@ -206,6 +206,7 @@ export interface UpdateTransactionPayload {
   txnDate: string;
   description: string;
   reference?: string;
+  entries?: EntryPayload[];
 }
 
 export const updateTransaction = (payload: UpdateTransactionPayload): Promise<void> =>

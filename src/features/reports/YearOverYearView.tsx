@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { lastDayOf } from "../../lib/date-utils";
 import { useI18n } from "../../lib/i18n";
 import { type BalanceSheetReport, getBalanceSheet, getPnl, type PnlReport } from "../../lib/tauri";
 import { cn, formatCurrency, formatDate } from "../../lib/utils";
@@ -99,7 +100,7 @@ function PnLComparison({
         <h2 className="text-xl font-bold text-gray-900 mt-1">{t("Profit & Loss")}</h2>
         <p className="text-sm text-gray-500 mt-1">
           {t("Year-over-Year Comparison")} &mdash; {formatDate(currentFrom)} &ndash;{" "}
-          {formatDate(currentTo)}
+          {formatDate(lastDayOf(currentTo))}
         </p>
       </div>
 

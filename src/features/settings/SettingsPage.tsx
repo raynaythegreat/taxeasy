@@ -45,7 +45,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   useEffect(() => {
     getAppVersion()
       .then(setAppVersion)
-      .catch(() => setAppVersion("0.1.0"));
+      .catch(() => setAppVersion("0.2.0"));
   }, []);
 
   const { data: settings, isLoading } = useQuery({

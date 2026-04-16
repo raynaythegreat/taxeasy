@@ -21,6 +21,7 @@ import { CashFlowView } from "../features/reports/CashFlowView";
 import { PnLView } from "../features/reports/PnLView";
 import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
+import { lastDayOf } from "../lib/date-utils";
 import { handleExportReport } from "../lib/export-api";
 import { useI18n } from "../lib/i18n";
 import { triggerPrint } from "../lib/print-utils";
@@ -88,6 +89,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
   };
 
   const { from, to: toHalfOpen } = useMemo(() => periodRange(taxYear, period), [taxYear, period]);
+  const toInclusive = lastDayOf(toHalfOpen);
   const { from: priorFrom, to: priorTo } = useMemo(
     () => periodRange(taxYear - 1, period),
     [taxYear, period],
@@ -440,7 +442,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                   className="text-xs text-[var(--color-text-secondary)] tabular-nums ml-1"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {from} &mdash; {toHalfOpen}
+                  {formatDate(from)} &mdash; {formatDate(toInclusive)}
                 </span>
               </div>
             </div>
