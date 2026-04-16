@@ -10,12 +10,14 @@ import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { PnLView } from "../features/reports/PnLView";
 import { BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
-import { cn, fiscalYearRange, formatDate } from "../lib/utils";
+import { cn, periodRange, type ReportPeriod, PERIOD_LABELS, formatDate } from "../lib/utils";
 import { useI18n } from "../lib/i18n";
 
 const AiWorkspace = lazy(() => import("../features/ai/AiWorkspace").then(m => ({ default: m.AiWorkspace })));
 
 type WorkspaceTab = "overview" | "transactions" | "invoices" | "documents" | "reports" | "ai";
+
+const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 
 const MIN_YEAR = 2000;
 
@@ -27,17 +29,18 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
   const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
+  const [period, setPeriod] = useState<ReportPeriod>("annual");
   const [editingClient, setEditingClient] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const recentYears = useMemo(
-    () => Array.from({ length: 8 }, (_, i) => currentYear - i),
+    () => Array.from({ length: 6 }, (_, i) => currentYear - i),
     [currentYear]
   );
   const [taxYear, setTaxYear] = useState(currentYear);
   const isRecent = recentYears.includes(taxYear);
 
-  const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
+  const { from, to } = useMemo(() => periodRange(taxYear, period), [taxYear, period]);
 
   const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
@@ -97,7 +100,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         </nav>
 
         {isReportTab && (
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
               onClick={() => setTaxYear((y) => Math.max(MIN_YEAR, y - 1))}
@@ -131,16 +134,16 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
             {!isRecent && (
-              <span className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
+              <span className="px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
                 {taxYear}
               </span>
             )}
-            <span className="text-xs text-gray-400 tabular-nums ml-2">
+            <span className="text-xs text-gray-400 tabular-nums ml-1">
               {from} &mdash; {to}
             </span>
             <button
               onClick={triggerPrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-2"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-1"
             >
               <Printer className="w-4 h-4" />
               {t("Print")}
@@ -257,31 +260,55 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         {tab === "documents" && <DocumentsPage />}
         {tab === "reports" && (
           <div className="flex flex-col h-full">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-6 py-3 flex items-center gap-4 shadow-sm print:hidden">
-              <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
-                {(["pnl", "balance_sheet", "cash_flow"] as const).map((rt) => (
-                  <button
-                    key={rt}
-                    type="button"
-                    onClick={() => setReportType(rt)}
-                    className={cn(
-                      "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                      reportType === rt
-                        ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
-                        : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
-                    )}
-                  >
-                    {rt === "pnl" ? t("Profit & Loss") : rt === "balance_sheet" ? t("Balance Sheet") : t("Cash Flow")}
-                  </button>
-                ))}
+            {/* Report type + period selector */}
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-5 py-2.5 print:hidden shadow-sm">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Report type tabs */}
+                <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
+                  {(["pnl", "balance_sheet", "cash_flow"] as const).map((rt) => (
+                    <button
+                      key={rt}
+                      type="button"
+                      onClick={() => setReportType(rt)}
+                      className={cn(
+                        "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        reportType === rt
+                          ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
+                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                      )}
+                    >
+                      {rt === "pnl" ? t("Profit & Loss") : rt === "balance_sheet" ? t("Balance Sheet") : t("Cash Flow")}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Period selector */}
+                <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5 gap-0.5">
+                  {PERIODS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPeriod(p)}
+                      className={cn(
+                        "px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        period === p
+                          ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm"
+                          : "text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-300"
+                      )}
+                    >
+                      {PERIOD_LABELS[p]}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={triggerPrint}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
+                >
+                  <Printer className="w-4 h-4" />
+                  {t("Print")}
+                </button>
               </div>
-              <button
-                onClick={triggerPrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
-              >
-                <Printer className="w-4 h-4" />
-                {t("Print")}
-              </button>
             </div>
             <div className="flex-1 bg-gray-50 print:bg-white min-h-full py-6 print:py-0 overflow-auto">
               {reportType === "pnl" && <PnLView dateFrom={from} dateTo={to} clientName={client.name} />}
