@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3 } from "lucide-react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
 import { type BalanceSheetLineItem, getBalanceSheet } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
@@ -6,6 +8,7 @@ import { formatCurrency, formatDate } from "../../lib/utils";
 interface BalanceSheetViewProps {
   asOfDate: string;
   clientName?: string;
+  onChangePeriod?: () => void;
 }
 
 function LineRow({ item }: { item: BalanceSheetLineItem }) {
@@ -40,7 +43,7 @@ function LoadingSkeleton() {
   );
 }
 
-export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps) {
+export function BalanceSheetView({ asOfDate, clientName, onChangePeriod }: BalanceSheetViewProps) {
   const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
     queryKey: ["balance_sheet", asOfDate],
@@ -58,6 +61,27 @@ export function BalanceSheetView({ asOfDate, clientName }: BalanceSheetViewProps
   }
 
   if (!data) return null;
+
+  const isEmpty =
+    data.asset_lines.length === 0 &&
+    data.liability_lines.length === 0 &&
+    data.equity_lines.length === 0 &&
+    parseFloat(data.total_assets) === 0 &&
+    parseFloat(data.total_liabilities) === 0 &&
+    parseFloat(data.total_equity) === 0;
+
+  if (isEmpty) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <EmptyState
+          icon={<BarChart3 className="w-6 h-6" />}
+          title={t("No activity in this period")}
+          description={t("There are no balances recorded as of the selected date.")}
+          action={onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="report-sheet">

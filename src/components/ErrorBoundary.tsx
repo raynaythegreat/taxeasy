@@ -1,5 +1,6 @@
 import type { ErrorInfo, ReactNode } from "react";
 import { Component } from "react";
+import { logError } from "../lib/logger";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -22,12 +23,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Log via console.error as fallback (Tauri log plugin not available in all builds)
+    // Log via console.error as fallback
     console.error(
       "[ErrorBoundary] Uncaught render error:",
       error.stack ?? error.message,
       info.componentStack,
     );
+    // Persist to errors.log via Tauri; swallow if invoke fails
+    logError(
+      error.message,
+      (error.stack ?? "") + (info.componentStack ?? ""),
+    ).catch(() => {});
   }
 
   handleReset = (): void => {

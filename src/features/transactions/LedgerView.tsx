@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowUpDown, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Pencil, Receipt, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
 import type { TransactionWithEntries } from "../../lib/tauri";
 import { deleteTransaction, updateTransaction } from "../../lib/tauri";
@@ -498,8 +499,13 @@ export function LedgerView({
 
           {!isLoading && (!transactions || transactions.length === 0) && (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">
-                {t("No transactions found")}
+              <td colSpan={6} className="px-4 py-8">
+                <EmptyState
+                  icon={<Receipt className="w-6 h-6" />}
+                  title={t("No transactions yet")}
+                  description={t("Record your first transaction to start tracking.")}
+                  action={{ label: t("Add transaction"), onClick: onEditTxn }}
+                />
               </td>
             </tr>
           )}

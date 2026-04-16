@@ -97,6 +97,8 @@ pub fn run() {
             commands::business_profile::save_business_profile,
             commands::tax_news::fetch_tax_news,
             commands::tax_news::refresh_tax_news,
+            commands::logger::log_error,
+            commands::logger::get_error_log_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

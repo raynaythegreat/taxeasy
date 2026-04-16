@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, Pencil, Users } from "lucide-react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { ClientWorkspace } from "../../components/ClientWorkspace";
 import { useI18n } from "../../lib/i18n";
@@ -290,23 +291,13 @@ export function ClientsPage({
           )}
 
           {!isLoading && !isError && clients && clients.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <svg
-                className="w-10 h-10 text-gray-300 mb-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 20h5v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2h5M12 12a4 4 0 100-8 4 4 0 000 8z"
-                />
-              </svg>
-              <p className="text-sm text-gray-500">No clients yet.</p>
-              <p className="text-xs text-gray-400 mt-1">Create your first client.</p>
+            <div className="px-3 py-4">
+              <EmptyState
+                icon={<Users className="w-6 h-6" />}
+                title={t("No clients yet")}
+                description={t("Create your first client to get started.")}
+                action={{ label: t("New Client"), onClick: () => setShowForm(true) }}
+              />
             </div>
           )}
 

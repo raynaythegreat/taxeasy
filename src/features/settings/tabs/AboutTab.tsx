@@ -1,4 +1,7 @@
-import { CheckCircle2, Download, ExternalLink, RefreshCw } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { CheckCircle2, Download, ExternalLink, FileText, RefreshCw } from "lucide-react";
+import { useCallback, useState } from "react";
+import { getErrorLogPath } from "../../../lib/logger";
 import { useI18n } from "../../../lib/i18n";
 import type { UpdateCheck } from "../../../lib/updater-api";
 import { cn } from "../../../lib/utils";
@@ -26,6 +29,27 @@ export function AboutTab({
   onCheckUpdate,
 }: AboutTabProps) {
   const { t } = useI18n();
+  const [exportingDiag, setExportingDiag] = useState(false);
+
+  const handleExportDiagnostics = useCallback(async () => {
+    setExportingDiag(true);
+    try {
+      const logPath = await getErrorLogPath();
+      await openPath(logPath);
+    } catch {
+      // If errors.log doesn't exist yet, open the log directory instead
+      try {
+        const logPath = await getErrorLogPath();
+        const sep = logPath.includes("/") ? "/" : "\\";
+        const dir = logPath.substring(0, logPath.lastIndexOf(sep));
+        await openPath(dir);
+      } catch {
+        // Last resort: swallow
+      }
+    } finally {
+      setExportingDiag(false);
+    }
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -45,6 +69,22 @@ export function AboutTab({
             <span className="text-sm font-medium text-gray-900">Tauri, React, and SQLite</span>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-900">{t("Diagnostics")}</h3>
+        <p className="text-sm text-gray-500">
+          {t("Open the error log file to review or share diagnostic information.")}
+        </p>
+        <button
+          type="button"
+          onClick={handleExportDiagnostics}
+          disabled={exportingDiag}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        >
+          <FileText className="w-4 h-4" />
+          {exportingDiag ? t("Opening…") : t("Export diagnostics")}
+        </button>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">

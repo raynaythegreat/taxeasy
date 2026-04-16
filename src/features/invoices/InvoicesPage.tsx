@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calculator, ChevronRight, FileText, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
 import type { InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
 import {
@@ -338,12 +339,13 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
 
             {!isLoading && invoices.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center">
-                  <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 font-medium">{t("No invoices yet")}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t("Create your first invoice to get started.")}
-                  </p>
+                <td colSpan={8} className="px-4 py-8">
+                  <EmptyState
+                    icon={<FileText className="w-6 h-6" />}
+                    title={t("No invoices yet")}
+                    description={t("Create your first invoice to get started.")}
+                    action={{ label: t("New Invoice"), onClick: () => openCreate("invoice") }}
+                  />
                 </td>
               </tr>
             )}
