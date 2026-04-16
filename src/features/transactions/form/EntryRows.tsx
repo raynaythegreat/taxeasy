@@ -69,14 +69,14 @@ export function EntryRows({
             {totalDebit > 0 || totalCredit > 0 ? (
               isBalanced ? (
                 <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                  <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.78 5.22a.75.75 0 0 0-1.06 0L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06z" />
                   </svg>
                   Balanced
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                  <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM8 4a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
                   </svg>
                   Difference: {fmt(Math.abs(totalDebit - totalCredit))}
@@ -131,7 +131,7 @@ export function EntryRows({
             )}
           >
             {isBalanced ? (
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                 <path
                   fillRule="evenodd"
                   d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
@@ -139,7 +139,7 @@ export function EntryRows({
                 />
               </svg>
             ) : (
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" />
               </svg>
             )}

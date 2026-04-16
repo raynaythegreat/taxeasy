@@ -60,7 +60,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
         setTheme(settings.theme as "light" | "dark" | "system");
       setExportPath(settings.default_export_path || "");
     }
-  }, [settings]);
+  }, [settings, theme, setTheme, ai.initFromSettings]);
 
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
@@ -151,6 +151,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
             const Icon = tab.icon;
             return (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(

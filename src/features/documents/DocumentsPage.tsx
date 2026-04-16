@@ -131,7 +131,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setUploading(false);
     }
-  }, [filterYear, queryClient, t]);
+  }, [filterYear, queryClient, t, showToast]);
 
   const handleExportClient = useCallback(async () => {
     setExporting(true);
@@ -156,7 +156,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setExporting(false);
     }
-  }, [t]);
+  }, [t, showToast]);
 
   const handleExportAll = useCallback(async () => {
     setExporting(true);
@@ -176,7 +176,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setExporting(false);
     }
-  }, [t]);
+  }, [t, showToast]);
 
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
@@ -283,6 +283,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleExportClient}
             disabled={exporting}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
@@ -291,6 +292,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
             {t("Export Client")}
           </button>
           <button
+            type="button"
             onClick={handleExportAll}
             disabled={exporting}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
@@ -299,6 +301,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
             {t("Export All")}
           </button>
           <button
+            type="button"
             onClick={handleUpload}
             disabled={uploading}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
@@ -328,7 +331,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       <div className="flex-1 overflow-auto bg-white">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <svg className="animate-spin w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="animate-spin w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
                 cx="12"
@@ -354,6 +357,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
               {t("Upload tax documents, receipts, W-2s, and other supporting files.")}
             </p>
             <button
+              type="button"
               onClick={handleUpload}
               className="mt-4 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -427,12 +431,14 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
                       <div className="flex items-center justify-end gap-1">
                         <span className="text-xs text-red-600">{t("Delete?")}</span>
                         <button
+                          type="button"
                           onClick={() => deleteMutation.mutate(doc.id)}
                           className="px-2 py-0.5 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700"
                         >
                           {t("Yes")}
                         </button>
                         <button
+                          type="button"
                           onClick={() => setConfirmDelete(null)}
                           className="px-2 py-0.5 text-xs font-medium rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
                         >
@@ -441,6 +447,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
                       </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => setConfirmDelete(doc.id)}
                         className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50"
                       >

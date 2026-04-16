@@ -113,7 +113,7 @@ export function ClientsPage({
           // Non-fatal: we just won't highlight any client
         });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialClientId, handleSwitchClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Query: list clients
   const {
@@ -203,11 +203,12 @@ export function ClientsPage({
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onBack}
               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
               title={t("Back to Dashboard")}
             >
-              <svg
+              <svg aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -223,6 +224,7 @@ export function ClientsPage({
           </div>
           {!showForm && (
             <button
+              type="button"
               onClick={() => setShowForm(true)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
             >
@@ -290,12 +292,13 @@ export function ClientsPage({
           )}
 
           {!isLoading && clients && clients.length > 0 && (
-            <ul role="list">
+            <ul>
               {clients.map((client) => {
                 const isActive = client.id === activeClientId;
                 return (
                   <li key={client.id} className="group">
                     <button
+                      type="button"
                       onClick={() => handleSwitchClient(client.id)}
                       className={cn(
                         "w-full text-left px-4 py-3 flex items-center gap-2 border-l-2 transition-colors hover:bg-gray-50 focus:outline-none focus:bg-gray-50",
@@ -391,7 +394,6 @@ export function ClientsPage({
                     updateField("name", e.target.value)
                   }
                   placeholder="Acme Consulting LLC"
-                  autoFocus
                   required
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   disabled={createMutation.isPending}
@@ -435,7 +437,7 @@ export function ClientsPage({
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
                     const formatted =
-                      digits.length > 2 ? digits.slice(0, 2) + "-" + digits.slice(2) : digits;
+                      digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
                     updateField("ein", formatted);
                   }}
                   placeholder="XX-XXXXXXX"

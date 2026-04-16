@@ -37,7 +37,7 @@ function makeEmptyRow(): EntryRowData {
 
 function isSimpleValid(s: SimpleState): boolean {
   const amt = parseFloat(s.amount);
-  if (!s.description.trim() || isNaN(amt) || amt <= 0) return false;
+  if (!s.description.trim() || Number.isNaN(amt) || amt <= 0) return false;
   if (!s.date) return false;
   if (s.txnType === "expense") return !!(s.paidFrom && s.category);
   if (s.txnType === "income") return !!(s.depositedTo && s.source);

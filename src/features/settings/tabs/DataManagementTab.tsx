@@ -56,6 +56,7 @@ export function DataManagementTab({
           {t("Download all transactions across all clients as a CSV file.")}
         </p>
         <button
+          type="button"
           onClick={() => onSave({ default_export_path: exportPath })}
           disabled={saving}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

@@ -39,7 +39,7 @@ export function FormHeader({
           className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
         >
           {scanning ? (
-            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
                 cx="12"
@@ -55,7 +55,7 @@ export function FormHeader({
               />
             </svg>
           ) : (
-            <svg
+            <svg aria-hidden="true"
               className="w-3.5 h-3.5"
               fill="none"
               viewBox="0 0 24 24"

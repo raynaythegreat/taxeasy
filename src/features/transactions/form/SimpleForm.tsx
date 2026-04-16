@@ -231,7 +231,7 @@ export function SimpleForm({ simple, accounts, onChange }: SimpleFormProps) {
       {/* Balanced badge — always balanced in simple mode */}
       <div className="flex items-center gap-1.5">
         <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+          <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.78 5.22a.75.75 0 0 0-1.06 0L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06z" />
           </svg>
           Balanced

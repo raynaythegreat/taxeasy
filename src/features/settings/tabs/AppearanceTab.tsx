@@ -28,6 +28,7 @@ export function AppearanceTab({ theme, saving, onThemeChange, onSave }: Appearan
       <div className="grid grid-cols-3 gap-3">
         {(["light", "dark", "system"] as const).map((th) => (
           <button
+            type="button"
             key={th}
             onClick={() => onThemeChange(th)}
             className={cn(
@@ -57,6 +58,7 @@ export function AppearanceTab({ theme, saving, onThemeChange, onSave }: Appearan
 
       <div className="flex justify-end pt-2">
         <button
+          type="button"
           onClick={() => onSave({ theme })}
           disabled={saving}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

@@ -32,6 +32,7 @@ export function SecurityTab({ saving, onSave }: SecurityTabProps) {
             className="w-24 px-3 py-2 rounded-lg border border-gray-300 text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
+            type="button"
             onClick={() => {
               if (pinChange.length === 4) {
                 onSave({ app_pin: pinChange });

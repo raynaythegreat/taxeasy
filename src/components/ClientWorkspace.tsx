@@ -98,6 +98,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         <nav className="flex gap-1">
           {WORKSPACE_TABS.map((wt) => (
             <button
+              type="button"
               key={wt.id}
               onClick={() => setTab(wt.id)}
               className={cn(
@@ -154,6 +155,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               {from} &mdash; {to}
             </span>
             <button
+              type="button"
               onClick={triggerPrint}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-1"
             >
@@ -337,6 +339,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 </div>
 
                 <button
+                  type="button"
                   onClick={triggerPrint}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
                 >
