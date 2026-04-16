@@ -35,13 +35,22 @@ export function AccountCompositionTreemap({
   };
 
   const data = balances
-    .map((ab) => ({
-      name: TYPE_LABELS[ab.account_type] ?? ab.account_type,
-      type: ab.account_type,
-      value: Math.max(Math.abs(parseFloat(ab.balance)), 0.01),
-      displayValue: parseFloat(ab.balance),
-    }))
-    .filter((d) => d.value > 0);
+    .map((ab) => {
+      const parsed = parseFloat(ab.balance);
+      const abs = Number.isFinite(parsed) ? Math.abs(parsed) : 0;
+      return {
+        name: TYPE_LABELS[ab.account_type] ?? ab.account_type,
+        type: ab.account_type,
+        // Keep a tiny floor for recharts to render slivers, but only once we
+        // know there's real non-zero data — filter below drops zero entries.
+        value: Math.max(abs, 0.01),
+        displayValue: Number.isFinite(parsed) ? parsed : 0,
+        absValue: abs,
+      };
+    })
+    // Only keep entries with an actual non-zero balance. Prevents an all-zero
+    // period from rendering 5 equal slivers and a "$NaN" total.
+    .filter((d) => d.absValue > 0);
 
   if (data.length === 0) {
     return (

@@ -1,23 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, Upload } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getBusinessProfile } from "../lib/business-profile-api";
 import { getDashboardStats } from "../lib/dashboard-api";
 import { useI18n } from "../lib/i18n";
-import { getActiveClientId, type PeriodRange, reportPeriodFor } from "../lib/tauri";
+import { getActiveClientId, type PeriodRange } from "../lib/tauri";
 
-/** Calendar-year YTD as a half-open [start, end) range — good default before
- *  clientId loads so the dashboard renders immediately on cold start. */
-function calendarYtd(): PeriodRange {
+/** Rolling last-12-months as a half-open [start, end) range. Used as the
+ *  dashboard's default so recent activity is always visible, even across
+ *  fiscal-year boundaries or when the user's data is from last year. */
+function lastTwelveMonths(): PeriodRange {
   const now = new Date();
-  const year = now.getUTCFullYear();
-  // end is half-open: first day AFTER today, so today's txns are included.
-  const tomorrow = new Date(Date.UTC(year, now.getUTCMonth(), now.getUTCDate() + 1));
+  const endDate = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
+  const startDate = new Date(
+    Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), now.getUTCDate()),
+  );
   return {
-    start: `${year}-01-01`,
-    end: tomorrow.toISOString().slice(0, 10),
+    start: startDate.toISOString().slice(0, 10),
+    end: endDate.toISOString().slice(0, 10),
   };
 }
+
 import { BusinessProfileCard } from "./dashboard/BusinessProfileCard";
 import { ChartsRow } from "./dashboard/ChartsRow";
 import { DeductibleExpensesCard } from "./dashboard/DeductibleExpensesCard";
@@ -41,32 +46,15 @@ export function DashboardPage({
   const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
 
-  // Initialize with calendar-YTD so charts render on first paint. Refined
-  // below to the client's fiscal-aware YTD once clientId resolves.
-  const [period, setPeriod] = useState<PeriodRange>(calendarYtd);
+  // Default to rolling last-12-months so recent activity is visible regardless
+  // of fiscal year or whether the user's data is from this year vs last.
+  // Users who want strict YTD / quarter / tax-year can pick from PeriodPicker.
+  const [period, setPeriod] = useState<PeriodRange>(lastTwelveMonths);
 
   const { data: clientId } = useQuery({
     queryKey: ["active_client_id"],
     queryFn: getActiveClientId,
   });
-
-  // Once we know the client, refine to the fiscal-year-aware YTD from the
-  // backend (honors fiscal_year_start_month). Only runs on the first client
-  // load — user-selected periods after that are preserved.
-  const [initialized, setInitialized] = useState(false);
-  useEffect(() => {
-    if (!clientId || initialized) return;
-    const today = new Date().toISOString().slice(0, 10);
-    reportPeriodFor(clientId, { type: "ytd" }, today)
-      .then((range) => {
-        setPeriod(range);
-        setInitialized(true);
-      })
-      .catch(() => {
-        // Non-fatal: keep the calendar-YTD fallback already in state.
-        setInitialized(true);
-      });
-  }, [clientId, initialized]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard_stats", period.start, period.end],
