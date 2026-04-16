@@ -78,38 +78,24 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-5 py-2.5 print:hidden">
-        {/* Row 1: Report type + Print/Export */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <nav className="flex gap-1">
-            {TABS.map((tab) => (
-              <button
-                type="button"
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "px-3 py-1.5 rounded text-sm font-medium transition-colors",
-                  activeTab === tab.id
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100",
-                )}
-              >
-                {t(tab.label)}
-              </button>
-            ))}
-          </nav>
+    <div className="flex flex-col h-full bg-[var(--color-background)]">
+      {/* Page header */}
+      <div className="shrink-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-6 pt-5 pb-3 print:hidden">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("Reports")}</h1>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 tabular-nums">
+              {clientName ? `${clientName} · ` : ""}
+              {from} → {lastDayOf(to)}
+            </p>
+          </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-gray-400 tabular-nums hidden sm:block">
-              {from} &mdash; {lastDayOf(to)}
-            </span>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--color-text)] border border-[var(--color-border)] bg-[var(--color-surface)] rounded-lg hover:bg-[var(--color-hover)] transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {exporting ? t("Exporting…") : t("Export")}
@@ -117,12 +103,37 @@ export function ReportsPage() {
             <button
               type="button"
               onClick={triggerPrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--color-text)] border border-[var(--color-border)] bg-[var(--color-surface)] rounded-lg hover:bg-[var(--color-hover)] transition-colors"
             >
               <Printer className="w-4 h-4" />
               {t("Print")}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Sticky toolbar: tabs + period selectors */}
+      <div className="sticky top-0 z-10 shrink-0 bg-[var(--color-surface)]/95 backdrop-blur border-b border-[var(--color-border)] px-6 py-3 print:hidden">
+        <div className="flex items-center gap-3 flex-wrap">
+          <nav className="flex items-center bg-[var(--color-hover)] rounded-lg p-1 gap-0.5">
+            {TABS.map((tab) => (
+              <button
+                type="button"
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  activeTab === tab.id
+                    ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]",
+                )}
+              >
+                {t(tab.label)}
+              </button>
+            ))}
+          </nav>
+
+          <div className="ml-auto hidden sm:block" aria-hidden />
         </div>
 
         {/* Row 2: Year + Period selectors */}

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Pencil } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { ClientWorkspace } from "../../components/ClientWorkspace";
 import { useI18n } from "../../lib/i18n";
+import { useSidebar } from "../../lib/sidebar";
 import type { AccountingMethod, Client, CreateClientPayload, EntityType } from "../../lib/tauri";
 import {
   createClient,
@@ -195,56 +196,74 @@ export function ClientsPage({
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebar();
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col print:hidden">
+      <aside
+        className={cn(
+          "flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-[width] duration-200 print:hidden",
+          sidebarCollapsed ? "w-14" : "w-72",
+        )}
+      >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              title={t("Back to Dashboard")}
-            >
-              <svg aria-hidden="true"
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+        <div className="flex items-center justify-between px-2 py-3 border-b border-gray-100 min-h-[56px]">
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2 pl-2">
+              <button
+                type="button"
+                onClick={onBack}
+                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                title={t("Back to Dashboard")}
+                aria-label={t("Back to Dashboard")}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              {t("Clients")}
-            </h2>
-          </div>
-          {!showForm && (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              {t("New Client")}
-            </button>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                {t("Clients")}
+              </h2>
+            </div>
           )}
+          <div className={cn("flex items-center gap-1", sidebarCollapsed && "mx-auto")}>
+            {!showForm && !sidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                {t("New Client")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              title={sidebarCollapsed ? t("Expand sidebar") : t("Collapse sidebar")}
+              aria-label={sidebarCollapsed ? t("Expand sidebar") : t("Collapse sidebar")}
+              aria-expanded={!sidebarCollapsed}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Switch error */}
-        {switchError && (
+        {switchError && !sidebarCollapsed && (
           <div
             role="alert"
             className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700"
@@ -253,8 +272,8 @@ export function ClientsPage({
           </div>
         )}
 
-        {/* Client list */}
-        <div className="flex-1 overflow-y-auto py-2">
+        {/* Client list — show names when expanded; initials-only when collapsed */}
+        <div className={cn("flex-1 overflow-y-auto", sidebarCollapsed ? "py-1" : "py-2")}>
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <Spinner />
@@ -295,6 +314,42 @@ export function ClientsPage({
             <ul>
               {clients.map((client) => {
                 const isActive = client.id === activeClientId;
+                const initials =
+                  client.name
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase() || "?";
+                if (sidebarCollapsed) {
+                  return (
+                    <li key={client.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchClient(client.id)}
+                        className={cn(
+                          "w-full flex items-center justify-center py-2.5 transition-colors focus:outline-none",
+                          isActive ? "bg-blue-50" : "hover:bg-gray-50",
+                        )}
+                        title={client.name}
+                        aria-label={client.name}
+                        aria-current={isActive ? "true" : undefined}
+                      >
+                        <span
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
+                            isActive
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-200 text-gray-700",
+                          )}
+                        >
+                          {initials}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                }
                 return (
                   <li key={client.id} className="group">
                     <button
