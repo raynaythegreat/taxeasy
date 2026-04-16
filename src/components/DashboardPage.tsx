@@ -78,6 +78,19 @@ export function DashboardPage({
   const revenueCents = stats ? Math.round(parseFloat(stats.ytd_revenue) * 100) : 0;
   const expensesCents = stats ? Math.round(parseFloat(stats.ytd_expenses) * 100) : 0;
 
+  // All widgets render unconditionally so the dashboard is structurally
+  // complete even if `stats` is pending/errored. Missing values fall back
+  // to zero/empty — no widget disappears based on fetch state.
+  const statValues = {
+    total_clients: stats?.total_clients ?? 0,
+    ytd_revenue: stats?.ytd_revenue ?? "0",
+    ytd_expenses: stats?.ytd_expenses ?? "0",
+    ytd_net_income: stats?.ytd_net_income ?? "0",
+    total_transactions: stats?.total_transactions ?? 0,
+    account_balances: stats?.account_balances ?? [],
+    recent_transactions: stats?.recent_transactions ?? [],
+  };
+
   return (
     <div className="flex flex-col h-full overflow-auto bg-gray-50">
       {/* Header */}
@@ -124,50 +137,48 @@ export function DashboardPage({
 
       {/* Main content */}
       <div className="flex-1 px-8 py-6 space-y-6">
-        {/* Stat cards */}
+        {/* Stat cards — always render */}
         {statsLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {["clients", "revenue", "expenses", "net", "txns"].map((k) => (
               <StatSkeleton key={k} />
             ))}
           </div>
-        ) : stats ? (
+        ) : (
           <StatCardGrid
-            totalClients={stats.total_clients}
-            ytdRevenue={stats.ytd_revenue}
-            ytdExpenses={stats.ytd_expenses}
-            ytdNetIncome={stats.ytd_net_income}
-            totalTransactions={stats.total_transactions}
+            totalClients={statValues.total_clients}
+            ytdRevenue={statValues.ytd_revenue}
+            ytdExpenses={statValues.ytd_expenses}
+            ytdNetIncome={statValues.ytd_net_income}
+            totalTransactions={statValues.total_transactions}
             onNavigate={onNavigate}
           />
-        ) : null}
+        )}
 
-        {/* Charts row */}
-        {stats && period.start && period.end && (
+        {/* Charts row — always render (empty states handle no-data case) */}
+        {period.start && period.end && (
           <ChartsRow
             period={period}
             revenueCents={revenueCents}
             expensesCents={expensesCents}
-            accountBalances={stats.account_balances}
+            accountBalances={statValues.account_balances}
           />
         )}
 
-        {/* Tax widgets + recent transactions */}
+        {/* Tax widgets + recent transactions — always render */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="space-y-4">
-            {stats && (
-              <EstimatedQuarterlyTaxCard
-                ytdNetIncome={stats.ytd_net_income}
-                onViewDeadlines={() => onNavigate("tax-news")}
-              />
-            )}
+            <EstimatedQuarterlyTaxCard
+              ytdNetIncome={statValues.ytd_net_income}
+              onViewDeadlines={() => onNavigate("tax-news")}
+            />
             {period.start && period.end && (
               <DeductibleExpensesCard start={period.start} end={period.end} />
             )}
           </div>
           <div className="lg:col-span-2">
             <RecentTransactionsPanel
-              transactions={stats?.recent_transactions ?? []}
+              transactions={statValues.recent_transactions}
               onNavigate={onNavigate}
             />
           </div>
