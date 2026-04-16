@@ -12,6 +12,7 @@ pub mod export;
 pub mod files;
 pub mod settings;
 pub mod invoices;
+pub mod tax_news;
 pub mod transactions;
 pub mod unlock;
 pub mod updater;

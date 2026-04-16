@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>IRS Newsroom</title>
+    <link>https://www.irs.gov/newsroom</link>
+    <description>IRS News Releases and Announcements</description>
+    <language>en-us</language>
+    <item>
+      <title>IRS reminds sole proprietors to pay quarterly estimated taxes</title>
+      <link>https://www.irs.gov/newsroom/irs-reminds-sole-proprietors-quarterly-estimated-taxes</link>
+      <description>Self-employed individuals and sole proprietors must pay estimated taxes using Form 1040-ES each quarter to avoid penalties.</description>
+      <pubDate>Mon, 10 Mar 2025 12:00:00 +0000</pubDate>
+      <category>Individuals</category>
+      <category>Small Business</category>
+    </item>
+    <item>
+      <title>S corporation reasonable compensation guidance updated</title>
+      <link>https://www.irs.gov/newsroom/s-corporation-reasonable-compensation-guidance</link>
+      <description>The IRS has updated guidance on what constitutes reasonable compensation for S corporation shareholder-employees.</description>
+      <pubDate>Fri, 07 Mar 2025 09:00:00 +0000</pubDate>
+      <category>S Corp</category>
+      <category>Businesses</category>
+    </item>
+    <item>
+      <title>New Section 179 expensing limits announced for tax year 2025</title>
+      <link>https://www.irs.gov/newsroom/new-section-179-limits-2025</link>
+      <description>The IRS announced updated depreciation and Section 179 expensing limits applicable to small business asset purchases in 2025.</description>
+      <pubDate>Wed, 05 Mar 2025 14:30:00 +0000</pubDate>
+      <category>Small Business</category>
+      <category>Depreciation</category>
+    </item>
+    <item>
+      <title>Home office deduction rules clarified for remote workers</title>
+      <link>https://www.irs.gov/newsroom/home-office-deduction-remote-workers</link>
+      <description>The IRS clarified home office deduction eligibility for self-employed individuals and independent contractors working from home.</description>
+      <pubDate>Mon, 03 Mar 2025 10:00:00 +0000</pubDate>
+      <category>Individuals</category>
+    </item>
+    <item>
+      <title>IRS extends filing deadline for disaster-affected areas</title>
+      <link>https://www.irs.gov/newsroom/irs-extends-filing-deadline-disaster</link>
+      <description>Taxpayers in presidentially declared disaster areas receive automatic extensions for filing and payment deadlines.</description>
+      <pubDate>Thu, 27 Feb 2025 16:00:00 +0000</pubDate>
+      <category>Disaster Relief</category>
+    </item>
+  </channel>
+</rss>

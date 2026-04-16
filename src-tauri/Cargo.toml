@@ -46,6 +46,9 @@ tokio          = { version = "1", features = ["full"] }
 reqwest        = { version = "0.12", features = ["json"] }
 base64         = "0.22"
 
+# RSS / Atom feed parsing (tax news)
+feed-rs        = "2"
+
 # Encryption (AES-256-GCM for EIN field, key derivation)
 aes-gcm        = "0.10"
 argon2         = "0.5"
@@ -60,5 +63,6 @@ log            = "0.4"
 env_logger     = "0.11"
 
 [dev-dependencies]
-tempfile       = "3"
+tempfile              = "3"
+rust_decimal_macros   = "1"
 
