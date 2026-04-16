@@ -11,9 +11,10 @@ export interface AccountSelectProps {
   accounts: Account[];
   onChange: (accountId: string) => void;
   placeholder?: string;
+  id?: string;
 }
 
-export function AccountSelect({ value, accounts, onChange, placeholder }: AccountSelectProps) {
+export function AccountSelect({ value, accounts, onChange, placeholder, id }: AccountSelectProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -52,6 +53,7 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
   return (
     <div className="relative">
       <button
+        id={id}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
