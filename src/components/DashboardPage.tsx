@@ -13,7 +13,9 @@ import { getActiveClientId, type PeriodRange } from "../lib/tauri";
 function allTime(): PeriodRange {
   const now = new Date();
   // end is half-open: first day AFTER today, so today's txns are included.
-  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const tomorrow = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
   return {
     start: "2000-01-01", // far enough back to cover any bookkeeping history
     end: tomorrow.toISOString().slice(0, 10),
@@ -52,18 +54,24 @@ export function DashboardPage({
     queryFn: getActiveClientId,
   });
 
+  // Gate on clientId: the backend commands read the active client from a
+  // lock, so calling them before clientId resolves returns NoActiveClient
+  // and leaves `stats` undefined forever (retry:false). Including clientId
+  // in the queryKey also makes queries refetch when the active client changes.
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard_stats", period.start, period.end],
+    queryKey: ["dashboard_stats", clientId, period.start, period.end],
     queryFn: () =>
       getDashboardStats(
         period.start && period.end ? { start: period.start, end: period.end } : undefined,
       ),
+    enabled: !!clientId,
     retry: false,
   });
 
   const { data: businessProfile } = useQuery({
-    queryKey: ["business_profile"],
+    queryKey: ["business_profile", clientId],
     queryFn: getBusinessProfile,
+    enabled: !!clientId,
     retry: false,
   });
 
