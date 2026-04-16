@@ -43,6 +43,8 @@ impl ClientDb {
         self.apply_alter_migration(include_str!("../../migrations/006_transactions_status.sql"), 6)?;
         // B2: accounts.system_account_role column (stable FK for cash-flow matching).
         self.apply_alter_migration(include_str!("../../migrations/007_accounts_system_role.sql"), 7)?;
+        // C4: accounts.deductible flag for deductible-expense tracking.
+        self.apply_alter_migration(include_str!("../../migrations/009_accounts_deductible.sql"), 9)?;
         Ok(())
     }
 
