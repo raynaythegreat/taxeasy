@@ -180,9 +180,10 @@ pub fn approve_draft(
     let txn_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
+    // B1: approved drafts become posted transactions (status = 'posted').
     conn.execute(
-        "INSERT INTO transactions (id, txn_date, description, reference, locked, created_at)
-         VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+        "INSERT INTO transactions (id, txn_date, description, reference, locked, status, created_at)
+         VALUES (?1, ?2, ?3, ?4, 0, 'posted', ?5)",
         params![txn_id, date, description.trim(), draft.reference, now],
     )?;
 
@@ -422,9 +423,10 @@ fn approve_draft_with_conn(
     let txn_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
+    // B1: approved drafts become posted transactions (status = 'posted').
     conn.execute(
-        "INSERT INTO transactions (id, txn_date, description, reference, locked, created_at)
-         VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+        "INSERT INTO transactions (id, txn_date, description, reference, locked, status, created_at)
+         VALUES (?1, ?2, ?3, ?4, 0, 'posted', ?5)",
         params![txn_id, date, description.trim(), draft.reference, now],
     )?;
 

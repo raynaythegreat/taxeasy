@@ -84,6 +84,12 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
+    // B3: half-open [ytd_start, tomorrow) so today's transactions are included.
+    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
+    let tomorrow = {
+        use chrono::Duration;
+        (now + Duration::days(1)).format("%Y-%m-%d").to_string()
+    };
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -93,9 +99,10 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
          FROM entries e
          JOIN transactions t ON t.id = e.transaction_id
          JOIN accounts a ON a.id = e.account_id
-         WHERE t.txn_date BETWEEN ?1 AND ?2
+         WHERE t.txn_date >= ?1 AND t.txn_date < ?2
+           AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
-        params![ytd_start, today],
+        params![ytd_start, tomorrow],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )?;
 
@@ -103,14 +110,20 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
     let ytd_expenses = cents_to_decimal(exp_dr - exp_cr);
     let ytd_net_income = ytd_revenue - ytd_expenses;
 
-    let total_transactions: i64 =
-        conn.query_row("SELECT COUNT(*) FROM transactions", [], |row| row.get(0))?;
+    // B1: count only posted transactions for the dashboard total.
+    let total_transactions: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM transactions WHERE status = 'posted'",
+        [],
+        |row| row.get(0),
+    )?;
 
+    // B1: recent transactions list — posted only.
     let mut stmt = conn.prepare(
         "SELECT t.id, t.txn_date, t.description,
                 COALESCE(SUM(e.debit_cents),0) AS total_debit
          FROM transactions t
          LEFT JOIN entries e ON e.transaction_id = t.id
+         WHERE t.status = 'posted'
          GROUP BY t.id
          ORDER BY t.txn_date DESC, t.created_at DESC
          LIMIT 5",
@@ -128,6 +141,7 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
         .filter_map(|r| r.ok())
         .collect();
 
+    // B1: account balances — only posted transactions contribute.
     let mut bal_stmt = conn.prepare(
         "SELECT a.account_type,
                 COALESCE(SUM(e.debit_cents),0) AS dr,
@@ -135,6 +149,7 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
+             AND t.status = 'posted'
          WHERE a.active = 1
          GROUP BY a.account_type",
     )?;

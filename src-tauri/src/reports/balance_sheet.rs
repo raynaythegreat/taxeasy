@@ -67,8 +67,11 @@ pub fn get_balance_sheet(
     let conn = ac.db.conn();
 
     // Running balance per account as-of-date.
-    // Assets/Expenses: debit-normal → balance = SUM(dr) - SUM(cr)
-    // Liabilities/Equity/Revenue: credit-normal → balance = SUM(cr) - SUM(dr)
+    // Balance Sheet uses INCLUSIVE end semantics: all posted transactions up to
+    // and including as_of_date contribute to the balance (t.txn_date <= as_of_date).
+    // This is intentional and differs from flow reports (P&L, Cash Flow) which use
+    // half-open [start, end) ranges.  See docs/ACCOUNTING-METHOD.md for rationale.
+    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type,
                 COALESCE(SUM(e.debit_cents),0) AS dr,
@@ -77,6 +80,7 @@ pub fn get_balance_sheet(
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
              AND t.txn_date <= ?1
+             AND t.status = 'posted'
          WHERE a.account_type IN ('asset','liability','equity') AND a.active = 1
          GROUP BY a.id
          ORDER BY a.sort_order, a.code",
@@ -151,6 +155,15 @@ pub fn get_balance_sheet(
     };
     let fiscal_start = format!("{fy_year}-{:02}-01", fiscal_year_start_month);
 
+    // YTD net income: half-open [fiscal_start, next_day_after_as_of) so that
+    // as_of_date transactions are included without double-counting the boundary.
+    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
+    let as_of_next = {
+        use chrono::NaiveDate;
+        NaiveDate::parse_from_str(&as_of_date, "%Y-%m-%d")
+            .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|_| as_of_date.clone())
+    };
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -160,9 +173,10 @@ pub fn get_balance_sheet(
          FROM entries e
          JOIN transactions t ON t.id = e.transaction_id
          JOIN accounts a ON a.id = e.account_id
-         WHERE t.txn_date BETWEEN ?1 AND ?2
+         WHERE t.txn_date >= ?1 AND t.txn_date < ?2
+           AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
-        params![fiscal_start, as_of_date],
+        params![fiscal_start, as_of_next],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )?;
 
