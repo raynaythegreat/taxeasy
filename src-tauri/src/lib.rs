@@ -97,6 +97,13 @@ pub fn run() {
             commands::business_profile::save_business_profile,
             commands::tax_news::fetch_tax_news,
             commands::tax_news::refresh_tax_news,
+            commands::csv_import::preview_csv,
+            commands::csv_import::import_csv,
+            commands::recurring::list_recurring,
+            commands::recurring::create_recurring,
+            commands::recurring::update_recurring,
+            commands::recurring::delete_recurring,
+            commands::recurring::run_due_recurring,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
