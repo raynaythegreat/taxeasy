@@ -1,0 +1,130 @@
+import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
+import { useI18n } from "../../lib/i18n";
+import { formatCurrency } from "../../lib/utils";
+
+interface AccountBalance {
+  account_type: string;
+  balance: string;
+}
+
+interface AccountCompositionTreemapProps {
+  balances: AccountBalance[];
+  reducedMotion?: boolean;
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  asset: "var(--color-chart-asset, #3b82f6)",
+  liability: "var(--color-chart-liability, #ef4444)",
+  equity: "var(--color-chart-equity, #8b5cf6)",
+  revenue: "var(--color-chart-revenue, #22c55e)",
+  expense: "var(--color-chart-expense, #f59e0b)",
+};
+
+export function AccountCompositionTreemap({
+  balances,
+  reducedMotion = false,
+}: AccountCompositionTreemapProps) {
+  const { t } = useI18n();
+
+  const TYPE_LABELS: Record<string, string> = {
+    asset: t("Assets"),
+    liability: t("Liabilities"),
+    equity: t("Equity"),
+    revenue: t("Revenue"),
+    expense: t("Expenses"),
+  };
+
+  const data = balances
+    .map((ab) => ({
+      name: TYPE_LABELS[ab.account_type] ?? ab.account_type,
+      type: ab.account_type,
+      value: Math.max(Math.abs(parseFloat(ab.balance)), 0.01),
+      displayValue: parseFloat(ab.balance),
+    }))
+    .filter((d) => d.value > 0);
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-[200px] flex items-center justify-center text-sm text-gray-400">
+        {t("No account balance data.")}
+      </div>
+    );
+  }
+
+  return (
+    <div role="img" aria-label={t("Account composition treemap")} className="w-full">
+      <ResponsiveContainer width="100%" height={200}>
+        <Treemap
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          isAnimationActive={!reducedMotion}
+          content={({ x, y, width, height, name, type, displayValue }) => {
+            const color = TYPE_COLORS[type as string] ?? "#94a3b8";
+            return (
+              <g>
+                <rect
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                  style={{ fill: color, stroke: "#fff", strokeWidth: 2, opacity: 0.85 }}
+                />
+                {width > 60 && height > 30 && (
+                  <>
+                    <text
+                      x={(x as number) + (width as number) / 2}
+                      y={(y as number) + (height as number) / 2 - 6}
+                      textAnchor="middle"
+                      fill="#fff"
+                      fontSize={11}
+                      fontWeight={600}
+                    >
+                      {name as string}
+                    </text>
+                    <text
+                      x={(x as number) + (width as number) / 2}
+                      y={(y as number) + (height as number) / 2 + 10}
+                      textAnchor="middle"
+                      fill="rgba(255,255,255,0.85)"
+                      fontSize={10}
+                    >
+                      {formatCurrency(displayValue as number)}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          }}
+        >
+          <Tooltip
+            formatter={(v, _n, entry) => {
+              const display = entry?.payload?.displayValue;
+              return formatCurrency(
+                typeof display === "number" ? display : typeof v === "number" ? v : 0,
+              );
+            }}
+          />
+        </Treemap>
+      </ResponsiveContainer>
+
+      <table className="sr-only">
+        <caption>{t("Account Composition")}</caption>
+        <thead>
+          <tr>
+            <th>{t("Account Type")}</th>
+            <th>{t("Balance")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row) => (
+            <tr key={row.type}>
+              <td>{row.name}</td>
+              <td>{formatCurrency(row.displayValue)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

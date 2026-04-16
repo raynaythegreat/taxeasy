@@ -35,22 +35,29 @@ pub struct AccountBalance {
     pub balance: Decimal,
 }
 
-#[tauri::command(rename_all = "camelCase")]
-pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardStats> {
-    let (total_clients, active_clients) = {
-        let lock = state.app_db.lock().unwrap();
-        let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = db.conn();
-        let total: i64 = conn.query_row("SELECT COUNT(*) FROM clients", [], |row| row.get(0))?;
-        let active: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM clients WHERE archived_at IS NULL",
-            [],
-            |row| row.get(0),
-        )?;
-        (total, active)
-    };
+#[derive(Debug, Serialize)]
+pub struct NetCashPoint {
+    pub bucket: String,
+    pub net_cents: i64,
+}
 
-    let (_client_id, fiscal_year_start_month) = {
+#[derive(Debug, Serialize)]
+pub struct CategoryTotal {
+    pub account_id: String,
+    pub account_name: String,
+    pub total_cents: i64,
+    pub percentage: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DeductibleSummary {
+    pub total_cents: i64,
+    pub total: Decimal,
+}
+
+/// Compute the fiscal-YTD half-open range [ytd_start, tomorrow) for a client.
+fn fiscal_ytd_range(state: &AppState) -> Result<(String, String)> {
+    let fiscal_year_start_month = {
         let lock = state.active_client.lock().unwrap();
         let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
         let cid = ac.client_id.clone();
@@ -66,7 +73,7 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
                 |row| row.get(0),
             )
             .unwrap_or(1);
-        (cid, fym)
+        fym
     };
 
     let now = chrono::Local::now();
@@ -77,19 +84,44 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
     } else {
         current_year - 1
     };
-    let ytd_start = format!("{fy_year}-{:02}-01", fiscal_year_start_month);
-    let today = now.format("%Y-%m-%d").to_string();
+    let start = format!("{fy_year}-{:02}-01", fiscal_year_start_month);
+    let end = {
+        use chrono::Duration;
+        (now + Duration::days(1)).format("%Y-%m-%d").to_string()
+    };
+    Ok((start, end))
+}
+
+/// Dashboard stats for a given half-open [start, end) range.
+/// If start/end are empty strings, falls back to fiscal YTD.
+#[tauri::command(rename_all = "camelCase")]
+pub fn get_dashboard_stats(
+    state: tauri::State<AppState>,
+    start: Option<String>,
+    end: Option<String>,
+) -> Result<DashboardStats> {
+    let (total_clients, active_clients) = {
+        let lock = state.app_db.lock().unwrap();
+        let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let conn = db.conn();
+        let total: i64 = conn.query_row("SELECT COUNT(*) FROM clients", [], |row| row.get(0))?;
+        let active: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM clients WHERE archived_at IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        (total, active)
+    };
+
+    let (range_start, range_end) = match (start, end) {
+        (Some(s), Some(e)) if !s.is_empty() && !e.is_empty() => (s, e),
+        _ => fiscal_ytd_range(&state)?,
+    };
 
     let lock = state.active_client.lock().unwrap();
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
-    // B3: half-open [ytd_start, tomorrow) so today's transactions are included.
-    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
-    let tomorrow = {
-        use chrono::Duration;
-        (now + Duration::days(1)).format("%Y-%m-%d").to_string()
-    };
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -102,7 +134,7 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
          WHERE t.txn_date >= ?1 AND t.txn_date < ?2
            AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
-        params![ytd_start, tomorrow],
+        params![range_start, range_end],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )?;
 
@@ -110,14 +142,12 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
     let ytd_expenses = cents_to_decimal(exp_dr - exp_cr);
     let ytd_net_income = ytd_revenue - ytd_expenses;
 
-    // B1: count only posted transactions for the dashboard total.
     let total_transactions: i64 = conn.query_row(
         "SELECT COUNT(*) FROM transactions WHERE status = 'posted'",
         [],
         |row| row.get(0),
     )?;
 
-    // B1: recent transactions list — posted only.
     let mut stmt = conn.prepare(
         "SELECT t.id, t.txn_date, t.description,
                 COALESCE(SUM(e.debit_cents),0) AS total_debit
@@ -141,7 +171,6 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
         .filter_map(|r| r.ok())
         .collect();
 
-    // B1: account balances — only posted transactions contribute.
     let mut bal_stmt = conn.prepare(
         "SELECT a.account_type,
                 COALESCE(SUM(e.debit_cents),0) AS dr,
@@ -180,5 +209,150 @@ pub fn get_dashboard_stats(state: tauri::State<AppState>) -> Result<DashboardSta
         total_transactions,
         recent_transactions,
         account_balances,
+    })
+}
+
+/// Bucket options for net cash trend.
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TrendBucket {
+    Daily,
+    Weekly,
+    Monthly,
+}
+
+/// Net cash trend: one point per bucket within [start, end).
+#[tauri::command(rename_all = "camelCase")]
+pub fn get_net_cash_trend(
+    state: tauri::State<AppState>,
+    start: String,
+    end: String,
+    bucket: TrendBucket,
+) -> Result<Vec<NetCashPoint>> {
+    let lock = state.active_client.lock().unwrap();
+    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+    let conn = ac.db.conn();
+
+    // Use SQLite strftime to group dates into buckets.
+    let fmt = match bucket {
+        TrendBucket::Daily => "%Y-%m-%d",
+        TrendBucket::Weekly => "%Y-W%W",
+        TrendBucket::Monthly => "%Y-%m",
+    };
+
+    let sql = format!(
+        "SELECT strftime('{fmt}', t.txn_date) AS bucket,
+                COALESCE(SUM(
+                    CASE WHEN a.account_type = 'revenue' THEN e.credit_cents - e.debit_cents
+                         WHEN a.account_type = 'expense' THEN -(e.debit_cents - e.credit_cents)
+                         ELSE 0 END
+                ), 0) AS net_cents
+         FROM transactions t
+         JOIN entries e ON e.transaction_id = t.id
+         JOIN accounts a ON a.id = e.account_id
+         WHERE t.txn_date >= ?1 AND t.txn_date < ?2
+           AND t.status = 'posted'
+           AND a.account_type IN ('revenue', 'expense')
+         GROUP BY bucket
+         ORDER BY bucket"
+    );
+
+    let mut stmt = conn.prepare(&sql)?;
+    let points: Vec<NetCashPoint> = stmt
+        .query_map(params![start, end], |row| {
+            Ok(NetCashPoint {
+                bucket: row.get(0)?,
+                net_cents: row.get(1)?,
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(points)
+}
+
+/// Top N expense categories by total spend within [start, end).
+#[tauri::command(rename_all = "camelCase")]
+pub fn get_top_categories(
+    state: tauri::State<AppState>,
+    start: String,
+    end: String,
+    n: Option<i64>,
+) -> Result<Vec<CategoryTotal>> {
+    let limit = n.unwrap_or(5).max(1).min(20);
+    let lock = state.active_client.lock().unwrap();
+    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+    let conn = ac.db.conn();
+
+    let mut stmt = conn.prepare(
+        "SELECT a.id, a.name,
+                COALESCE(SUM(e.debit_cents - e.credit_cents), 0) AS total_cents
+         FROM accounts a
+         JOIN entries e ON e.account_id = a.id
+         JOIN transactions t ON t.id = e.transaction_id
+         WHERE a.account_type = 'expense'
+           AND t.txn_date >= ?1 AND t.txn_date < ?2
+           AND t.status = 'posted'
+         GROUP BY a.id
+         ORDER BY total_cents DESC
+         LIMIT ?3",
+    )?;
+
+    let rows: Vec<(String, String, i64)> = stmt
+        .query_map(params![start, end, limit], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get::<_, i64>(2)?))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let grand_total: i64 = rows.iter().map(|(_, _, c)| c).sum();
+
+    let categories = rows
+        .into_iter()
+        .map(|(id, name, cents)| {
+            let pct = if grand_total > 0 {
+                cents_to_decimal(cents * 10000 / grand_total) / Decimal::ONE_HUNDRED
+            } else {
+                Decimal::ZERO
+            };
+            CategoryTotal {
+                account_id: id,
+                account_name: name,
+                total_cents: cents,
+                percentage: pct,
+            }
+        })
+        .collect();
+
+    Ok(categories)
+}
+
+/// Sum of expenses on accounts where deductible = 1 within [start, end).
+#[tauri::command(rename_all = "camelCase")]
+pub fn get_deductible_expenses(
+    state: tauri::State<AppState>,
+    start: String,
+    end: String,
+) -> Result<DeductibleSummary> {
+    let lock = state.active_client.lock().unwrap();
+    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+    let conn = ac.db.conn();
+
+    let total_cents: i64 = conn.query_row(
+        "SELECT COALESCE(SUM(e.debit_cents - e.credit_cents), 0)
+         FROM entries e
+         JOIN accounts a ON a.id = e.account_id
+         JOIN transactions t ON t.id = e.transaction_id
+         WHERE a.account_type = 'expense'
+           AND a.deductible = 1
+           AND t.txn_date >= ?1 AND t.txn_date < ?2
+           AND t.status = 'posted'",
+        params![start, end],
+        |row| row.get(0),
+    )?;
+
+    Ok(DeductibleSummary {
+        total_cents,
+        total: cents_to_decimal(total_cents),
     })
 }
