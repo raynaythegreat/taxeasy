@@ -25,18 +25,31 @@ async function printViaBrowserFallback(): Promise<void> {
 <html>
 <head>
 <meta charset="utf-8">
-<title>Taxeasy</title>
+<!-- Single-space title so the browser's print dialog doesn't render "document title"
+     in the top margin box. Combined with the empty @top-* rules below, every
+     browser-injected header (date, URL, title) is suppressed. -->
+<title> </title>
 <style>${styles}</style>
 <style>
   @page {
     margin: 0.5in 0.5in 0.75in 0.5in;
-    @bottom-right { content: counter(page); font-size: 9pt; color: #6b7280; }
+    /* Blank EVERY top/bottom margin box so no browser default (date, URL,
+       page title) shows through. Single space, not empty — some engines
+       treat empty content as "fall back to default". */
+    @top-left     { content: ' '; }
+    @top-center   { content: ' '; }
+    @top-right    { content: ' '; }
+    @bottom-left  { content: ' '; }
+    @bottom-center{ content: ' '; }
+    @bottom-right { content: counter(page); font-size: 9pt; color: #6b7280; font-family: system-ui, sans-serif; }
   }
   body { background: white; color: #0f172a; }
   /* Hide elements the app flags as screen-only. */
   .print\\:hidden, nav, [role="toolbar"] { display: none !important; }
 </style>
 <script>
+  // Ensure the document title stays blank even if a script elsewhere sets it.
+  document.title = ' ';
   window.addEventListener('load', () => setTimeout(() => window.print(), 250));
 </script>
 </head>
