@@ -1,5 +1,5 @@
 use chrono::Datelike;
-use rusqlite::params;
+use rusqlite::{params, Connection};
 use rust_decimal::Decimal;
 use serde::Serialize;
 
@@ -92,36 +92,15 @@ fn fiscal_ytd_range(state: &AppState) -> Result<(String, String)> {
     Ok((start, end))
 }
 
-/// Dashboard stats for a given half-open [start, end) range.
-/// If start/end are empty strings, falls back to fiscal YTD.
-#[tauri::command(rename_all = "camelCase")]
-pub fn get_dashboard_stats(
-    state: tauri::State<AppState>,
-    start: Option<String>,
-    end: Option<String>,
+/// Pure-SQL inner function: computes dashboard stats for a half-open [start, end) range.
+/// Extracted from the Tauri command so integration tests can call it directly.
+pub(crate) fn compute_dashboard_stats(
+    conn: &Connection,
+    total_clients: i64,
+    active_clients: i64,
+    start: &str,
+    end: &str,
 ) -> Result<DashboardStats> {
-    let (total_clients, active_clients) = {
-        let lock = state.app_db.lock().unwrap();
-        let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = db.conn();
-        let total: i64 = conn.query_row("SELECT COUNT(*) FROM clients", [], |row| row.get(0))?;
-        let active: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM clients WHERE archived_at IS NULL",
-            [],
-            |row| row.get(0),
-        )?;
-        (total, active)
-    };
-
-    let (range_start, range_end) = match (start, end) {
-        (Some(s), Some(e)) if !s.is_empty() && !e.is_empty() => (s, e),
-        _ => fiscal_ytd_range(&state)?,
-    };
-
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -134,7 +113,7 @@ pub fn get_dashboard_stats(
          WHERE t.txn_date >= ?1 AND t.txn_date < ?2
            AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
-        params![range_start, range_end],
+        params![start, end],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )?;
 
@@ -171,20 +150,27 @@ pub fn get_dashboard_stats(
         .filter_map(|r| r.ok())
         .collect();
 
+    // Fix: the LEFT JOIN keeps accounts with zero activity (correct), but the ON clause
+    // filter on status and date only NULLs out the transaction columns — entries whose
+    // transactions fail the filter still have non-NULL debit_cents/credit_cents.
+    // Use CASE WHEN t.id IS NOT NULL to sum only entries whose transaction passed both
+    // the status='posted' and the date-range conditions.
     let mut bal_stmt = conn.prepare(
         "SELECT a.account_type,
-                COALESCE(SUM(e.debit_cents),0) AS dr,
-                COALESCE(SUM(e.credit_cents),0) AS cr
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END), 0) AS dr,
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.credit_cents ELSE 0 END), 0) AS cr
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
              AND t.status = 'posted'
+             AND t.txn_date >= ?1
+             AND t.txn_date < ?2
          WHERE a.active = 1
          GROUP BY a.account_type",
     )?;
 
     let account_balances: Vec<AccountBalance> = bal_stmt
-        .query_map([], |row| {
+        .query_map(params![start, end], |row| {
             let atype: String = row.get(0)?;
             let dr: i64 = row.get(1)?;
             let cr: i64 = row.get(2)?;
@@ -210,6 +196,39 @@ pub fn get_dashboard_stats(
         recent_transactions,
         account_balances,
     })
+}
+
+/// Dashboard stats for a given half-open [start, end) range.
+/// If start/end are empty strings, falls back to fiscal YTD.
+#[tauri::command(rename_all = "camelCase")]
+pub fn get_dashboard_stats(
+    state: tauri::State<AppState>,
+    start: Option<String>,
+    end: Option<String>,
+) -> Result<DashboardStats> {
+    let (total_clients, active_clients) = {
+        let lock = state.app_db.lock().unwrap();
+        let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let conn = db.conn();
+        let total: i64 = conn.query_row("SELECT COUNT(*) FROM clients", [], |row| row.get(0))?;
+        let active: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM clients WHERE archived_at IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        (total, active)
+    };
+
+    let (range_start, range_end) = match (start, end) {
+        (Some(s), Some(e)) if !s.is_empty() && !e.is_empty() => (s, e),
+        _ => fiscal_ytd_range(&state)?,
+    };
+
+    let lock = state.active_client.lock().unwrap();
+    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+    let conn = ac.db.conn();
+
+    compute_dashboard_stats(conn, total_clients, active_clients, &range_start, &range_end)
 }
 
 /// Bucket options for net cash trend.
@@ -279,7 +298,7 @@ pub fn get_top_categories(
     end: String,
     n: Option<i64>,
 ) -> Result<Vec<CategoryTotal>> {
-    let limit = n.unwrap_or(5).max(1).min(20);
+    let limit = n.unwrap_or(5).clamp(1, 20);
     let lock = state.active_client.lock().unwrap();
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     let conn = ac.db.conn();
