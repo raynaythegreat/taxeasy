@@ -52,10 +52,13 @@ export function AccountCompositionTreemap({
     // period from rendering 5 equal slivers and a "$NaN" total.
     .filter((d) => d.absValue > 0);
 
-  if (data.length === 0) {
+  // Defense-in-depth: even if filtering missed something, a zero grand-total
+  // would produce NaN in recharts' percentage math. Show empty state instead.
+  const totalAbs = data.reduce((sum, d) => sum + d.absValue, 0);
+  if (data.length === 0 || totalAbs === 0) {
     return (
-      <div className="w-full h-[200px] flex items-center justify-center text-sm text-gray-400">
-        {t("No account balance data.")}
+      <div className="w-full h-[200px] flex items-center justify-center text-sm text-gray-500">
+        {t("No account balance data for this period.")}
       </div>
     );
   }

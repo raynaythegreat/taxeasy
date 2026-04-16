@@ -6,20 +6,17 @@ import { getDashboardStats } from "../lib/dashboard-api";
 import { useI18n } from "../lib/i18n";
 import { getActiveClientId, type PeriodRange } from "../lib/tauri";
 
-/** Rolling last-12-months as a half-open [start, end) range. Used as the
- *  dashboard's default so recent activity is always visible, even across
- *  fiscal-year boundaries or when the user's data is from last year. */
-function lastTwelveMonths(): PeriodRange {
+/** "All time" as a half-open [start, end) range. Used as the dashboard's
+ *  default so every user sees their actual data on first paint, regardless
+ *  of when transactions were entered. Users pick a narrower period from
+ *  the PeriodPicker when they want YTD / quarter / tax-year specifics. */
+function allTime(): PeriodRange {
   const now = new Date();
-  const endDate = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
-  );
-  const startDate = new Date(
-    Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), now.getUTCDate()),
-  );
+  // end is half-open: first day AFTER today, so today's txns are included.
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
   return {
-    start: startDate.toISOString().slice(0, 10),
-    end: endDate.toISOString().slice(0, 10),
+    start: "2000-01-01", // far enough back to cover any bookkeeping history
+    end: tomorrow.toISOString().slice(0, 10),
   };
 }
 
@@ -46,10 +43,9 @@ export function DashboardPage({
   const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
 
-  // Default to rolling last-12-months so recent activity is visible regardless
-  // of fiscal year or whether the user's data is from this year vs last.
-  // Users who want strict YTD / quarter / tax-year can pick from PeriodPicker.
-  const [period, setPeriod] = useState<PeriodRange>(lastTwelveMonths);
+  // Default to "All Time" so the user's actual data shows on first paint.
+  // Users pick narrower periods (YTD / quarter / tax-year) from PeriodPicker.
+  const [period, setPeriod] = useState<PeriodRange>(allTime);
 
   const { data: clientId } = useQuery({
     queryKey: ["active_client_id"],
