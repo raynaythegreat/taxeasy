@@ -33,6 +33,7 @@ export function BackupRestoreCard({
         </p>
       )}
       <button
+        type="button"
         onClick={onAction}
         disabled={loading}
         className={cn(

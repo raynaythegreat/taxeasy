@@ -72,7 +72,6 @@ export function AccountSelect({ value, accounts, onChange, placeholder }: Accoun
             <div className="flex items-center gap-1.5 px-2 py-1 border border-gray-200 rounded bg-gray-50">
               <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <input
-                autoFocus
                 type="text"
                 placeholder={t("Search accounts…")}
                 value={search}

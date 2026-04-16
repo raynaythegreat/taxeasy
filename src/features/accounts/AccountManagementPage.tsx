@@ -271,7 +271,7 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
       <div className="flex-1 overflow-auto">
         {isLoading && (
           <div className="flex items-center justify-center py-16">
-            <svg className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
                 cx="12"
@@ -470,7 +470,6 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                     value={addForm.code}
                     onChange={(e) => setAddForm((p) => ({ ...p, code: e.target.value }))}
                     placeholder="1000"
-                    autoFocus
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={createMutation.isPending}
                   />

@@ -68,7 +68,7 @@ export function ChatPanel({ clientId }: { clientId: string }) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [allMessages.length, sendMutation.isPending]);
+  }, []);
 
   const handleSend = () => {
     const trimmed = input.trim();

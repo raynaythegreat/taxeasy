@@ -35,12 +35,14 @@ export function ConfirmRestoreModal({ restoring, onConfirm, onCancel }: ConfirmR
         </p>
         <div className="flex items-center gap-3 justify-end pt-2">
           <button
+            type="button"
             onClick={onCancel}
             className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             {t("Cancel")}
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={restoring}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

@@ -31,6 +31,7 @@ export function EntryRow({ row, accounts, canRemove, onUpdate, onRemove }: Entry
       <div className="px-2 py-1.5 border-r border-gray-100">
         <input
           type="number"
+          inputMode="decimal"
           min="0"
           step="0.01"
           value={row.debit}
@@ -42,6 +43,7 @@ export function EntryRow({ row, accounts, canRemove, onUpdate, onRemove }: Entry
       <div className="px-2 py-1.5 border-r border-gray-100">
         <input
           type="number"
+          inputMode="decimal"
           min="0"
           step="0.01"
           value={row.credit}

@@ -75,6 +75,7 @@ export function ReportsPage() {
           <nav className="flex gap-1">
             {TABS.map((tab) => (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
@@ -94,6 +95,7 @@ export function ReportsPage() {
               {from} &mdash; {to}
             </span>
             <button
+              type="button"
               onClick={handleExport}
               disabled={exporting}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
@@ -102,6 +104,7 @@ export function ReportsPage() {
               {exporting ? t("Exporting…") : t("Export")}
             </button>
             <button
+              type="button"
               onClick={triggerPrint}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
             >

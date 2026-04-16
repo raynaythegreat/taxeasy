@@ -121,7 +121,6 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               type="text"
               value={name}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-              autoFocus
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
@@ -159,7 +158,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
                 const formatted =
-                  digits.length > 2 ? digits.slice(0, 2) + "-" + digits.slice(2) : digits;
+                  digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
                 setEin(formatted);
               }}
               placeholder="XX-XXXXXXX"
@@ -367,7 +366,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
           </div>
 
           {error && (
-            <div className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div role="alert" aria-live="polite" className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}

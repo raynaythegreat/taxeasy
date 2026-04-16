@@ -89,6 +89,7 @@ export function AiSettingsTab({
         <div className="grid grid-cols-2 gap-3">
           {(["ollama", "lmstudio"] as const).map((p) => (
             <button
+              type="button"
               key={p}
               onClick={() => onProviderChange(p)}
               className={cn(
@@ -132,6 +133,7 @@ export function AiSettingsTab({
               placeholder={defaultUrl}
             />
             <button
+              type="button"
               onClick={onTestProvider}
               disabled={testingProvider}
               className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
@@ -162,6 +164,7 @@ export function AiSettingsTab({
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
             <button
+              type="button"
               onClick={onFetchModels}
               disabled={loadingModels}
               className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
@@ -208,6 +211,7 @@ export function AiSettingsTab({
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onTestGlmocr}
               disabled={testingGlmocr}
               className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
@@ -301,6 +305,7 @@ export function AiSettingsTab({
 
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={() =>
             onSave({
               ai_provider: aiProvider,

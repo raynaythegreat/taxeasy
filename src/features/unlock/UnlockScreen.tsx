@@ -83,7 +83,6 @@ export function UnlockScreen({ onUnlocked }: UnlockScreenProps) {
                   setPin(val);
                   if (error) setError(null);
                 }}
-                autoFocus
                 autoComplete="current-password"
                 placeholder={t("Enter 4-digit PIN")}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"

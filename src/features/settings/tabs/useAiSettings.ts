@@ -122,7 +122,7 @@ export function useAiSettings(): AiSettingsState {
   }, [fetchModels]);
   useEffect(() => {
     if (aiProvider === "ollama") void testGlmocr();
-  }, [aiProvider, ollamaUrl, testGlmocr]);
+  }, [aiProvider, testGlmocr]);
 
   const initFromSettings = useCallback(
     (s: {

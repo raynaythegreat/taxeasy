@@ -97,7 +97,7 @@ function QueuePill({ item }: { item: QueueItem }) {
       {item.status === "scanning" && <Loader className="w-3 h-3 animate-spin" />}
       {item.status === "done" && <CheckCircle className="w-3 h-3" />}
       {item.status === "error" && <AlertCircle className="w-3 h-3" />}
-      {item.name.length > 20 ? item.name.slice(0, 18) + "…" : item.name}
+      {item.name.length > 20 ? `${item.name.slice(0, 18)}…` : item.name}
     </span>
   );
 }
@@ -303,6 +303,7 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
         <h2 className="text-sm font-semibold text-gray-900">{t("Import Transactions")}</h2>
         <button
+          type="button"
           onClick={onClose}
           className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
         >
@@ -312,6 +313,7 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
 
       <div className="shrink-0 flex items-center gap-4 px-5 py-3 bg-gray-50 border-b border-gray-200 flex-wrap">
         <button
+          type="button"
           onClick={handlePickFiles}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 font-medium text-gray-700"
         >
@@ -511,6 +513,7 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
               })}
             </span>
             <button
+              type="button"
               onClick={handleSuggestAll}
               disabled={suggestingAll || rows.every((r) => r.suggestion || !r.include)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40"
@@ -520,6 +523,7 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
             </button>
             {importError && <span className="text-xs text-red-600">{importError}</span>}
             <button
+              type="button"
               onClick={handleImport}
               disabled={importing || readyCount === 0 || !bankAccountId}
               className="ml-auto px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40"
