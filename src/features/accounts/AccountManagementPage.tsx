@@ -271,7 +271,12 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
       <div className="flex-1 overflow-auto">
         {isLoading && (
           <div className="flex items-center justify-center py-16">
-            <svg aria-hidden="true" className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="animate-spin w-6 h-6 text-blue-600"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle
                 className="opacity-25"
                 cx="12"
@@ -327,10 +332,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                           >
                             <div className="grid grid-cols-[80px_1fr_120px_120px] gap-3 items-end">
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label
+                                  htmlFor={`edit-code-${account.id}`}
+                                  className="block text-xs font-medium text-gray-600 mb-1"
+                                >
                                   {t("Code")}
                                 </label>
                                 <input
+                                  id={`edit-code-${account.id}`}
                                   type="text"
                                   value={editForm.code}
                                   onChange={(e) =>
@@ -340,10 +349,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label
+                                  htmlFor={`edit-name-${account.id}`}
+                                  className="block text-xs font-medium text-gray-600 mb-1"
+                                >
                                   {t("Name")}
                                 </label>
                                 <input
+                                  id={`edit-name-${account.id}`}
                                   type="text"
                                   value={editForm.name}
                                   onChange={(e) =>
@@ -353,10 +366,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label
+                                  htmlFor={`edit-schc-${account.id}`}
+                                  className="block text-xs font-medium text-gray-600 mb-1"
+                                >
                                   {t("Sch C Line")}
                                 </label>
                                 <input
+                                  id={`edit-schc-${account.id}`}
                                   type="text"
                                   value={editForm.schedule_c_line}
                                   onChange={(e) =>
@@ -462,10 +479,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="add-acct-code"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     {t("Code")} <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="add-acct-code"
                     type="text"
                     value={addForm.code}
                     onChange={(e) => setAddForm((p) => ({ ...p, code: e.target.value }))}
@@ -475,10 +496,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="add-acct-type"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     {t("Type")} <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="add-acct-type"
                     value={addForm.account_type}
                     onChange={(e) =>
                       setAddForm((p) => ({ ...p, account_type: e.target.value as AccountType }))
@@ -496,10 +521,14 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="add-acct-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {t("Name")} <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="add-acct-name"
                   type="text"
                   value={addForm.name}
                   onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))}
@@ -510,11 +539,15 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="add-acct-parent"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {t("Parent Account")}{" "}
                   <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <select
+                  id="add-acct-parent"
                   value={addForm.parent_id}
                   onChange={(e) => setAddForm((p) => ({ ...p, parent_id: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -532,11 +565,15 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="add-acct-schc"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {t("Schedule C Line")}{" "}
                   <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
+                  id="add-acct-schc"
                   type="text"
                   value={addForm.schedule_c_line}
                   onChange={(e) => setAddForm((p) => ({ ...p, schedule_c_line: e.target.value }))}

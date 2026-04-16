@@ -24,9 +24,12 @@ export function AdvancedFields({
     <>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <label htmlFor="adv-date" className="block text-xs font-medium text-gray-600 mb-1">
+            Date
+          </label>
           <div className="flex items-center gap-1.5">
             <input
+              id="adv-date"
               type="date"
               value={txnDate}
               onChange={(e) => onDateChange(e.target.value)}
@@ -43,10 +46,11 @@ export function AdvancedFields({
           </div>
         </div>
         <div className="col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label htmlFor="adv-description" className="block text-xs font-medium text-gray-600 mb-1">
             {t("Description")} <span className="text-red-400">*</span>
           </label>
           <input
+            id="adv-description"
             type="text"
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
@@ -58,8 +62,11 @@ export function AdvancedFields({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Reference (optional)</label>
+        <label htmlFor="adv-reference" className="block text-xs font-medium text-gray-600 mb-1">
+          Reference (optional)
+        </label>
         <input
+          id="adv-reference"
           type="text"
           value={reference}
           onChange={(e) => onReferenceChange(e.target.value)}

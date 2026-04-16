@@ -132,6 +132,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setUploading(false);
     }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Tauri command references are stable module-level functions
   }, [filterYear, queryClient, t, showToast]);
 
   const handleExportClient = useCallback(async () => {
@@ -157,6 +158,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setExporting(false);
     }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Tauri command references are stable module-level functions
   }, [t, showToast]);
 
   const handleExportAll = useCallback(async () => {
@@ -177,6 +179,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
     } finally {
       setExporting(false);
     }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Tauri command references are stable module-level functions
   }, [t, showToast]);
 
   function showToast(message: string, type: "success" | "error") {
@@ -332,7 +335,12 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       <div className="flex-1 overflow-auto bg-white">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <svg aria-hidden="true" className="animate-spin w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="animate-spin w-6 h-6 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle
                 className="opacity-25"
                 cx="12"

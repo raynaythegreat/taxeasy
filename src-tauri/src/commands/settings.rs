@@ -17,6 +17,9 @@ pub struct AppSettings {
     pub theme: String,
     pub default_export_path: String,
     pub app_pin: String,
+    /// Minimum OCR confidence score (0.0–1.0) required to auto-post a draft.
+    /// Drafts with any field below this threshold require manual review.
+    pub ocr_auto_post_threshold: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +33,7 @@ pub struct SaveSettingsPayload {
     pub theme: Option<String>,
     pub default_export_path: Option<String>,
     pub app_pin: Option<String>,
+    pub ocr_auto_post_threshold: Option<f64>,
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -47,6 +51,10 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
         .unwrap_or_else(|_| default.to_owned())
     };
 
+    let ocr_threshold: f64 = get_val("ocr_auto_post_threshold", "0.7")
+        .parse()
+        .unwrap_or(0.7);
+
     Ok(AppSettings {
         ai_provider: get_val("ai_provider", "ollama"),
         ollama_url: get_val("ollama_url", "http://localhost:11434"),
@@ -57,6 +65,7 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
         theme: get_val("theme", "system"),
         default_export_path: get_val("default_export_path", ""),
         app_pin: get_val("app_pin", "0000"),
+        ocr_auto_post_threshold: ocr_threshold,
     })
 }
 
@@ -100,6 +109,9 @@ pub fn save_settings(payload: SaveSettingsPayload, state: tauri::State<AppState>
     }
     if let Some(ref v) = payload.app_pin {
         set_val(conn, "app_pin", v)?;
+    }
+    if let Some(v) = payload.ocr_auto_post_threshold {
+        set_val(conn, "ocr_auto_post_threshold", &v.to_string())?;
     }
 
     Ok(())

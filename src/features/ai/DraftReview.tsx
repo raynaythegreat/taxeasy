@@ -1,23 +1,33 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { DraftTransaction, Evidence } from "../../lib/ai-api";
+import type { DraftTransaction, Evidence, OcrFieldConfidence } from "../../lib/ai-api";
 import { approveDraft, rejectDraft } from "../../lib/draft-api";
 import { useI18n } from "../../lib/i18n";
 import { DraftRowEditor } from "./DraftRowEditor";
 import { EvidencePreview } from "./EvidencePreview";
 import { OcrRawText } from "./OcrRawText";
 
+interface AccountOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export function DraftReview({
   evidence,
   drafts,
   clientId,
   accounts,
+  confidence,
+  ocrThreshold,
 }: {
   evidence: Evidence;
   drafts: DraftTransaction[];
   clientId: string;
-  accounts: any[];
+  accounts: AccountOption[];
+  confidence?: OcrFieldConfidence;
+  ocrThreshold?: number;
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
@@ -126,6 +136,8 @@ export function DraftReview({
                       onUpdate={(_id, _data) => {
                         queryClient.invalidateQueries({ queryKey: ["drafts", clientId] });
                       }}
+                      confidence={confidence}
+                      ocrThreshold={ocrThreshold}
                     />
                   </div>
                 </div>

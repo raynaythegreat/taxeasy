@@ -63,7 +63,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
 
   const { data: detail } = useQuery({
     queryKey: ["invoice", selectedId],
-    queryFn: () => getInvoice(selectedId!),
+    queryFn: () => getInvoice(selectedId ?? ""),
     enabled: !!selectedId,
   });
 

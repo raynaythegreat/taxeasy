@@ -1,8 +1,24 @@
-import { Check, CheckCircle, Pencil, SkipForward, XCircle } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle, Pencil, SkipForward, XCircle } from "lucide-react";
 import { useState } from "react";
-import type { DraftTransaction } from "../../lib/ai-api";
+import type { DraftTransaction, OcrFieldConfidence } from "../../lib/ai-api";
 import { useI18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
+
+interface AccountOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
+interface DraftUpdateData {
+  date: string | null;
+  description: string | null;
+  reference: string | null;
+  debitAccountId: string | null;
+  creditAccountId: string | null;
+  amount: number | null;
+  notes: string | null;
+}
 
 function formatAmount(amount: number | null): string {
   if (amount === null) return "—";
@@ -27,15 +43,20 @@ export function DraftRowEditor({
   onApprove,
   onReject,
   onUpdate,
+  confidence,
+  ocrThreshold = 0.7,
 }: {
   draft: DraftTransaction;
-  accounts: any[];
+  accounts: AccountOption[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
-  onUpdate: (id: string, data: any) => void;
+  onUpdate: (id: string, data: DraftUpdateData) => void;
+  confidence?: OcrFieldConfidence;
+  ocrThreshold?: number;
 }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [form, setForm] = useState({
     date: draft.date ?? "",
     description: draft.description ?? "",
@@ -47,6 +68,8 @@ export function DraftRowEditor({
   });
 
   const isPending = draft.status === "pending";
+  const needsReview = confidence !== undefined && confidence.overall < ocrThreshold;
+  const canApprove = !needsReview || reviewConfirmed;
 
   const handleSave = () => {
     const amountCents = form.amount ? Math.round(parseFloat(form.amount) * 100) : null;
@@ -77,7 +100,7 @@ export function DraftRowEditor({
 
   const accountName = (id: string | null) => {
     if (!id) return "—";
-    const acc = accounts.find((a: any) => a.id === id);
+    const acc = accounts.find((a) => a.id === id);
     return acc ? `${acc.code} — ${acc.name}` : id;
   };
 
@@ -86,10 +109,14 @@ export function DraftRowEditor({
       <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 space-y-2.5">
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+            <label
+              htmlFor={`draft-date-${draft.id}`}
+              className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+            >
               {t("ai.date")}
             </label>
             <input
+              id={`draft-date-${draft.id}`}
               type="date"
               value={form.date}
               onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
@@ -97,10 +124,14 @@ export function DraftRowEditor({
             />
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+            <label
+              htmlFor={`draft-amount-${draft.id}`}
+              className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+            >
               {t("ai.amount")}
             </label>
             <input
+              id={`draft-amount-${draft.id}`}
               type="number"
               step="0.01"
               value={form.amount}
@@ -111,10 +142,14 @@ export function DraftRowEditor({
           </div>
         </div>
         <div>
-          <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+          <label
+            htmlFor={`draft-desc-${draft.id}`}
+            className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+          >
             {t("ai.description")}
           </label>
           <input
+            id={`draft-desc-${draft.id}`}
             type="text"
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -122,10 +157,14 @@ export function DraftRowEditor({
           />
         </div>
         <div>
-          <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+          <label
+            htmlFor={`draft-ref-${draft.id}`}
+            className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+          >
             {t("ai.reference")}
           </label>
           <input
+            id={`draft-ref-${draft.id}`}
             type="text"
             value={form.reference}
             onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
@@ -134,16 +173,20 @@ export function DraftRowEditor({
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+            <label
+              htmlFor={`draft-debit-${draft.id}`}
+              className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+            >
               {t("ai.debitAccount")}
             </label>
             <select
+              id={`draft-debit-${draft.id}`}
               value={form.debitAccountId}
               onChange={(e) => setForm((f) => ({ ...f, debitAccountId: e.target.value }))}
               className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500"
             >
               <option value="">—</option>
-              {accounts.map((a: any) => (
+              {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.code} — {a.name}
                 </option>
@@ -151,16 +194,20 @@ export function DraftRowEditor({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+            <label
+              htmlFor={`draft-credit-${draft.id}`}
+              className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+            >
               {t("ai.creditAccount")}
             </label>
             <select
+              id={`draft-credit-${draft.id}`}
               value={form.creditAccountId}
               onChange={(e) => setForm((f) => ({ ...f, creditAccountId: e.target.value }))}
               className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 focus:outline-none focus:border-blue-500"
             >
               <option value="">—</option>
-              {accounts.map((a: any) => (
+              {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.code} — {a.name}
                 </option>
@@ -169,10 +216,14 @@ export function DraftRowEditor({
           </div>
         </div>
         <div>
-          <label className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5">
+          <label
+            htmlFor={`draft-notes-${draft.id}`}
+            className="block text-[10px] font-medium text-gray-500 dark:text-neutral-400 mb-0.5"
+          >
             {t("ai.notes")}
           </label>
           <input
+            id={`draft-notes-${draft.id}`}
             type="text"
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -216,6 +267,12 @@ export function DraftRowEditor({
             >
               {t(`ai.${draft.status}`)}
             </span>
+            {needsReview && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                <AlertTriangle className="w-3 h-3" />
+                {t("ai.needsReview")}
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-[100px_1fr] gap-x-3 gap-y-0.5 text-[11px]">
             <span className="text-gray-400 dark:text-neutral-500">{t("ai.date")}</span>
@@ -241,14 +298,33 @@ export function DraftRowEditor({
               </>
             )}
           </div>
+          {needsReview && isPending && (
+            <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={reviewConfirmed}
+                onChange={(e) => setReviewConfirmed(e.target.checked)}
+                className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+              />
+              <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                {t("ai.reviewConfirm")}
+              </span>
+            </label>
+          )}
         </div>
         {isPending && (
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
-              onClick={() => onApprove(draft.id)}
-              className="p-1 rounded text-gray-400 dark:text-neutral-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-              title={t("ai.approve")}
+              onClick={() => canApprove && onApprove(draft.id)}
+              disabled={!canApprove}
+              className={cn(
+                "p-1 rounded",
+                canApprove
+                  ? "text-gray-400 dark:text-neutral-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  : "text-gray-300 dark:text-neutral-600 cursor-not-allowed",
+              )}
+              title={canApprove ? t("ai.approve") : t("ai.needsReview")}
             >
               <CheckCircle className="w-4 h-4" />
             </button>

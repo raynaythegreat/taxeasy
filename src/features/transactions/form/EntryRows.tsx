@@ -69,14 +69,24 @@ export function EntryRows({
             {totalDebit > 0 || totalCredit > 0 ? (
               isBalanced ? (
                 <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                  <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                  <svg
+                    aria-hidden="true"
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                  >
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.78 5.22a.75.75 0 0 0-1.06 0L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06z" />
                   </svg>
                   Balanced
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
-                  <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
+                  <svg
+                    aria-hidden="true"
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                  >
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM8 4a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 8 4zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
                   </svg>
                   Difference: {fmt(Math.abs(totalDebit - totalCredit))}

@@ -40,6 +40,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const ai = useAiSettings();
+  const [ocrAutoPostThreshold, setOcrAutoPostThreshold] = useState(0.7);
 
   useEffect(() => {
     getAppVersion()
@@ -65,6 +66,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
       setTheme(settings.theme as "light" | "dark" | "system");
     }
     setExportPath(settings.default_export_path || "");
+    if (settings.ocr_auto_post_threshold !== undefined) {
+      setOcrAutoPostThreshold(settings.ocr_auto_post_threshold);
+    }
     didHydrateFromSettings.current = true;
   }, [settings, setTheme, ai.initFromSettings]);
 
@@ -206,6 +210,8 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               onTestProvider={ai.testProvider}
               onFetchModels={ai.fetchModels}
               onTestGlmocr={ai.testGlmocr}
+              ocrAutoPostThreshold={ocrAutoPostThreshold}
+              onOcrThresholdChange={setOcrAutoPostThreshold}
               onSave={(partial) => saveMutation.mutate(partial)}
             />
           )}

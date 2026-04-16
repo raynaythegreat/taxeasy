@@ -45,9 +45,18 @@ export interface ChatResponse {
   drafts: DraftTransaction[];
 }
 
+export interface OcrFieldConfidence {
+  vendor: number;
+  date: number;
+  total: number;
+  /** Minimum across all fields — used by the UI to gate auto-post. */
+  overall: number;
+}
+
 export interface OcrResult {
   evidence: Evidence;
   drafts: DraftTransaction[];
+  confidence: OcrFieldConfidence;
 }
 
 export async function sendChatMessage(clientId: string, message: string): Promise<ChatResponse> {

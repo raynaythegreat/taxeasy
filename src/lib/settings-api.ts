@@ -10,6 +10,8 @@ export interface AppSettings {
   theme: string;
   default_export_path: string;
   app_pin: string;
+  /** Minimum OCR confidence (0–1) required before a draft can be auto-posted. Default 0.7. */
+  ocr_auto_post_threshold: number;
 }
 
 export interface SaveSettingsPayload {
@@ -22,6 +24,7 @@ export interface SaveSettingsPayload {
   theme?: string;
   default_export_path?: string;
   app_pin?: string;
+  ocr_auto_post_threshold?: number;
 }
 
 export async function getSettings(): Promise<AppSettings> {
