@@ -66,16 +66,34 @@ pub fn get_balance_sheet(
         .ok_or(crate::error::AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
+    compute_balance_sheet(conn, &as_of_date, fiscal_year_start_month)
+}
+
+/// Pure computation: run the Balance Sheet queries against `conn`.
+///
+/// Extracted from `get_balance_sheet` so integration tests can call this
+/// directly without a Tauri `State` handle.
+pub fn compute_balance_sheet(
+    conn: &rusqlite::Connection,
+    as_of_date: &str,
+    fiscal_year_start_month: u8,
+) -> Result<BalanceSheetReport> {
     // Running balance per account as-of-date.
     // Balance Sheet uses INCLUSIVE end semantics: all posted transactions up to
     // and including as_of_date contribute to the balance (t.txn_date <= as_of_date).
     // This is intentional and differs from flow reports (P&L, Cash Flow) which use
     // half-open [start, end) ranges.  See docs/ACCOUNTING-METHOD.md for rationale.
     // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
+    //
+    // FIX: Wrap SUM() in CASE WHEN t.id IS NOT NULL so that entries whose
+    // transactions fall outside the date/status filter (which yield NULL t.id
+    // because of the LEFT JOIN) are counted as zero rather than being aggregated.
+    // Without this, the LEFT JOIN allows out-of-range entries to slip through
+    // and inflate the totals regardless of as_of_date.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type,
-                COALESCE(SUM(e.debit_cents),0) AS dr,
-                COALESCE(SUM(e.credit_cents),0) AS cr
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END),0) AS dr,
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.credit_cents ELSE 0 END),0) AS cr
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
@@ -160,9 +178,9 @@ pub fn get_balance_sheet(
     // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
     let as_of_next = {
         use chrono::NaiveDate;
-        NaiveDate::parse_from_str(&as_of_date, "%Y-%m-%d")
+        NaiveDate::parse_from_str(as_of_date, "%Y-%m-%d")
             .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|_| as_of_date.clone())
+            .unwrap_or_else(|_| as_of_date.to_owned())
     };
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
@@ -193,7 +211,7 @@ pub fn get_balance_sheet(
     let is_balanced = diff <= tolerance;
 
     Ok(BalanceSheetReport {
-        as_of_date,
+        as_of_date: as_of_date.to_owned(),
         asset_lines,
         liability_lines,
         equity_lines,
