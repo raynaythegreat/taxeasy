@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainCircuit, Database, Info, Lock, Palette, Settings } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
 import { useI18n } from "../../lib/i18n";
 import type { SaveSettingsPayload } from "../../lib/settings-api";
@@ -53,14 +53,20 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     retry: false,
   });
 
+  // Sync stored settings → UI state ONCE on initial load. Without the ref,
+  // any later change to `theme` (or re-fetch of settings) re-runs this effect
+  // and reverts the user's live selection back to the stored value — which
+  // made the light/dark toggle feel "locked" to the stored choice.
+  const didHydrateFromSettings = useRef(false);
   useEffect(() => {
-    if (settings) {
-      ai.initFromSettings(settings);
-      if (settings.theme && settings.theme !== theme)
-        setTheme(settings.theme as "light" | "dark" | "system");
-      setExportPath(settings.default_export_path || "");
+    if (!settings || didHydrateFromSettings.current) return;
+    ai.initFromSettings(settings);
+    if (settings.theme) {
+      setTheme(settings.theme as "light" | "dark" | "system");
     }
-  }, [settings, theme, setTheme, ai.initFromSettings]);
+    setExportPath(settings.default_export_path || "");
+    didHydrateFromSettings.current = true;
+  }, [settings, setTheme, ai.initFromSettings]);
 
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
