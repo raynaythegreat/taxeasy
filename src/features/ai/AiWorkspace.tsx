@@ -11,7 +11,9 @@ type AiTab = "chat" | "import";
 export function AiWorkspace({ clientId }: { clientId: string }) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<AiTab>("chat");
-  const [showDraftQueue, setShowDraftQueue] = useState(true);
+  // Start with the draft queue CLOSED so the workspace lands on a calm screen;
+  // users can toggle it open when they want to review pending drafts.
+  const [showDraftQueue, setShowDraftQueue] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
