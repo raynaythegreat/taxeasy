@@ -1,5 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { Printer, Building2, Calendar, ChevronLeft, ChevronRight, Sparkles, Loader2, FileText, Receipt } from "lucide-react";
+import { triggerPrint } from "../lib/print-utils";
 import type { Client } from "../lib/tauri";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
@@ -138,7 +139,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
               {from} &mdash; {to}
             </span>
             <button
-              onClick={() => window.print()}
+              onClick={triggerPrint}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-2"
             >
               <Printer className="w-4 h-4" />
@@ -256,7 +257,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
         {tab === "documents" && <DocumentsPage />}
         {tab === "reports" && (
           <div className="flex flex-col h-full">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-6 py-3 flex items-center gap-4 shadow-sm">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 dark:border-neutral-700 px-6 py-3 flex items-center gap-4 shadow-sm print:hidden">
               <div className="flex items-center bg-gray-100 dark:bg-neutral-800 rounded-lg p-0.5">
                 {(["pnl", "balance_sheet", "cash_flow"] as const).map((rt) => (
                   <button
@@ -275,7 +276,7 @@ export function ClientWorkspace({ client }: ClientWorkspaceProps) {
                 ))}
               </div>
               <button
-                onClick={() => window.print()}
+                onClick={triggerPrint}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors ml-auto"
               >
                 <Printer className="w-4 h-4" />

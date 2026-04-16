@@ -257,50 +257,57 @@ pub fn create_invoice(
     let id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
-    conn.execute(
-        "INSERT INTO invoices (id, invoice_number, invoice_type, status, issue_date, due_date,
-         client_name, client_email, client_address, notes, subtotal_cents, tax_rate, tax_cents,
-         total_cents, transaction_id, created_at, updated_at)
-         VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, NULL, ?14, ?14)",
-        params![
-            id,
-            payload.invoice_number,
-            payload.invoice_type,
-            payload.issue_date,
-            payload.due_date,
-            payload.client_name,
-            payload.client_email,
-            payload.client_address,
-            payload.notes,
-            subtotal_cents,
-            tax_rate,
-            tax_cents,
-            total_cents,
-            now,
-        ],
-    )?;
-
-    for (i, line) in payload.lines.iter().enumerate() {
-        let line_id = Uuid::new_v4().to_string();
-        let qty = line.quantity.unwrap_or(1.0);
-        let unit = line.unit_price_cents.unwrap_or(0);
-        let line_total = (qty * unit as f64).round() as i64;
+    conn.execute_batch("BEGIN")?;
+    let result: Result<InvoiceDetail> = (|| {
         conn.execute(
-            "INSERT INTO invoice_lines (id, invoice_id, description, quantity, unit_price_cents, total_cents, sort_order)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO invoices (id, invoice_number, invoice_type, status, issue_date, due_date,
+             client_name, client_email, client_address, notes, subtotal_cents, tax_rate, tax_cents,
+             total_cents, transaction_id, created_at, updated_at)
+             VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, NULL, ?14, ?14)",
             params![
-                line_id,
                 id,
-                line.description,
-                qty,
-                unit,
-                line_total,
-                i as i32,
+                payload.invoice_number,
+                payload.invoice_type,
+                payload.issue_date,
+                payload.due_date,
+                payload.client_name,
+                payload.client_email,
+                payload.client_address,
+                payload.notes,
+                subtotal_cents,
+                tax_rate,
+                tax_cents,
+                total_cents,
+                now,
             ],
         )?;
-    }
 
-    load_invoice_detail(conn, &id)
+        for (i, line) in payload.lines.iter().enumerate() {
+            let line_id = Uuid::new_v4().to_string();
+            let qty = line.quantity.unwrap_or(1.0);
+            let unit = line.unit_price_cents.unwrap_or(0);
+            let line_total = (qty * unit as f64).round() as i64;
+            conn.execute(
+                "INSERT INTO invoice_lines (id, invoice_id, description, quantity, unit_price_cents, total_cents, sort_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    line_id,
+                    id,
+                    line.description,
+                    qty,
+                    unit,
+                    line_total,
+                    i as i32,
+                ],
+            )?;
+        }
+
+        load_invoice_detail(conn, &id)
+    })();
+    match result {
+        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+    }
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -325,6 +332,8 @@ pub fn update_invoice(
 
     let now = chrono::Utc::now().to_rfc3339();
 
+    conn.execute_batch("BEGIN")?;
+    let result: Result<InvoiceDetail> = (|| {
     if let Some(ref val) = payload.invoice_number {
         conn.execute(
             "UPDATE invoices SET invoice_number = ?1, updated_at = ?2 WHERE id = ?3",
@@ -414,6 +423,11 @@ pub fn update_invoice(
     }
 
     load_invoice_detail(conn, &id)
+    })();
+    match result {
+        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+    }
 }
 
 #[tauri::command(rename_all = "camelCase")]

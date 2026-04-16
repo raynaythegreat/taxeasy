@@ -46,19 +46,24 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
 
     let body = serde_json::json!({
         "model": model,
-        "prompt": prompt,
-        "images": [b64],
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+                "images": [b64]
+            }
+        ],
         "stream": false
     });
 
     let client = reqwest::Client::new();
     let resp = client
-        .post(format!("{}/api/generate", ollama_url.trim_end_matches('/')))
+        .post(format!("{}/api/chat", ollama_url.trim_end_matches('/')))
         .json(&body)
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(120))
         .send()
         .await
-        .map_err(|e| AppError::AiService(format!("Ollama request failed: {e}")))?;
+        .map_err(|e| AppError::AiService(format!("Ollama unreachable at {ollama_url} — is Ollama running? ({e})")))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -67,12 +72,16 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
     }
 
     #[derive(Deserialize)]
+    struct OllamaMessage {
+        content: String,
+    }
+    #[derive(Deserialize)]
     struct OllamaResponse {
-        response: String,
+        message: OllamaMessage,
     }
 
-    let gen: OllamaResponse = resp.json().await.map_err(|e| AppError::AiService(e.to_string()))?;
-    let raw = gen.response.trim().to_owned();
+    let gen: OllamaResponse = resp.json().await.map_err(|e| AppError::AiService(format!("Failed to parse Ollama response: {e}")))?;
+    let raw = gen.message.content.trim().to_owned();
 
     parse_ocr_output(&raw)
 }

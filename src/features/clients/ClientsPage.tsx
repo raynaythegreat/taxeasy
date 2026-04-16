@@ -196,7 +196,7 @@ export function ClientsPage({ initialClientId, onBack }: {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+      <aside className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col print:hidden">
         {/* Sidebar header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -358,7 +358,7 @@ export function ClientsPage({ initialClientId, onBack }: {
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 min-w-0 overflow-hidden bg-gray-50">
+      <main className="flex-1 min-w-0 overflow-hidden bg-gray-50 print:w-full print:overflow-visible">
         {showForm ? (
           /* ── New Client Form ── */
           <div className="p-6 max-w-lg">

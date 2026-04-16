@@ -5,6 +5,7 @@ import { listClients, getActiveClientId } from "../../lib/tauri";
 import { fiscalYearRange, cn } from "../../lib/utils";
 import { handleExportReport } from "../../lib/export-api";
 import { useI18n } from "../../lib/i18n";
+import { triggerPrint } from "../../lib/print-utils";
 import { PnLView } from "./PnLView";
 import { BalanceSheetView } from "./BalanceSheetView";
 import { CashFlowView } from "./CashFlowView";
@@ -50,7 +51,7 @@ export function ReportsPage() {
   const clientName = activeClient?.name;
 
   function handlePrint() {
-    window.print();
+    triggerPrint();
   }
 
   async function handleExport() {

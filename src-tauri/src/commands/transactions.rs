@@ -157,85 +157,92 @@ pub fn create_transaction(
     let txn_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
-    conn.execute(
-        "INSERT INTO transactions (id, txn_date, description, reference, locked, created_at)
-         VALUES (?1, ?2, ?3, ?4, 0, ?5)",
-        params![
-            txn_id,
-            payload.txn_date,
-            payload.description,
-            payload.reference,
-            now
-        ],
-    )?;
-
-    let mut entries_out = Vec::new();
-    for e in &payload.entries {
-        let entry_id = Uuid::new_v4().to_string();
-        let debit_cents = e.debit_cents()?;
-        let credit_cents = e.credit_cents()?;
+    conn.execute_batch("BEGIN")?;
+    let result: Result<TransactionWithEntries> = (|| {
         conn.execute(
-            "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents, memo)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO transactions (id, txn_date, description, reference, locked, created_at)
+             VALUES (?1, ?2, ?3, ?4, 0, ?5)",
             params![
-                entry_id,
                 txn_id,
-                e.account_id,
-                debit_cents,
-                credit_cents,
-                e.memo
+                payload.txn_date,
+                payload.description,
+                payload.reference,
+                now
             ],
         )?;
 
-        // Fetch account name for response
-        let account_name: String = conn
-            .query_row(
-                "SELECT name FROM accounts WHERE id = ?1",
-                params![e.account_id],
-                |r| r.get(0),
-            )
-            .unwrap_or_default();
+        let mut entries_out = Vec::new();
+        for e in &payload.entries {
+            let entry_id = Uuid::new_v4().to_string();
+            let debit_cents = e.debit_cents()?;
+            let credit_cents = e.credit_cents()?;
+            conn.execute(
+                "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents, memo)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    entry_id,
+                    txn_id,
+                    e.account_id,
+                    debit_cents,
+                    credit_cents,
+                    e.memo
+                ],
+            )?;
 
-        let account_type: Option<String> = conn
-            .query_row(
-                "SELECT account_type FROM accounts WHERE id = ?1",
-                params![e.account_id],
-                |r| r.get(0),
-            )
-            .ok();
+            // Fetch account name for response
+            let account_name: String = conn
+                .query_row(
+                    "SELECT name FROM accounts WHERE id = ?1",
+                    params![e.account_id],
+                    |r| r.get(0),
+                )
+                .unwrap_or_default();
 
-        entries_out.push(Entry {
-            id: entry_id,
-            transaction_id: txn_id.clone(),
-            account_id: e.account_id.clone(),
-            account_name: Some(account_name),
-            debit: cents_to_decimal(debit_cents),
-            credit: cents_to_decimal(credit_cents),
-            memo: e.memo.clone(),
-            account_type,
-        });
+            let account_type: Option<String> = conn
+                .query_row(
+                    "SELECT account_type FROM accounts WHERE id = ?1",
+                    params![e.account_id],
+                    |r| r.get(0),
+                )
+                .ok();
+
+            entries_out.push(Entry {
+                id: entry_id,
+                transaction_id: txn_id.clone(),
+                account_id: e.account_id.clone(),
+                account_name: Some(account_name),
+                debit: cents_to_decimal(debit_cents),
+                credit: cents_to_decimal(credit_cents),
+                memo: e.memo.clone(),
+                account_type,
+            });
+        }
+
+        // Audit log
+        let audit_id = Uuid::new_v4().to_string();
+        let after_json = serde_json::to_string(&payload.description).unwrap_or_default();
+        conn.execute(
+            "INSERT INTO audit_log (id, action, entity_type, entity_id, after_json)
+             VALUES (?1, 'create', 'transaction', ?2, ?3)",
+            params![audit_id, txn_id, after_json],
+        )?;
+
+        Ok(TransactionWithEntries {
+            transaction: Transaction {
+                id: txn_id.clone(),
+                txn_date: payload.txn_date.clone(),
+                description: payload.description.clone(),
+                reference: payload.reference.clone(),
+                locked: false,
+                created_at: now.clone(),
+            },
+            entries: entries_out,
+        })
+    })();
+    match result {
+        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
     }
-
-    // Audit log
-    let audit_id = Uuid::new_v4().to_string();
-    let after_json = serde_json::to_string(&payload.description).unwrap_or_default();
-    conn.execute(
-        "INSERT INTO audit_log (id, action, entity_type, entity_id, after_json)
-         VALUES (?1, 'create', 'transaction', ?2, ?3)",
-        params![audit_id, txn_id, after_json],
-    )?;
-
-    Ok(TransactionWithEntries {
-        transaction: Transaction {
-            id: txn_id,
-            txn_date: payload.txn_date,
-            description: payload.description,
-            reference: payload.reference,
-            locked: false,
-            created_at: now,
-        },
-        entries: entries_out,
-    })
 }
 
 /// Update a transaction header (date, description, reference). Entries are not modified.
@@ -290,19 +297,24 @@ pub fn update_transaction(
         )
         .unwrap_or_default();
 
-    conn.execute(
-        "UPDATE transactions SET txn_date = ?1, description = ?2, reference = ?3 WHERE id = ?4",
-        params![txn_date, description.trim(), reference, txn_id],
-    )?;
-
-    let audit_id = Uuid::new_v4().to_string();
-    conn.execute(
-        "INSERT INTO audit_log (id, action, entity_type, entity_id, before_json, after_json)
-         VALUES (?1, 'update', 'transaction', ?2, ?3, ?4)",
-        params![audit_id, txn_id, before_desc, description.trim()],
-    )?;
-
-    Ok(())
+    conn.execute_batch("BEGIN")?;
+    let result: Result<()> = (|| {
+        conn.execute(
+            "UPDATE transactions SET txn_date = ?1, description = ?2, reference = ?3 WHERE id = ?4",
+            params![txn_date, description.trim(), reference, txn_id],
+        )?;
+        let audit_id = Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO audit_log (id, action, entity_type, entity_id, before_json, after_json)
+             VALUES (?1, 'update', 'transaction', ?2, ?3, ?4)",
+            params![audit_id, txn_id, before_desc, description.trim()],
+        )?;
+        Ok(())
+    })();
+    match result {
+        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+    }
 }
 
 /// Delete a transaction (append reversing audit entry, then hard-delete if not locked).
@@ -333,14 +345,19 @@ pub fn delete_transaction(txn_id: String, state: tauri::State<AppState>) -> Resu
             |r| r.get(0),
         )
         .unwrap_or_default();
-    let audit_id = Uuid::new_v4().to_string();
-    conn.execute(
-        "INSERT INTO audit_log (id, action, entity_type, entity_id, before_json)
-         VALUES (?1, 'delete', 'transaction', ?2, ?3)",
-        params![audit_id, txn_id, desc],
-    )?;
-
-    conn.execute("DELETE FROM transactions WHERE id = ?1", params![txn_id])?;
-
-    Ok(())
+    conn.execute_batch("BEGIN")?;
+    let result: Result<()> = (|| {
+        let audit_id = Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO audit_log (id, action, entity_type, entity_id, before_json)
+             VALUES (?1, 'delete', 'transaction', ?2, ?3)",
+            params![audit_id, txn_id, desc],
+        )?;
+        conn.execute("DELETE FROM transactions WHERE id = ?1", params![txn_id])?;
+        Ok(())
+    })();
+    match result {
+        Ok(v) => { conn.execute_batch("COMMIT")?; Ok(v) }
+        Err(e) => { let _ = conn.execute_batch("ROLLBACK"); Err(e) }
+    }
 }
