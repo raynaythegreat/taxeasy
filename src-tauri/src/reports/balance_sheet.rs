@@ -66,30 +66,51 @@ pub fn get_balance_sheet(
         .ok_or(crate::error::AppError::NoActiveClient)?;
     let conn = ac.db.conn();
 
-    compute_balance_sheet(conn, &as_of_date, fiscal_year_start_month)
+    // Compatibility adapter: the Tauri command still accepts a single as_of_date
+    // string from callers that predate the period-scoped change. Treat it as the
+    // end of the tax year containing as_of_date (Jan-start fiscal) and compute
+    // period_start as Jan 1 of that year. Period-aware callers should migrate
+    // to pass an explicit start/end.
+    let (period_start, period_end) = as_of_to_period(&as_of_date);
+    compute_balance_sheet(conn, &period_start, &period_end, fiscal_year_start_month)
+}
+
+/// Map a legacy `as_of_date` string ("YYYY-MM-DD") to a half-open [Jan-1 that year, Jan-1 next year).
+/// Used so existing frontend callers keep working while the new period-scoped
+/// Balance Sheet is the real semantic.
+fn as_of_to_period(as_of_date: &str) -> (String, String) {
+    let year: i32 = as_of_date.get(..4).and_then(|s| s.parse().ok()).unwrap_or(2025);
+    (format!("{year}-01-01"), format!("{}-01-01", year + 1))
 }
 
 /// Pure computation: run the Balance Sheet queries against `conn`.
+///
+/// Period-scoped: includes only transactions whose date falls within the
+/// half-open [period_start, period_end) range. The exposed `as_of_date` on
+/// the returned report equals `period_end - 1` for compatibility with the
+/// existing frontend date label.
 ///
 /// Extracted from `get_balance_sheet` so integration tests can call this
 /// directly without a Tauri `State` handle.
 pub fn compute_balance_sheet(
     conn: &rusqlite::Connection,
-    as_of_date: &str,
+    period_start: &str,
+    period_end: &str,
     fiscal_year_start_month: u8,
 ) -> Result<BalanceSheetReport> {
-    // Running balance per account as-of-date.
-    // Balance Sheet uses INCLUSIVE end semantics: all posted transactions up to
-    // and including as_of_date contribute to the balance (t.txn_date <= as_of_date).
-    // This is intentional and differs from flow reports (P&L, Cash Flow) which use
-    // half-open [start, end) ranges.  See docs/ACCOUNTING-METHOD.md for rationale.
-    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
+    // Period-scoped Balance Sheet: includes only transactions that posted WITHIN
+    // the selected [period_start, period_end) half-open range. This matches user
+    // expectation that "if no transaction was entered in a year, nothing shows
+    // for that year" — even though it diverges from the traditional cumulative
+    // Balance Sheet semantic. See docs/ACCOUNTING-METHOD.md for rationale.
     //
-    // FIX: Wrap SUM() in CASE WHEN t.id IS NOT NULL so that entries whose
-    // transactions fall outside the date/status filter (which yield NULL t.id
-    // because of the LEFT JOIN) are counted as zero rather than being aggregated.
-    // Without this, the LEFT JOIN allows out-of-range entries to slip through
-    // and inflate the totals regardless of as_of_date.
+    // LEFT JOIN + CASE WHEN guard: entries whose transactions fall outside the
+    // date/status filter have NULL t.id; we sum zero for those so they don't
+    // leak through the LEFT JOIN.
+    //
+    // Previous semantic (cumulative, t.txn_date <= as_of_date) is retained as a
+    // fallback when caller passes period_end = "<as_of_date>+1" and period_start
+    // = "0001-01-01" — any date earlier than all data.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type,
                 COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END),0) AS dr,
@@ -97,7 +118,7 @@ pub fn compute_balance_sheet(
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
-             AND t.txn_date <= ?1
+             AND t.txn_date >= ?1 AND t.txn_date < ?2
              AND t.status = 'posted'
          WHERE a.account_type IN ('asset','liability','equity') AND a.active = 1
          GROUP BY a.id
@@ -114,7 +135,7 @@ pub fn compute_balance_sheet(
     }
 
     let rows: Vec<Row> = stmt
-        .query_map(params![as_of_date], |row| {
+        .query_map(params![period_start, period_end], |row| {
             Ok(Row {
                 id: row.get(0)?,
                 code: row.get(1)?,
@@ -164,24 +185,8 @@ pub fn compute_balance_sheet(
         }
     }
 
-    let as_of_month: u8 = as_of_date[5..7].parse().unwrap_or(1);
-    let year: i32 = as_of_date[..4].parse().unwrap_or(2025);
-    let fy_year = if as_of_month >= fiscal_year_start_month {
-        year
-    } else {
-        year - 1
-    };
-    let fiscal_start = format!("{fy_year}-{:02}-01", fiscal_year_start_month);
-
-    // YTD net income: half-open [fiscal_start, next_day_after_as_of) so that
-    // as_of_date transactions are included without double-counting the boundary.
-    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
-    let as_of_next = {
-        use chrono::NaiveDate;
-        NaiveDate::parse_from_str(as_of_date, "%Y-%m-%d")
-            .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|_| as_of_date.to_owned())
-    };
+    // Period net income — revenue/expense activity within [period_start, period_end).
+    let _ = fiscal_year_start_month; // reserved for future fiscal-aware views
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -194,7 +199,7 @@ pub fn compute_balance_sheet(
          WHERE t.txn_date >= ?1 AND t.txn_date < ?2
            AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
-        params![fiscal_start, as_of_next],
+        params![period_start, period_end],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )?;
 
@@ -210,8 +215,16 @@ pub fn compute_balance_sheet(
     let tolerance = Decimal::new(1, 2); // $0.01
     let is_balanced = diff <= tolerance;
 
+    // Display "as of" = last day of the period (period_end is half-open, so -1).
+    let as_of_display = {
+        use chrono::NaiveDate;
+        NaiveDate::parse_from_str(period_end, "%Y-%m-%d")
+            .map(|d| (d - chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|_| period_end.to_owned())
+    };
+
     Ok(BalanceSheetReport {
-        as_of_date: as_of_date.to_owned(),
+        as_of_date: as_of_display,
         asset_lines,
         liability_lines,
         equity_lines,

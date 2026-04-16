@@ -87,9 +87,10 @@ fn cash_balance_respects_as_of_date() {
     // Transaction C: 2024-02-20, draft, $777 — draft, must be excluded always
     insert_txn(&conn, "2024-02-20", &cash, &equity, 77_700, "draft");
 
-    let report = compute_balance_sheet(&conn, "2024-03-31", 1).unwrap();
+    // Period-scoped BS: [Jan 1, Apr 1) includes A (Feb 15) but not B (Jun 15).
+    let report = compute_balance_sheet(&conn, "2024-01-01", "2024-04-01", 1).unwrap();
 
-    // Cash = $500 only (A).  B is after the date; C is a draft.
+    // Cash = $500 only (A).  B is outside the period; C is a draft.
     let cash_line = report
         .asset_lines
         .iter()
@@ -124,7 +125,8 @@ fn cash_balance_year_end_includes_all_posted() {
     // Transaction C: 2024-02-20, draft, $777 — still excluded
     insert_txn(&conn, "2024-02-20", &cash, &equity, 77_700, "draft");
 
-    let report = compute_balance_sheet(&conn, "2024-12-31", 1).unwrap();
+    // Period-scoped BS: full calendar year 2024 half-open → includes both A and B.
+    let report = compute_balance_sheet(&conn, "2024-01-01", "2025-01-01", 1).unwrap();
 
     // Cash = $500 + $9999 = $10499.  Draft is still excluded.
     let cash_line = report
