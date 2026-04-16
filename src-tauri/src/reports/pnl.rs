@@ -37,17 +37,32 @@ pub fn get_pnl(
 ) -> Result<PnlReport> {
     let lock = state.active_client.lock().unwrap();
     let ac = lock.as_ref().ok_or(crate::error::AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+    compute_pnl(ac.db.conn(), &date_from, &date_to)
+}
 
+/// Core P&L computation against an open `rusqlite::Connection`.
+///
+/// Separated from `get_pnl` so integration tests can call the real SQL
+/// without a Tauri `State` wrapper.
+pub fn compute_pnl(
+    conn: &rusqlite::Connection,
+    date_from: &str,
+    date_to: &str,
+) -> Result<PnlReport> {
     // Sum net activity per account for the period.
     // For revenue accounts: normal balance is credit → net = SUM(credit) - SUM(debit)
     // For expense/COGS accounts: normal balance is debit → net = SUM(debit) - SUM(credit)
     // B3: half-open [date_from, date_to) — date_to is the exclusive upper bound.
     // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
+    //
+    // FIX: wrap SUM columns in CASE WHEN t.id IS NOT NULL so that entries
+    // belonging to transactions that failed the ON-clause date/status filter
+    // are counted as zero rather than leaking through the LEFT JOIN.
+    // The LEFT JOIN is kept so accounts with zero activity still appear.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type, a.schedule_c_line,
-                COALESCE(SUM(e.debit_cents),0) AS dr,
-                COALESCE(SUM(e.credit_cents),0) AS cr
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END), 0) AS dr,
+                COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.credit_cents ELSE 0 END), 0) AS cr
          FROM accounts a
          LEFT JOIN entries e ON e.account_id = a.id
          LEFT JOIN transactions t ON t.id = e.transaction_id
@@ -134,8 +149,8 @@ pub fn get_pnl(
     let net_income = gross_profit - total_expenses;
 
     Ok(PnlReport {
-        date_from,
-        date_to,
+        date_from: date_from.to_owned(),
+        date_to: date_to.to_owned(),
         revenue_lines,
         cogs_lines,
         expense_lines,
