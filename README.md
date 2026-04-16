@@ -167,6 +167,26 @@ taxeasy/
 └── vite.config.ts
 ```
 
+## Development
+
+```bash
+# Start frontend dev server (hot-reload)
+pnpm dev
+
+# Run frontend tests (watch mode)
+pnpm test
+
+# Lint and type-check
+pnpm lint
+pnpm tsc --noEmit
+
+# Start Tauri dev (compiles Rust + opens app window)
+pnpm tauri dev
+
+# Build a production installer
+pnpm tauri build
+```
+
 ## Tech Stack
 
 | Layer | Technology |
