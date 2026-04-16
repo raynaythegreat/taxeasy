@@ -57,22 +57,24 @@ describe("fiscalYearRange", () => {
   });
 });
 
-describe("periodRange", () => {
+describe("periodRange (half-open [from, to))", () => {
+  // Per B3: periodRange returns `to` as the next-period start, not last-day-of-period,
+  // so downstream SQL queries can use `>= from AND < to` without off-by-one risk.
   it("returns the full year for annual period", () => {
     const { from, to } = periodRange(2024, "annual");
     expect(from).toBe("2024-01-01");
-    expect(to).toBe("2024-12-31");
+    expect(to).toBe("2025-01-01");
   });
 
   it("returns Q1 bounds", () => {
     const { from, to } = periodRange(2024, "q1");
     expect(from).toBe("2024-01-01");
-    expect(to).toBe("2024-03-31");
+    expect(to).toBe("2024-04-01");
   });
 
   it("returns H2 bounds", () => {
     const { from, to } = periodRange(2024, "h2");
     expect(from).toBe("2024-07-01");
-    expect(to).toBe("2024-12-31");
+    expect(to).toBe("2025-01-01");
   });
 });
