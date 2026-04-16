@@ -3,7 +3,7 @@ mod commands;
 mod db;
 mod domain;
 mod error;
-mod reports;
+pub mod reports;
 mod state;
 
 use state::AppState;
