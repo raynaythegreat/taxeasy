@@ -40,6 +40,7 @@ pub fn run() {
             commands::transactions::delete_transaction,
             reports::pnl::get_pnl,
             reports::balance_sheet::get_balance_sheet,
+            reports::balance_sheet::get_balance_sheet_cumulative,
             reports::cash_flow::get_cash_flow,
             commands::dashboard::get_dashboard_stats,
             commands::dashboard::get_net_cash_trend,

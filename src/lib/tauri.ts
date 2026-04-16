@@ -221,6 +221,11 @@ export const getPnl = (dateFrom: string, dateTo: string): Promise<PnlReport> =>
 export const getBalanceSheet = (asOfDate: string): Promise<BalanceSheetReport> =>
   invoke("get_balance_sheet", { asOfDate });
 
+/** Cumulative balance sheet: sums all posted transactions with txn_date <= asOfDate.
+ *  Traditional "as of year-end" semantics — every balance ever accumulated shows up. */
+export const getBalanceSheetCumulative = (asOfDate: string): Promise<BalanceSheetReport> =>
+  invoke("get_balance_sheet_cumulative", { asOfDate });
+
 export const getCashFlow = (dateFrom: string, dateTo: string): Promise<CashFlowReport> =>
   invoke("get_cash_flow", { dateFrom, dateTo });
 

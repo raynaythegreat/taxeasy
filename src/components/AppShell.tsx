@@ -1,7 +1,6 @@
-import { FileText, LayoutDashboard, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClientsPage } from "../features/clients/ClientsPage";
-import { ReportsPage } from "../features/reports/ReportsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { useI18n } from "../lib/i18n";
 import { getActiveClientPref, switchClient } from "../lib/tauri";
@@ -9,7 +8,7 @@ import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { cn } from "../lib/utils";
 import { DashboardPage } from "./DashboardPage";
 
-type AppView = "dashboard" | "clients" | "reports" | "settings";
+type AppView = "dashboard" | "clients" | "settings";
 
 export function AppShell() {
   const { t, locale, setLocale } = useI18n();
@@ -39,7 +38,6 @@ export function AppShell() {
   const NAV_ITEMS: { id: AppView; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: t("Dashboard"), icon: LayoutDashboard },
     { id: "clients", label: t("Clients"), icon: Users },
-    { id: "reports", label: t("Reports"), icon: FileText },
     { id: "settings", label: t("Settings"), icon: Settings },
   ];
 
@@ -110,7 +108,6 @@ export function AppShell() {
         {view === "clients" && (
           <ClientsPage initialClientId={initialClientId} onBack={() => setView("dashboard")} />
         )}
-        {view === "reports" && <ReportsPage />}
         {view === "settings" && <SettingsPage onBack={() => setView("dashboard")} />}
       </main>
     </div>
