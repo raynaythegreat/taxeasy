@@ -10,6 +10,17 @@ import { BalanceSheetView } from "./BalanceSheetView";
 import { CashFlowView } from "./CashFlowView";
 import { PnLView } from "./PnLView";
 
+/**
+ * `to` from periodRange() is half-open (the first day of the next period).
+ * BalanceSheet's `asOfDate` is inclusive, so subtract one calendar day so that
+ * "as of Q1 end" means March 31, not April 1.
+ */
+export function lastDayOf(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 type ReportTab = "pnl" | "balance_sheet" | "cash_flow";
 
 const TABS: { id: ReportTab; label: string }[] = [
@@ -92,7 +103,7 @@ export function ReportsPage() {
 
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-xs text-gray-400 tabular-nums hidden sm:block">
-              {from} &mdash; {to}
+              {from} &mdash; {lastDayOf(to)}
             </span>
             <button
               type="button"
@@ -180,7 +191,7 @@ export function ReportsPage() {
           </div>
 
           <span className="text-xs text-gray-400 tabular-nums sm:hidden">
-            {from} &mdash; {to}
+            {from} &mdash; {lastDayOf(to)}
           </span>
         </div>
       </div>
@@ -195,7 +206,7 @@ export function ReportsPage() {
         <div className="min-h-full py-6 print:py-0">
           {activeTab === "pnl" && <PnLView dateFrom={from} dateTo={to} clientName={clientName} />}
           {activeTab === "balance_sheet" && (
-            <BalanceSheetView asOfDate={to} clientName={clientName} />
+            <BalanceSheetView asOfDate={lastDayOf(to)} clientName={clientName} />
           )}
           {activeTab === "cash_flow" && (
             <CashFlowView dateFrom={from} dateTo={to} clientName={clientName} />
