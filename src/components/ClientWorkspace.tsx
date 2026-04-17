@@ -38,6 +38,9 @@ import {
 const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
 );
+const DashboardAnalytics = lazy(() =>
+  import("./dashboard/DashboardAnalytics").then((m) => ({ default: m.DashboardAnalytics })),
+);
 
 export type WorkspaceTab =
   | "overview"
@@ -109,6 +112,10 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     } finally {
       setExporting(false);
     }
+  }
+
+  function handleOpenTaxNews(_clientId?: string) {
+    // Tax news handling - can be implemented later if needed
   }
 
   return (
@@ -188,7 +195,12 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                   <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      {t("Created")}: {formatDate(client.created_at)}
+                      {t("Created")}:{" "}
+                      {new Date(client.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </span>
                     {client.fiscal_year_start_month > 1 && (
                       <span>
@@ -261,6 +273,23 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                   </div>
                 </div>
               )}
+            </div>
+            <div className="shrink-0 border-t border-gray-200 px-6 py-5">
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                  </div>
+                }
+              >
+                <DashboardAnalytics
+                  clientId={client.id}
+                  showTotalClientsCard={false}
+                  onOpenTransactions={() => setTab("transactions")}
+                  onOpenReports={() => setTab("reports")}
+                  onOpenTaxNews={handleOpenTaxNews}
+                />
+              </Suspense>
             </div>
             <div className="shrink-0 border-t border-gray-200">
               <AccountManagementPage compact clientId={client.id} />
