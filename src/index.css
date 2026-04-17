@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -6,7 +6,7 @@
 @layer base {
   :root {
     /* ── Typography ──────────────────────────── */
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 
     /* ── Primary + accent ────────────────────── */
     --primary: #1e3a8a;
@@ -66,7 +66,8 @@
   }
 
   html {
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -384,4 +385,18 @@
 
 .z-toast {
   z-index: var(--z-toast);
+}
+
+.metric-glow {
+  text-shadow: 0 0 12px rgba(96, 165, 250, 0.35);
+}
+
+.metric-glow-green {
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
+}
+
+.interactive {
+  transition-property: color, background-color, border-color;
+  transition-duration: 200ms;
+  cursor: pointer;
 }
