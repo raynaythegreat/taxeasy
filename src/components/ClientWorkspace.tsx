@@ -114,7 +114,6 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     }
   }
 
-
   return (
     <div className="flex flex-col h-full">
       {tab !== "overview" && (

@@ -158,7 +158,6 @@ export function DashboardAnalytics({
             <div className="space-y-4">
               <EstimatedQuarterlyTaxCard
                 ytdNetIncome={statValues.ytd_net_income}
-                onViewDeadlines={handleOpenTaxNews}
               />
               <DeductibleExpensesCard clientId={clientId} start={period.start} end={period.end} />
             </div>
@@ -180,7 +179,6 @@ export function DashboardAnalytics({
           }
         />
       )}
-
     </div>
   );
 }
