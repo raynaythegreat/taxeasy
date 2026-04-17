@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export interface Evidence {
   id: string;
@@ -34,10 +35,16 @@ export interface DraftTransaction {
 export interface ChatMessage {
   id: string;
   clientId: string;
-  role: string;
+  role: "user" | "assistant" | "tool_call" | "tool_result" | "system";
   content: string;
   evidenceId: string | null;
   createdAt: string;
+  toolName?: string;
+  toolInput?: string;
+  toolOutput?: string;
+  toolStatus?: "pending" | "running" | "completed" | "error";
+  parentMessageId?: string;
+  metadata?: string;
 }
 
 export interface ChatResponse {
@@ -61,6 +68,14 @@ export interface OcrResult {
 
 export async function sendChatMessage(clientId: string, message: string): Promise<ChatResponse> {
   return invoke<ChatResponse>("send_chat_message", { clientId, message });
+}
+
+export async function sendChatMessageStream(clientId: string, message: string): Promise<string> {
+  return invoke<string>("send_chat_message_stream", { clientId, message });
+}
+
+export async function checkAiHealth(): Promise<boolean> {
+  return invoke<boolean>("ollama_health");
 }
 
 export async function getChatHistory(clientId: string): Promise<ChatMessage[]> {
@@ -114,3 +129,69 @@ export async function getEvidence(clientId: string, evidenceId: string): Promise
 export async function deleteEvidence(clientId: string, evidenceId: string): Promise<void> {
   return invoke("delete_evidence", { clientId, evidenceId });
 }
+
+export type StreamEventType =
+  | "start"
+  | "delta"
+  | "tool_call"
+  | "tool_progress"
+  | "tool_result"
+  | "end"
+  | "error";
+
+export interface StreamEvent {
+  type: StreamEventType;
+  conversationId: string;
+  messageId?: string;
+  delta?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolOutput?: unknown;
+  toolStatus?: "pending" | "running" | "completed" | "error";
+  progress?: string;
+  error?: string;
+}
+
+export function listenChatStream(onEvent: (event: StreamEvent) => void): Promise<UnlistenFn> {
+  return listen<StreamEvent>("chat-stream", (event) => {
+    onEvent(event.payload);
+  });
+}
+
+export interface ToolCallRecord {
+  id: string;
+  toolName: string;
+  toolInput?: unknown;
+  toolOutput?: unknown;
+  status: "pending" | "running" | "completed" | "error";
+}
+
+export interface SlashCommand {
+  command: string;
+  label: string;
+  description: string;
+  icon: string;
+}
+
+export const SLASH_COMMANDS: SlashCommand[] = [
+  { command: "/import", label: "Import", description: "Import a document or file", icon: "Upload" },
+  {
+    command: "/query",
+    label: "Query",
+    description: "Query the ledger or accounts",
+    icon: "Search",
+  },
+  {
+    command: "/report",
+    label: "Report",
+    description: "Generate a financial report",
+    icon: "FileText",
+  },
+  {
+    command: "/categorize",
+    label: "Categorize",
+    description: "Categorize a transaction",
+    icon: "Tag",
+  },
+  { command: "/help", label: "Help", description: "Show available commands", icon: "HelpCircle" },
+];

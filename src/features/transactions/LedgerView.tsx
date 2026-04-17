@@ -10,6 +10,7 @@ import { cn, formatCurrency, formatDate } from "../../lib/utils";
 import { AccountSelect } from "./form/AccountSelect";
 
 interface LedgerViewProps {
+  clientId: string;
   dateFrom?: string;
   dateTo?: string;
   accountId?: string;
@@ -92,10 +93,12 @@ function SkeletonRow() {
 
 function TxnRow({
   txn,
+  clientId,
   onDelete,
   onEdit,
 }: {
   txn: TransactionWithEntries;
+  clientId: string;
   onDelete: (id: string) => void;
   onEdit: () => void;
 }) {
@@ -112,8 +115,8 @@ function TxnRow({
   const { t } = useI18n();
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const accountNames = getTransactionAccountNames(txn);
@@ -152,7 +155,7 @@ function TxnRow({
     setConfirmPending(false);
     setDeleting(true);
     try {
-      await deleteTransaction(txn.id);
+      await deleteTransaction(txn.id, clientId);
       onDelete(txn.id);
     } catch {
       setDeleting(false);
@@ -197,13 +200,16 @@ function TxnRow({
         credit: ee.credit || undefined,
         memo: ee.memo || undefined,
       }));
-      await updateTransaction({
-        txnId: txn.id,
-        txnDate: editDate,
-        description: editDesc.trim(),
-        reference: editRef.trim() || undefined,
-        entries: entryPayloads,
-      });
+      await updateTransaction(
+        {
+          txnId: txn.id,
+          txnDate: editDate,
+          description: editDesc.trim(),
+          reference: editRef.trim() || undefined,
+          entries: entryPayloads,
+        },
+        clientId,
+      );
       onEdit();
       setEditing(false);
     } catch (err: unknown) {
@@ -296,7 +302,6 @@ function TxnRow({
               </button>
             </td>
           </tr>
-          {/* Editable entry rows */}
           <tr className="bg-blue-50/40 border-b border-blue-100">
             <td colSpan={6} className="px-6 py-2 border-l-2 border-blue-400">
               <table className="w-full text-xs">
@@ -538,6 +543,7 @@ function TxnRow({
 }
 
 export function LedgerView({
+  clientId,
   dateFrom,
   dateTo,
   accountId,
@@ -553,13 +559,14 @@ export function LedgerView({
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["transactions", dateFrom, dateTo, accountId, searchQuery],
+    queryKey: ["transactions", clientId, dateFrom, dateTo, accountId, searchQuery],
     queryFn: () =>
       invoke<TransactionWithEntries[]>("list_transactions", {
         dateFrom: dateFrom ?? null,
         dateTo: dateTo ?? null,
         accountId: accountId ?? null,
         search: searchQuery ?? null,
+        clientId,
       }),
   });
 
@@ -689,7 +696,13 @@ export function LedgerView({
 
           {!isLoading &&
             sortedTransactions.map((txn) => (
-              <TxnRow key={txn.id} txn={txn} onDelete={onDeleteTxn} onEdit={onEditTxn} />
+              <TxnRow
+                key={txn.id}
+                txn={txn}
+                clientId={clientId}
+                onDelete={onDeleteTxn}
+                onEdit={onEditTxn}
+              />
             ))}
         </tbody>
         {!isLoading && sortedTransactions.length > 0 && (

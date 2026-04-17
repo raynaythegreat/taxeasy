@@ -55,13 +55,23 @@ pub struct DeductibleSummary {
     pub total: Decimal,
 }
 
+fn target_client_id(state: &AppState, requested_client_id: Option<&str>) -> Result<String> {
+    if let Some(client_id) = requested_client_id {
+        return Ok(client_id.to_owned());
+    }
+
+    let lock = state.active_client.lock().unwrap();
+    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+    Ok(ac.client_id.clone())
+}
+
 /// Compute the fiscal-YTD half-open range [ytd_start, tomorrow) for a client.
-fn fiscal_ytd_range(state: &AppState) -> Result<(String, String)> {
+fn fiscal_ytd_range(
+    state: &AppState,
+    requested_client_id: Option<&str>,
+) -> Result<(String, String)> {
     let fiscal_year_start_month = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let cid = ac.client_id.clone();
-        drop(lock);
+        let client_id = target_client_id(state, requested_client_id)?;
 
         let app_lock = state.app_db.lock().unwrap();
         let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
@@ -69,7 +79,7 @@ fn fiscal_ytd_range(state: &AppState) -> Result<(String, String)> {
             .conn()
             .query_row(
                 "SELECT fiscal_year_start_month FROM clients WHERE id = ?1",
-                params![cid],
+                params![client_id],
                 |row| row.get(0),
             )
             .unwrap_or(1);
@@ -202,9 +212,11 @@ pub(crate) fn compute_dashboard_stats(
 /// If start/end are empty strings, falls back to fiscal YTD.
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_dashboard_stats(
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
     start: Option<String>,
     end: Option<String>,
+    client_id: Option<String>,
 ) -> Result<DashboardStats> {
     let (total_clients, active_clients) = {
         let lock = state.app_db.lock().unwrap();
@@ -221,14 +233,48 @@ pub fn get_dashboard_stats(
 
     let (range_start, range_end) = match (start, end) {
         (Some(s), Some(e)) if !s.is_empty() && !e.is_empty() => (s, e),
-        _ => fiscal_ytd_range(&state)?,
+        _ => {
+            let scope = client_id.as_deref();
+            if scope == Some("owner") || scope.is_none() {
+                let fym: u8 = {
+                    let app_lock = state.app_db.lock().unwrap();
+                    let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+                    db.conn()
+                        .query_row(
+                            "SELECT fiscal_year_start_month FROM business_profile LIMIT 1",
+                            [],
+                            |row| row.get(0),
+                        )
+                        .unwrap_or(1)
+                };
+                let now = chrono::Local::now();
+                let current_month = now.month() as u8;
+                let current_year = now.year();
+                let fy_year = if current_month >= fym {
+                    current_year
+                } else {
+                    current_year - 1
+                };
+                let start = format!("{fy_year}-{:02}-01", fym);
+                let end = (now + chrono::Duration::days(1))
+                    .format("%Y-%m-%d")
+                    .to_string();
+                (start, end)
+            } else {
+                fiscal_ytd_range(&state, client_id.as_deref())?
+            }
+        }
     };
 
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
-    compute_dashboard_stats(conn, total_clients, active_clients, &range_start, &range_end)
+    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+        compute_dashboard_stats(
+            conn,
+            total_clients,
+            active_clients,
+            &range_start,
+            &range_end,
+        )
+    })
 }
 
 /// Bucket options for net cash trend.
@@ -243,15 +289,13 @@ pub enum TrendBucket {
 /// Net cash trend: one point per bucket within [start, end).
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_net_cash_trend(
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
     start: String,
     end: String,
     bucket: TrendBucket,
+    client_id: Option<String>,
 ) -> Result<Vec<NetCashPoint>> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
     // Use SQLite strftime to group dates into buckets.
     let fmt = match bucket {
         TrendBucket::Daily => "%Y-%m-%d",
@@ -276,102 +320,105 @@ pub fn get_net_cash_trend(
          ORDER BY bucket"
     );
 
-    let mut stmt = conn.prepare(&sql)?;
-    let points: Vec<NetCashPoint> = stmt
-        .query_map(params![start, end], |row| {
-            Ok(NetCashPoint {
-                bucket: row.get(0)?,
-                net_cents: row.get(1)?,
-            })
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
+    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+        let mut stmt = conn.prepare(&sql)?;
+        let points: Vec<NetCashPoint> = stmt
+            .query_map(params![start, end], |row| {
+                Ok(NetCashPoint {
+                    bucket: row.get(0)?,
+                    net_cents: row.get(1)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
 
-    Ok(points)
+        Ok(points)
+    })
 }
 
 /// Top N expense categories by total spend within [start, end).
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_top_categories(
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
     start: String,
     end: String,
     n: Option<i64>,
+    client_id: Option<String>,
 ) -> Result<Vec<CategoryTotal>> {
     let limit = n.unwrap_or(5).clamp(1, 20);
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
 
-    let mut stmt = conn.prepare(
-        "SELECT a.id, a.name,
-                COALESCE(SUM(e.debit_cents - e.credit_cents), 0) AS total_cents
-         FROM accounts a
-         JOIN entries e ON e.account_id = a.id
-         JOIN transactions t ON t.id = e.transaction_id
-         WHERE a.account_type = 'expense'
-           AND t.txn_date >= ?1 AND t.txn_date < ?2
-           AND t.status = 'posted'
-         GROUP BY a.id
-         ORDER BY total_cents DESC
-         LIMIT ?3",
-    )?;
+    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+        let mut stmt = conn.prepare(
+            "SELECT a.id, a.name,
+                    COALESCE(SUM(e.debit_cents - e.credit_cents), 0) AS total_cents
+             FROM accounts a
+             JOIN entries e ON e.account_id = a.id
+             JOIN transactions t ON t.id = e.transaction_id
+             WHERE a.account_type = 'expense'
+               AND t.txn_date >= ?1 AND t.txn_date < ?2
+               AND t.status = 'posted'
+             GROUP BY a.id
+             ORDER BY total_cents DESC
+             LIMIT ?3",
+        )?;
 
-    let rows: Vec<(String, String, i64)> = stmt
-        .query_map(params![start, end, limit], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get::<_, i64>(2)?))
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
+        let rows: Vec<(String, String, i64)> = stmt
+            .query_map(params![start, end, limit], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get::<_, i64>(2)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
 
-    let grand_total: i64 = rows.iter().map(|(_, _, c)| c).sum();
+        let grand_total: i64 = rows.iter().map(|(_, _, c)| c).sum();
 
-    let categories = rows
-        .into_iter()
-        .map(|(id, name, cents)| {
-            let pct = if grand_total > 0 {
-                cents_to_decimal(cents * 10000 / grand_total) / Decimal::ONE_HUNDRED
-            } else {
-                Decimal::ZERO
-            };
-            CategoryTotal {
-                account_id: id,
-                account_name: name,
-                total_cents: cents,
-                percentage: pct,
-            }
-        })
-        .collect();
+        let categories = rows
+            .into_iter()
+            .map(|(id, name, cents)| {
+                let pct = if grand_total > 0 {
+                    cents_to_decimal(cents * 10000 / grand_total) / Decimal::ONE_HUNDRED
+                } else {
+                    Decimal::ZERO
+                };
+                CategoryTotal {
+                    account_id: id,
+                    account_name: name,
+                    total_cents: cents,
+                    percentage: pct,
+                }
+            })
+            .collect();
 
-    Ok(categories)
+        Ok(categories)
+    })
 }
 
 /// Sum of expenses on accounts where deductible = 1 within [start, end).
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_deductible_expenses(
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
     start: String,
     end: String,
+    client_id: Option<String>,
 ) -> Result<DeductibleSummary> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+        let total_cents: i64 = conn.query_row(
+            "SELECT COALESCE(SUM(e.debit_cents - e.credit_cents), 0)
+             FROM entries e
+             JOIN accounts a ON a.id = e.account_id
+             JOIN transactions t ON t.id = e.transaction_id
+             WHERE a.account_type = 'expense'
+               AND a.deductible = 1
+               AND t.txn_date >= ?1 AND t.txn_date < ?2
+               AND t.status = 'posted'",
+            params![start, end],
+            |row| row.get(0),
+        )?;
 
-    let total_cents: i64 = conn.query_row(
-        "SELECT COALESCE(SUM(e.debit_cents - e.credit_cents), 0)
-         FROM entries e
-         JOIN accounts a ON a.id = e.account_id
-         JOIN transactions t ON t.id = e.transaction_id
-         WHERE a.account_type = 'expense'
-           AND a.deductible = 1
-           AND t.txn_date >= ?1 AND t.txn_date < ?2
-           AND t.status = 'posted'",
-        params![start, end],
-        |row| row.get(0),
-    )?;
-
-    Ok(DeductibleSummary {
-        total_cents,
-        total: cents_to_decimal(total_cents),
+        Ok(DeductibleSummary {
+            total_cents,
+            total: cents_to_decimal(total_cents),
+        })
     })
 }

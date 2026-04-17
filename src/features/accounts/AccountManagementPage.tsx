@@ -78,7 +78,13 @@ function TypeBadge({ type }: { type: AccountType }) {
   );
 }
 
-export function AccountManagementPage({ compact = false }: { compact?: boolean }) {
+export function AccountManagementPage({
+  clientId,
+  compact = false,
+}: {
+  clientId: string;
+  compact?: boolean;
+}) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -91,8 +97,8 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
   const [editError, setEditError] = useState<string | null>(null);
 
   const { data: accounts = [], isLoading } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const filtered = useMemo(() => {
@@ -121,9 +127,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
   }, [filtered]);
 
   const createMutation = useMutation({
-    mutationFn: (payload: CreateAccountPayload) => createAccount(payload),
+    mutationFn: (payload: CreateAccountPayload) => createAccount(payload, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", clientId] });
       setShowAddForm(false);
       setAddForm(EMPTY_FORM);
       setAddError(null);
@@ -135,9 +141,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateAccountPayload }) =>
-      updateAccount(id, payload),
+      updateAccount(id, payload, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", clientId] });
       setEditingId(null);
       setEditForm(EMPTY_FORM);
       setEditError(null);
@@ -149,9 +155,9 @@ export function AccountManagementPage({ compact = false }: { compact?: boolean }
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      toggleAccountActive(id, active),
+      toggleAccountActive(id, active, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", clientId] });
     },
   });
 

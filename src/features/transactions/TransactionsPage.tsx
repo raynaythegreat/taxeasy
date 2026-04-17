@@ -12,7 +12,11 @@ import { TransactionForm } from "./TransactionForm";
 
 const MIN_YEAR = 2000;
 
-export function TransactionsPage() {
+interface TransactionsPageProps {
+  clientId: string;
+}
+
+export function TransactionsPage({ clientId }: TransactionsPageProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -42,19 +46,19 @@ export function TransactionsPage() {
   const { from, to } = useMemo(() => fiscalYearRange(taxYear), [taxYear]);
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const invalidateTxns = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["transactions"] });
-  }, [queryClient]);
+    queryClient.invalidateQueries({ queryKey: ["transactions", clientId] });
+  }, [queryClient, clientId]);
 
   const invalidateReports = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["pnl"], refetchType: "all" });
-    queryClient.invalidateQueries({ queryKey: ["balance_sheet"], refetchType: "all" });
-    queryClient.invalidateQueries({ queryKey: ["cash_flow"], refetchType: "all" });
-  }, [queryClient]);
+    queryClient.invalidateQueries({ queryKey: ["pnl", clientId], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["balance_sheet", clientId], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["cash_flow", clientId], refetchType: "all" });
+  }, [queryClient, clientId]);
 
   const handleDeleteTxn = useCallback(
     (_id: string) => {
@@ -82,8 +86,6 @@ export function TransactionsPage() {
   }, [invalidateTxns, invalidateReports]);
 
   const handleCsvImported = useCallback(() => {
-    // Don't close yet — CsvImportWizard shows its own success screen;
-    // parent just needs to invalidate queries so drafts refresh.
     invalidateTxns();
     invalidateReports();
   }, [invalidateTxns, invalidateReports]);
@@ -107,6 +109,7 @@ export function TransactionsPage() {
         </div>
         <div className="flex-1 overflow-auto bg-gray-50 p-5">
           <TransactionForm
+            clientId={clientId}
             onClose={() => setShowForm(false)}
             onCreated={handleCreated}
             defaultDate={defaultTxnDate}
@@ -118,11 +121,11 @@ export function TransactionsPage() {
     );
   }
 
-  // When CSV import wizard is open, render it full-height
   if (showCsvImport) {
     return (
       <div className="flex flex-col h-full">
         <CsvImportWizard
+          clientId={clientId}
           onClose={() => setShowCsvImport(false)}
           onImported={handleCsvImported}
         />
@@ -130,22 +133,23 @@ export function TransactionsPage() {
     );
   }
 
-  // When receipt import wizard is open, render it full-height
   if (showImport) {
     return (
       <div className="flex flex-col h-full">
-        <ImportWizard onClose={() => setShowImport(false)} onImported={handleImported} />
+        <ImportWizard
+          clientId={clientId}
+          onClose={() => setShowImport(false)}
+          onImported={handleImported}
+        />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top toolbar */}
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold text-gray-700">{t("Transactions")}</h1>
-          {/* Tab switcher */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
               type="button"
@@ -170,7 +174,6 @@ export function TransactionsPage() {
               {t("Recurring")}
             </button>
           </div>
-          {/* Year picker — only relevant for ledger */}
           {activeTab === "ledger" && (
             <div className="flex items-center gap-1">
               <button
@@ -243,7 +246,6 @@ export function TransactionsPage() {
         )}
       </div>
 
-      {/* Ledger filters bar — only when on ledger tab */}
       {activeTab === "ledger" && (
         <div className="flex items-center gap-3 px-5 py-2 bg-gray-50 border-b border-gray-200">
           <div className="relative flex items-center">
@@ -275,12 +277,12 @@ export function TransactionsPage() {
         </div>
       )}
 
-      {/* Body */}
       <div className="flex-1 overflow-auto">
         {activeTab === "recurring" ? (
           <RecurringTransactionsPage />
         ) : (
           <LedgerView
+            clientId={clientId}
             dateFrom={from}
             dateTo={to}
             accountId={accountId || undefined}

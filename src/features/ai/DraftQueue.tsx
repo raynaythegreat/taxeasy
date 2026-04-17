@@ -69,8 +69,8 @@ export function DraftQueue({ clientId }: { clientId: string }) {
   });
 
   const { data: accounts = [] } = useAccountsQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const evidenceMap = useMemo(() => {

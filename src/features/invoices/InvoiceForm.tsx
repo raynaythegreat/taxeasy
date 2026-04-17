@@ -7,6 +7,7 @@ import { createInvoice, updateInvoice } from "../../lib/invoice-api";
 import { cn, today } from "../../lib/utils";
 
 interface InvoiceFormProps {
+  clientId: string;
   invoice?: InvoiceDetail;
   defaultType?: InvoiceType;
   onClose: () => void;
@@ -48,7 +49,13 @@ function payloadToLines(lines: InvoiceDetail["lines"]): LineState[] {
     }));
 }
 
-export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceFormProps) {
+export function InvoiceForm({
+  clientId,
+  invoice,
+  defaultType,
+  onClose,
+  onSaved,
+}: InvoiceFormProps) {
   const { t } = useI18n();
   const [invoiceType, setInvoiceType] = useState<InvoiceType>(
     invoice?.invoice_type ?? defaultType ?? "invoice",
@@ -81,19 +88,23 @@ export function InvoiceForm({ invoice, defaultType, onClose, onSaved }: InvoiceF
         lines: linesToPayload(lines),
       };
       if (invoice) {
-        return updateInvoice(invoice.id, {
-          invoice_number: payload.invoice_number,
-          issue_date: payload.issue_date,
-          due_date: payload.due_date || null,
-          client_name: payload.client_name,
-          client_email: payload.client_email || null,
-          client_address: payload.client_address || null,
-          tax_rate: payload.tax_rate,
-          notes: payload.notes || null,
-          lines: payload.lines,
-        });
+        return updateInvoice(
+          invoice.id,
+          {
+            invoice_number: payload.invoice_number,
+            issue_date: payload.issue_date,
+            due_date: payload.due_date || null,
+            client_name: payload.client_name,
+            client_email: payload.client_email || null,
+            client_address: payload.client_address || null,
+            tax_rate: payload.tax_rate,
+            notes: payload.notes || null,
+            lines: payload.lines,
+          },
+          clientId,
+        );
       }
-      return createInvoice(payload);
+      return createInvoice(payload, clientId);
     },
     onSuccess: () => {
       onSaved();

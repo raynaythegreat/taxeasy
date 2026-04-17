@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, Users } from "lucide-react";
+import { Briefcase, Globe, LayoutDashboard, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClientsPage } from "../features/clients/ClientsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
@@ -8,9 +8,10 @@ import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { cn } from "../lib/utils";
 import type { WorkspaceTab } from "./ClientWorkspace";
 import { DashboardPage } from "./DashboardPage";
+import { MyBusinessWorkspace } from "./MyBusinessWorkspace";
 import { TaxNewsPage } from "./TaxNewsPage";
 
-type AppView = "dashboard" | "clients" | "settings" | "tax-news";
+type AppView = "dashboard" | "clients" | "settings" | "tax-news" | "my-business";
 
 export function AppShell() {
   const { t, locale, setLocale } = useI18n();
@@ -79,6 +80,7 @@ export function AppShell() {
 
   const NAV_ITEMS: { id: AppView; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: t("Dashboard"), icon: LayoutDashboard },
+    { id: "my-business", label: t("My Business"), icon: Briefcase },
     { id: "clients", label: t("Clients"), icon: Users },
     { id: "settings", label: t("Settings"), icon: Settings },
   ];
@@ -112,7 +114,8 @@ export function AppShell() {
                 key={item.id}
                 onClick={() => setView(item.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                  "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   view === item.id
                     ? "bg-blue-600 text-white"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]",
@@ -130,11 +133,14 @@ export function AppShell() {
             type="button"
             onClick={() => setLocale(locale === "en" ? "es" : "en")}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
               "border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)]",
+              "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             )}
+            aria-label={locale === "en" ? "Switch to Spanish" : "Switch to English"}
           >
-            <span>{locale === "en" ? "🇺🇸 EN" : "🇪🇸 ES"}</span>
+            <Globe className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{locale === "en" ? "EN" : "ES"}</span>
           </button>
         </div>
       </header>
@@ -145,6 +151,13 @@ export function AppShell() {
             onSelectClient={handleSelectClient}
             onNewClient={() => handleNavigate("clients")}
             onNavigate={handleNavigate}
+          />
+        )}
+        {view === "my-business" && (
+          <MyBusinessWorkspace
+            onOpenTaxNews={() => {
+              setView("tax-news");
+            }}
           />
         )}
         {view === "clients" && (

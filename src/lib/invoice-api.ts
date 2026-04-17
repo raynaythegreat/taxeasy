@@ -67,37 +67,46 @@ export interface UpdateInvoicePayload {
   lines?: CreateInvoiceLinePayload[];
 }
 
-export async function listInvoices(params?: {
-  invoiceType?: string;
-  status?: string;
-}): Promise<Invoice[]> {
+export async function listInvoices(
+  clientId: string,
+  params?: { invoiceType?: string; status?: string },
+): Promise<Invoice[]> {
   return invoke("list_invoices", {
+    clientId,
     invoiceType: params?.invoiceType ?? null,
     status: params?.status ?? null,
   });
 }
 
-export async function getInvoice(id: string): Promise<InvoiceDetail> {
-  return invoke("get_invoice", { id });
+export async function getInvoice(id: string, clientId: string): Promise<InvoiceDetail> {
+  return invoke("get_invoice", { id, clientId });
 }
 
-export async function createInvoice(payload: CreateInvoicePayload): Promise<InvoiceDetail> {
-  return invoke("create_invoice", { payload });
+export async function createInvoice(
+  payload: CreateInvoicePayload,
+  clientId: string,
+): Promise<InvoiceDetail> {
+  return invoke("create_invoice", { payload, clientId });
 }
 
 export async function updateInvoice(
   id: string,
   payload: UpdateInvoicePayload,
+  clientId: string,
 ): Promise<InvoiceDetail> {
-  return invoke("update_invoice", { id, payload });
+  return invoke("update_invoice", { id, payload, clientId });
 }
 
-export async function deleteInvoice(id: string): Promise<void> {
-  return invoke("delete_invoice", { id });
+export async function deleteInvoice(id: string, clientId: string): Promise<void> {
+  return invoke("delete_invoice", { id, clientId });
 }
 
-export async function updateInvoiceStatus(id: string, status: string): Promise<void> {
-  return invoke("update_invoice_status", { id, status });
+export async function updateInvoiceStatus(
+  id: string,
+  status: string,
+  clientId: string,
+): Promise<void> {
+  return invoke("update_invoice_status", { id, status, clientId });
 }
 
 export function centsToDollars(cents: number): string {

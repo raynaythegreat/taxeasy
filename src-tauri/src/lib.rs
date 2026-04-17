@@ -15,6 +15,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             commands::unlock::ping,
@@ -57,6 +58,7 @@ pub fn run() {
             commands::settings::save_settings,
             commands::files::list_dir_files,
             ai::ollama::ollama_health,
+            ai::ollama::check_ai_health_with_url,
             ai::ollama::suggest_category,
             ai::ollama::nl_query,
             ai::glmocr::glmocr_available,
@@ -74,6 +76,8 @@ pub fn run() {
             commands::invoices::update_invoice_status,
             commands::updater::check_for_updates,
             commands::updater::get_app_version,
+            commands::updater::download_update,
+            commands::updater::install_update,
             commands::documents::list_documents,
             commands::documents::add_document,
             commands::documents::delete_document,
@@ -92,6 +96,7 @@ pub fn run() {
             commands::drafts::bulk_approve_drafts,
             commands::drafts::bulk_reject_drafts,
             commands::chat::send_chat_message,
+            commands::chat::send_chat_message_stream,
             commands::chat::get_chat_history,
             commands::chat::clear_chat_history,
             commands::business_profile::get_business_profile,

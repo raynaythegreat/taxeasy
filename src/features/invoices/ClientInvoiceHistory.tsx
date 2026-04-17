@@ -43,10 +43,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 interface ClientInvoiceHistoryProps {
+  clientId: string;
   clientName: string;
 }
 
-export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) {
+export function ClientInvoiceHistory({ clientId, clientName }: ClientInvoiceHistoryProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -57,40 +58,41 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: () => listInvoices(),
+    queryKey: ["invoices", clientId],
+    queryFn: () => listInvoices(clientId),
   });
 
   const { data: detail } = useQuery({
     queryKey: ["invoice", selectedId],
-    queryFn: () => getInvoice(selectedId ?? ""),
+    queryFn: () => getInvoice(selectedId ?? "", clientId),
     enabled: !!selectedId,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteInvoice,
+    mutationFn: (id: string) => deleteInvoice(id, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
       setDeleteConfirm(null);
       if (selectedId) setSelectedId(null);
     },
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateInvoiceStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateInvoiceStatus(id, status, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
       queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
     },
   });
 
   const handleSaved = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
     if (selectedId) {
       queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
     }
     setFormInvoice(undefined);
-  }, [queryClient, selectedId]);
+  }, [queryClient, selectedId, clientId]);
 
   const openCreate = useCallback(
     (type: InvoiceType) => {
@@ -345,7 +347,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              getInvoice(inv.id).then((d) => {
+                              getInvoice(inv.id, clientId).then((d) => {
                                 setFormInvoice(d);
                                 setShowForm(true);
                               });
@@ -392,6 +394,7 @@ export function ClientInvoiceHistory({ clientName }: ClientInvoiceHistoryProps) 
 
       {showForm && (
         <InvoiceForm
+          clientId={clientId}
           invoice={formInvoice}
           defaultType={formDefaultType}
           onClose={() => {

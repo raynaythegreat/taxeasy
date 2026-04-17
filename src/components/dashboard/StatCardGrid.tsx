@@ -9,6 +9,7 @@ interface StatCardGridProps {
   ytdNetIncome: string;
   totalTransactions: number;
   onNavigate: (page: string) => void;
+  showTotalClientsCard?: boolean;
 }
 
 function StatCard({
@@ -67,19 +68,27 @@ export function StatCardGrid({
   ytdNetIncome,
   totalTransactions,
   onNavigate,
+  showTotalClientsCard = true,
 }: StatCardGridProps) {
   const { t } = useI18n();
   const netNum = parseFloat(ytdNetIncome);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <StatCard
-        label={t("Total Clients")}
-        value={String(totalClients)}
-        icon={<Users className="w-5 h-5 text-purple-600" />}
-        colorClass="bg-purple-50 border-purple-200 text-purple-700"
-        onClick={() => onNavigate("clients")}
-      />
+    <div
+      className={cn(
+        "grid grid-cols-1 sm:grid-cols-2 gap-4",
+        showTotalClientsCard ? "lg:grid-cols-5" : "lg:grid-cols-4",
+      )}
+    >
+      {showTotalClientsCard && (
+        <StatCard
+          label={t("Total Clients")}
+          value={String(totalClients)}
+          icon={<Users className="w-5 h-5 text-purple-600" />}
+          colorClass="bg-purple-50 border-purple-200 text-purple-700"
+          onClick={() => onNavigate("clients")}
+        />
+      )}
       <StatCard
         label={t("YTD Revenue")}
         value={formatCurrency(ytdRevenue)}

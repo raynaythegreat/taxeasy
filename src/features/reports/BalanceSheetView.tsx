@@ -13,9 +13,8 @@ import { formatCurrency, formatDate } from "../../lib/utils";
 export type BalanceSheetMode = "period" | "cumulative";
 
 interface BalanceSheetViewProps {
-  /** Half-open lower bound (first day of period, inclusive). */
+  clientId: string;
   dateFrom: string;
-  /** Half-open upper bound (first day of next period, exclusive). */
   dateTo: string;
   clientName?: string;
   mode: BalanceSheetMode;
@@ -56,6 +55,7 @@ function LoadingSkeleton() {
 }
 
 export function BalanceSheetView({
+  clientId,
   dateFrom,
   dateTo,
   clientName,
@@ -64,15 +64,14 @@ export function BalanceSheetView({
 }: BalanceSheetViewProps) {
   const { t } = useI18n();
 
-  // Cumulative mode wants an inclusive "as of" date: the last day of the period.
   const inclusiveDate = lastDayOf(dateTo);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["balance_sheet", mode, dateFrom, dateTo],
+    queryKey: ["balance_sheet", clientId, mode, dateFrom, dateTo],
     queryFn: () =>
       mode === "period"
-        ? getBalanceSheet(dateFrom, dateTo)
-        : getBalanceSheetCumulative(inclusiveDate),
+        ? getBalanceSheet(dateFrom, dateTo, clientId)
+        : getBalanceSheetCumulative(inclusiveDate, clientId),
     meta: { silent: true },
   });
 

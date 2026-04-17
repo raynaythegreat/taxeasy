@@ -59,7 +59,17 @@ pub fn report_period_for(
     let anchor = NaiveDate::parse_from_str(&anchor_date, "%Y-%m-%d")
         .map_err(|_| AppError::Validation(format!("invalid anchor_date: {anchor_date}")))?;
 
-    let fiscal_start_month: u32 = {
+    let fiscal_start_month: u32 = if client_id == "owner" {
+        let app_lock = state.app_db.lock().unwrap();
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
+            .query_row(
+                "SELECT fiscal_year_start_month FROM business_profile LIMIT 1",
+                [],
+                |row| row.get::<_, u32>(0),
+            )
+            .unwrap_or(1)
+    } else {
         let app_lock = state.app_db.lock().unwrap();
         let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
         db.conn()

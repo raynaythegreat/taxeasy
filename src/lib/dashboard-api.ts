@@ -39,13 +39,17 @@ export interface DeductibleSummary {
 export type TrendBucket = "daily" | "weekly" | "monthly";
 
 /** Get dashboard stats for a half-open [start, end) range. Omit range for fiscal YTD. */
-export async function getDashboardStats(range?: {
-  start: string;
-  end: string;
-}): Promise<DashboardStats> {
+export async function getDashboardStats(
+  range?: {
+    start: string;
+    end: string;
+  },
+  clientId?: string,
+): Promise<DashboardStats> {
   return invoke("get_dashboard_stats", {
     start: range?.start ?? null,
     end: range?.end ?? null,
+    clientId: clientId ?? null,
   });
 }
 
@@ -54,8 +58,9 @@ export async function getNetCashTrend(
   start: string,
   end: string,
   bucket: TrendBucket,
+  clientId?: string,
 ): Promise<NetCashPoint[]> {
-  return invoke("get_net_cash_trend", { start, end, bucket });
+  return invoke("get_net_cash_trend", { start, end, bucket, clientId: clientId ?? null });
 }
 
 /** Top N expense categories by spend within [start, end). */
@@ -63,14 +68,16 @@ export async function getTopCategories(
   start: string,
   end: string,
   n?: number,
+  clientId?: string,
 ): Promise<CategoryTotal[]> {
-  return invoke("get_top_categories", { start, end, n: n ?? null });
+  return invoke("get_top_categories", { start, end, n: n ?? null, clientId: clientId ?? null });
 }
 
 /** Sum of deductible-tagged expenses within [start, end). */
 export async function getDeductibleExpenses(
   start: string,
   end: string,
+  clientId?: string,
 ): Promise<DeductibleSummary> {
-  return invoke("get_deductible_expenses", { start, end });
+  return invoke("get_deductible_expenses", { start, end, clientId: clientId ?? null });
 }

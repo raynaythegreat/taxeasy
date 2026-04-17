@@ -4,20 +4,16 @@ import { useState } from "react";
 import { getBusinessProfile } from "../lib/business-profile-api";
 import { getDashboardStats } from "../lib/dashboard-api";
 import { useI18n } from "../lib/i18n";
-import { getActiveClientId, type PeriodRange } from "../lib/tauri";
+import type { PeriodRange } from "../lib/tauri";
+import { Button } from "./ui/Button";
 
-/** "All time" as a half-open [start, end) range. Used as the dashboard's
- *  default so every user sees their actual data on first paint, regardless
- *  of when transactions were entered. Users pick a narrower period from
- *  the PeriodPicker when they want YTD / quarter / tax-year specifics. */
 function allTime(): PeriodRange {
   const now = new Date();
-  // end is half-open: first day AFTER today, so today's txns are included.
   const tomorrow = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
   );
   return {
-    start: "2000-01-01", // far enough back to cover any bookkeeping history
+    start: "2000-01-01",
     end: tomorrow.toISOString().slice(0, 10),
   };
 }
@@ -45,42 +41,29 @@ export function DashboardPage({
   const { t } = useI18n();
   const onNavigate = _onNavigate ?? (() => {});
 
-  // Default to "All Time" so the user's actual data shows on first paint.
-  // Users pick narrower periods (YTD / quarter / tax-year) from PeriodPicker.
   const [period, setPeriod] = useState<PeriodRange>(allTime);
 
-  const { data: clientId } = useQuery({
-    queryKey: ["active_client_id"],
-    queryFn: getActiveClientId,
-  });
-
-  // Gate on clientId: the backend commands read the active client from a
-  // lock, so calling them before clientId resolves returns NoActiveClient
-  // and leaves `stats` undefined forever (retry:false). Including clientId
-  // in the queryKey also makes queries refetch when the active client changes.
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard_stats", clientId, period.start, period.end],
+    queryKey: ["dashboard_stats", "owner", period.start, period.end],
     queryFn: () =>
       getDashboardStats(
         period.start && period.end ? { start: period.start, end: period.end } : undefined,
+        "owner",
       ),
-    enabled: !!clientId,
+    enabled: true,
     retry: false,
   });
 
   const { data: businessProfile } = useQuery({
-    queryKey: ["business_profile", clientId],
+    queryKey: ["business_profile", "owner"],
     queryFn: getBusinessProfile,
-    enabled: !!clientId,
+    enabled: true,
     retry: false,
   });
 
   const revenueCents = stats ? Math.round(parseFloat(stats.ytd_revenue) * 100) : 0;
   const expensesCents = stats ? Math.round(parseFloat(stats.ytd_expenses) * 100) : 0;
 
-  // All widgets render unconditionally so the dashboard is structurally
-  // complete even if `stats` is pending/errored. Missing values fall back
-  // to zero/empty — no widget disappears based on fetch state.
   const statValues = {
     total_clients: stats?.total_clients ?? 0,
     ytd_revenue: stats?.ytd_revenue ?? "0",
@@ -93,7 +76,6 @@ export function DashboardPage({
 
   return (
     <div className="flex flex-col h-full overflow-auto bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-5">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -103,41 +85,26 @@ export function DashboardPage({
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {clientId && <PeriodPicker clientId={clientId} value={period} onChange={setPeriod} />}
-            <button
-              type="button"
-              onClick={() => onNavigate("transactions")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            <PeriodPicker clientId="owner" value={period} onChange={setPeriod} />
+            <Button variant="secondary" size="md" onClick={() => onNavigate("transactions")}>
               <Plus className="w-4 h-4" />
               {t("New Transaction")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("transactions")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+            </Button>
+            <Button variant="secondary" size="md" onClick={() => onNavigate("transactions")}>
               <Upload className="w-4 h-4" />
               {t("Import")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("reports")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
+            </Button>
+            <Button variant="primary" size="md" onClick={() => onNavigate("reports")}>
               <FileText className="w-4 h-4" />
               {t("View Reports")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Business profile banner */}
       {businessProfile && <BusinessProfileCard profile={businessProfile} onNavigate={onNavigate} />}
 
-      {/* Main content */}
       <div className="flex-1 px-8 py-6 space-y-6">
-        {/* Stat cards — always render */}
         {statsLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {["clients", "revenue", "expenses", "net", "txns"].map((k) => (
@@ -155,9 +122,9 @@ export function DashboardPage({
           />
         )}
 
-        {/* Charts row — always render (empty states handle no-data case) */}
         {period.start && period.end && (
           <ChartsRow
+            clientId="owner"
             period={period}
             revenueCents={revenueCents}
             expensesCents={expensesCents}
@@ -165,7 +132,6 @@ export function DashboardPage({
           />
         )}
 
-        {/* Tax widgets + recent transactions — always render */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="space-y-4">
             <EstimatedQuarterlyTaxCard
@@ -173,7 +139,7 @@ export function DashboardPage({
               onViewDeadlines={() => onNavigate("tax-news")}
             />
             {period.start && period.end && (
-              <DeductibleExpensesCard start={period.start} end={period.end} />
+              <DeductibleExpensesCard clientId="owner" start={period.start} end={period.end} />
             )}
           </div>
           <div className="lg:col-span-2">
@@ -184,8 +150,7 @@ export function DashboardPage({
           </div>
         </div>
 
-        {/* Tax news */}
-        <TaxNewsSection clientId={clientId ?? undefined} onViewAll={() => onNavigate("tax-news")} />
+        <TaxNewsSection clientId="owner" onViewAll={() => onNavigate("tax-news")} />
       </div>
     </div>
   );

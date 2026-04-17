@@ -1,12 +1,12 @@
-/// Balance Sheet (Statement of Financial Position) as of a date.
-///
-/// Invariant: Total Assets = Total Liabilities + Total Equity (± $0.01 rounding)
 use rusqlite::params;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::transaction::cents_to_decimal;
-use crate::{error::Result, state::AppState};
+use crate::{
+    error::{AppError, Result},
+    state::AppState,
+};
 
 #[derive(Debug, Serialize)]
 pub struct BalanceSheetLine {
@@ -26,100 +26,81 @@ pub struct BalanceSheetReport {
     pub total_liabilities: Decimal,
     pub total_equity: Decimal,
     pub total_liabilities_and_equity: Decimal,
-    /// Net income for the period is rolled into retained earnings on the BS.
     pub net_income_ytd: Decimal,
-    /// True when Assets ≈ Liabilities + Equity (within $0.01).
     pub is_balanced: bool,
 }
 
-/// Period-scoped balance sheet. Callers pass an explicit half-open
-/// `[start, end)` range — NO year-sniffing adapter (that adapter used the
-/// year of `end` which for Jan-1 upper bounds maps to the WRONG tax year:
-/// `"2026-01-01"` → year 2026 instead of 2025).
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_balance_sheet(
     start: String,
     end: String,
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<BalanceSheetReport> {
-    let client_id = {
-        let lock = state.active_client.lock().unwrap();
-        lock.as_ref()
-            .ok_or(crate::error::AppError::NoActiveClient)?
-            .client_id
-            .clone()
-    };
-
-    let fiscal_year_start_month: u8 = {
+    let scope = client_id.as_deref();
+    let fiscal_year_start_month: u8 = if scope == Some("owner") || scope.is_none() {
         let app_lock = state.app_db.lock().unwrap();
-        let app_db = app_lock
-            .as_ref()
-            .ok_or(crate::error::AppError::NoActiveClient)?;
-        app_db
-            .conn()
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
+            .query_row(
+                "SELECT fiscal_year_start_month FROM business_profile LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(1)
+    } else {
+        let app_lock = state.app_db.lock().unwrap();
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
             .query_row(
                 "SELECT fiscal_year_start_month FROM clients WHERE id = ?1",
-                params![client_id],
+                params![scope.unwrap()],
                 |row| row.get(0),
             )
             .unwrap_or(1)
     };
 
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock
-        .as_ref()
-        .ok_or(crate::error::AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
-    compute_balance_sheet(conn, &start, &end, fiscal_year_start_month)
+    crate::commands::scoped::with_scoped_conn(&state, &app_handle, scope, |conn| {
+        compute_balance_sheet(conn, &start, &end, fiscal_year_start_month)
+    })
 }
 
-/// Tauri command: cumulative balance sheet as of a date.
-///
-/// Uses `<= as_of_date` semantics so every transaction ever posted up to
-/// (and including) `as_of_date` contributes — the traditional accounting
-/// meaning of "Balance Sheet as of Dec 31".
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_balance_sheet_cumulative(
     as_of_date: String,
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<BalanceSheetReport> {
-    let client_id = {
-        let lock = state.active_client.lock().unwrap();
-        lock.as_ref()
-            .ok_or(crate::error::AppError::NoActiveClient)?
-            .client_id
-            .clone()
-    };
-
-    let fiscal_year_start_month: u8 = {
+    let scope = client_id.as_deref();
+    let fiscal_year_start_month: u8 = if scope == Some("owner") || scope.is_none() {
         let app_lock = state.app_db.lock().unwrap();
-        let app_db = app_lock
-            .as_ref()
-            .ok_or(crate::error::AppError::NoActiveClient)?;
-        app_db
-            .conn()
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
+            .query_row(
+                "SELECT fiscal_year_start_month FROM business_profile LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(1)
+    } else {
+        let app_lock = state.app_db.lock().unwrap();
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
             .query_row(
                 "SELECT fiscal_year_start_month FROM clients WHERE id = ?1",
-                params![client_id],
+                params![scope.unwrap()],
                 |row| row.get(0),
             )
             .unwrap_or(1)
     };
 
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock
-        .as_ref()
-        .ok_or(crate::error::AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
-    compute_balance_sheet_cumulative(conn, &as_of_date, fiscal_year_start_month)
+    crate::commands::scoped::with_scoped_conn(&state, &app_handle, scope, |conn| {
+        compute_balance_sheet_cumulative(conn, &as_of_date, fiscal_year_start_month)
+    })
 }
 
-/// Pure computation: cumulative balance sheet as of `as_of_date` (inclusive).
-///
-/// Sums all posted transactions with `txn_date <= as_of_date`, which is the
-/// traditional accounting semantics for a Statement of Financial Position.
 pub fn compute_balance_sheet_cumulative(
     conn: &rusqlite::Connection,
     as_of_date: &str,
@@ -199,8 +180,7 @@ pub fn compute_balance_sheet_cumulative(
         }
     }
 
-    // Cumulative net income: all revenue/expense activity up to as_of_date.
-    let _ = fiscal_year_start_month; // reserved for future fiscal-aware views
+    let _ = fiscal_year_start_month;
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -226,7 +206,7 @@ pub fn compute_balance_sheet_cumulative(
     let total_l_e = total_liabilities + total_equity;
 
     let diff = (total_assets - total_l_e).abs();
-    let tolerance = Decimal::new(1, 2); // $0.01
+    let tolerance = Decimal::new(1, 2);
     let is_balanced = diff <= tolerance;
 
     Ok(BalanceSheetReport {
@@ -243,34 +223,12 @@ pub fn compute_balance_sheet_cumulative(
     })
 }
 
-/// Pure computation: run the Balance Sheet queries against `conn`.
-///
-/// Period-scoped: includes only transactions whose date falls within the
-/// half-open [period_start, period_end) range. The exposed `as_of_date` on
-/// the returned report equals `period_end - 1` for compatibility with the
-/// existing frontend date label.
-///
-/// Extracted from `get_balance_sheet` so integration tests can call this
-/// directly without a Tauri `State` handle.
 pub fn compute_balance_sheet(
     conn: &rusqlite::Connection,
     period_start: &str,
     period_end: &str,
     fiscal_year_start_month: u8,
 ) -> Result<BalanceSheetReport> {
-    // Period-scoped Balance Sheet: includes only transactions that posted WITHIN
-    // the selected [period_start, period_end) half-open range. This matches user
-    // expectation that "if no transaction was entered in a year, nothing shows
-    // for that year" — even though it diverges from the traditional cumulative
-    // Balance Sheet semantic. See docs/ACCOUNTING-METHOD.md for rationale.
-    //
-    // LEFT JOIN + CASE WHEN guard: entries whose transactions fall outside the
-    // date/status filter have NULL t.id; we sum zero for those so they don't
-    // leak through the LEFT JOIN.
-    //
-    // Previous semantic (cumulative, t.txn_date <= as_of_date) is retained as a
-    // fallback when caller passes period_end = "<as_of_date>+1" and period_start
-    // = "0001-01-01" — any date earlier than all data.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type,
                 COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END),0) AS dr,
@@ -345,8 +303,7 @@ pub fn compute_balance_sheet(
         }
     }
 
-    // Period net income — revenue/expense activity within [period_start, period_end).
-    let _ = fiscal_year_start_month; // reserved for future fiscal-aware views
+    let _ = fiscal_year_start_month;
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
             COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),
@@ -372,14 +329,17 @@ pub fn compute_balance_sheet(
     let total_l_e = total_liabilities + total_equity;
 
     let diff = (total_assets - total_l_e).abs();
-    let tolerance = Decimal::new(1, 2); // $0.01
+    let tolerance = Decimal::new(1, 2);
     let is_balanced = diff <= tolerance;
 
-    // Display "as of" = last day of the period (period_end is half-open, so -1).
     let as_of_display = {
         use chrono::NaiveDate;
         NaiveDate::parse_from_str(period_end, "%Y-%m-%d")
-            .map(|d| (d - chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
+            .map(|d| {
+                (d - chrono::Duration::days(1))
+                    .format("%Y-%m-%d")
+                    .to_string()
+            })
             .unwrap_or_else(|_| period_end.to_owned())
     };
 

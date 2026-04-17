@@ -22,9 +22,8 @@ import { makeSimpleState, SimpleForm } from "./form/SimpleForm";
 import type { SimpleFormValues } from "./form/schema";
 import { advancedSchema, simpleSchema } from "./form/schema";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface TransactionFormProps {
+  clientId: string;
   onClose: () => void;
   onCreated: () => void;
   onSaveAndNew?: () => void;
@@ -32,8 +31,6 @@ interface TransactionFormProps {
   taxYear?: number;
   onDateUsed?: () => void;
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeEmptyRow(): EntryRowData {
   return { id: crypto.randomUUID(), account_id: "", debit: "", credit: "", memo: "" };
@@ -54,16 +51,14 @@ function buildSimpleEntries(s: SimpleFormValues): EntryPayload[] {
       { account_id: s.source ?? "", credit: amt, memo },
     ];
   }
-  // transfer
   return [
     { account_id: s.toAccount ?? "", debit: amt, memo },
     { account_id: s.fromAccount ?? "", credit: amt, memo },
   ];
 }
 
-// ── TransactionForm ───────────────────────────────────────────────────────────
-
 export function TransactionForm({
+  clientId,
   onClose,
   onCreated,
   onSaveAndNew,
@@ -79,7 +74,6 @@ export function TransactionForm({
   const [aiSuggestion, setAiSuggestion] = useState<CategorizeSuggestion | null>(null);
   const [suggestionFor, setSuggestionFor] = useState<string>("");
 
-  // ── Simple form ──────────────────────────────────────────────────────────
   const simpleForm = useForm<SimpleFormValues>({
     resolver: zodResolver(simpleSchema),
     defaultValues: makeSimpleState(defaultDateProp || today()) as SimpleFormValues,
@@ -87,7 +81,6 @@ export function TransactionForm({
   const simpleValues = simpleForm.watch();
   const simpleErrors = simpleForm.formState.errors;
 
-  // ── Advanced form ────────────────────────────────────────────────────────
   const advForm = useForm({
     resolver: zodResolver(advancedSchema),
     defaultValues: {
@@ -100,11 +93,9 @@ export function TransactionForm({
   const advErrors = advForm.formState.errors;
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
-
-  // ── Advanced mode helpers ────────────────────────────────────────────────
 
   const totalDebit = entries.reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0);
   const totalCredit = entries.reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0);
@@ -126,8 +117,6 @@ export function TransactionForm({
     setEntries((prev) => [...prev, makeEmptyRow()]);
   }, []);
 
-  // ── Simple mode helper ───────────────────────────────────────────────────
-
   const updateSimple = useCallback(
     <K extends keyof SimpleState>(field: K, value: SimpleState[K]) => {
       simpleForm.setValue(field as keyof SimpleFormValues, value as never, {
@@ -136,8 +125,6 @@ export function TransactionForm({
     },
     [simpleForm],
   );
-
-  // ── Scan Receipt ─────────────────────────────────────────────────────────
 
   const handleScanReceipt = async () => {
     setScanError(null);
@@ -172,8 +159,6 @@ export function TransactionForm({
     setAiSuggestion(null);
   };
 
-  // ── Submit helpers ───────────────────────────────────────────────────────
-
   const buildAdvancedPayloads = (): EntryPayload[] =>
     entries
       .filter((row) => row.account_id)
@@ -189,18 +174,24 @@ export function TransactionForm({
     setSubmitError(null);
     try {
       if (mode === "simple" && values) {
-        await createTransaction({
-          txn_date: values.date,
-          description: values.description.trim(),
-          entries: buildSimpleEntries(values),
-        });
+        await createTransaction(
+          {
+            txn_date: values.date,
+            description: values.description.trim(),
+            entries: buildSimpleEntries(values),
+          },
+          clientId,
+        );
       } else {
-        await createTransaction({
-          txn_date: advValues.txnDate,
-          description: advValues.description.trim(),
-          reference: advValues.reference?.trim() || undefined,
-          entries: buildAdvancedPayloads(),
-        });
+        await createTransaction(
+          {
+            txn_date: advValues.txnDate,
+            description: advValues.description.trim(),
+            reference: advValues.reference?.trim() || undefined,
+            entries: buildAdvancedPayloads(),
+          },
+          clientId,
+        );
       }
       onCreated();
       if (onDateUsed) onDateUsed();
@@ -221,8 +212,6 @@ export function TransactionForm({
     }
   }
 
-  // ── Submit handlers ──────────────────────────────────────────────────────
-
   const handleSubmit =
     mode === "simple"
       ? simpleForm.handleSubmit((values) => saveTransaction(values, false))
@@ -240,8 +229,6 @@ export function TransactionForm({
     mode === "simple"
       ? simpleSchema.safeParse(simpleValues).success && !submitting
       : advancedCanSave;
-
-  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -261,7 +248,6 @@ export function TransactionForm({
               accounts={accounts}
               onChange={updateSimple}
             />
-            {/* Simple mode field errors */}
             {simpleForm.formState.isSubmitted && simpleErrors.description && (
               <p role="alert" className="text-xs text-red-600">
                 {simpleErrors.description.message}
@@ -299,7 +285,6 @@ export function TransactionForm({
               }
               onReferenceChange={(v) => advForm.setValue("reference", v)}
             />
-            {/* Advanced field errors */}
             {advForm.formState.isSubmitted && advErrors.description && (
               <p role="alert" className="text-xs text-red-600">
                 {advErrors.description.message}
@@ -324,7 +309,6 @@ export function TransactionForm({
           </>
         )}
 
-        {/* Scan error */}
         {scanError && (
           <div
             role="alert"
@@ -335,7 +319,6 @@ export function TransactionForm({
           </div>
         )}
 
-        {/* AI category suggestion chip */}
         {aiSuggestion && suggestionFor === simpleValues.description && (
           <AiSuggestionChip
             suggestion={aiSuggestion}
@@ -344,7 +327,6 @@ export function TransactionForm({
           />
         )}
 
-        {/* Submit error */}
         {submitError && (
           <div
             role="alert"

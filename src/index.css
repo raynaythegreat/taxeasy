@@ -76,16 +76,10 @@
   }
 
   /* ── Global focus ring ───────────────────────── */
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible,
-  [role="button"]:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 2px var(--primary),
-      0 0 0 4px var(--color-background);
+  /* Use Tailwind focus:ring utilities in components; this is fallback */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   /* ── Tailwind dark-mode overrides ─────────────── */

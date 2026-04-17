@@ -7,6 +7,7 @@ import { type CashFlowLineItem, getCashFlow } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
 
 interface CashFlowViewProps {
+  clientId: string;
   dateFrom: string;
   dateTo: string;
   clientName?: string;
@@ -45,11 +46,17 @@ function LoadingSkeleton() {
   );
 }
 
-export function CashFlowView({ dateFrom, dateTo, clientName, onChangePeriod }: CashFlowViewProps) {
+export function CashFlowView({
+  clientId,
+  dateFrom,
+  dateTo,
+  clientName,
+  onChangePeriod,
+}: CashFlowViewProps) {
   const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["cash_flow", dateFrom, dateTo],
-    queryFn: () => getCashFlow(dateFrom, dateTo),
+    queryKey: ["cash_flow", clientId, dateFrom, dateTo],
+    queryFn: () => getCashFlow(dateFrom, dateTo, clientId),
     meta: { silent: true },
   });
 

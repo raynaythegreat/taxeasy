@@ -108,20 +108,22 @@ function initForm(existing?: RecurringTransaction): FormState {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 interface RecurringFormProps {
+  clientId?: string;
   existing?: RecurringTransaction;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function RecurringForm({ existing, onClose, onSaved }: RecurringFormProps) {
+export function RecurringForm({ clientId, existing, onClose, onSaved }: RecurringFormProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(() => initForm(existing));
   const [formError, setFormError] = useState<string | null>(null);
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId ?? ""),
+    enabled: !!clientId,
   });
 
   const set = (patch: Partial<FormState>) => setForm((prev) => ({ ...prev, ...patch }));

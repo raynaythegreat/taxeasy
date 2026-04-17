@@ -1,9 +1,10 @@
 import { openPath } from "@tauri-apps/plugin-opener";
-import { CheckCircle2, Download, ExternalLink, FileText, RefreshCw } from "lucide-react";
-import { useCallback, useState } from "react";
-import { getErrorLogPath } from "../../../lib/logger";
+import { CheckCircle2, Download, ExternalLink, FileText, Play, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../../../lib/i18n";
-import type { UpdateCheck } from "../../../lib/updater-api";
+import { getErrorLogPath } from "../../../lib/logger";
+import type { UpdateCheck, UpdateProgress } from "../../../lib/updater-api";
+import { downloadUpdate, installUpdate, onUpdateProgress } from "../../../lib/updater-api";
 import { cn } from "../../../lib/utils";
 
 function Spinner() {
@@ -30,6 +31,62 @@ export function AboutTab({
 }: AboutTabProps) {
   const { t } = useI18n();
   const [exportingDiag, setExportingDiag] = useState(false);
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isReadyToInstall, setIsReadyToInstall] = useState(false);
+
+  // Listen for update progress events
+  useEffect(() => {
+    const setupListener = async () => {
+      const unlisten = await onUpdateProgress((progress) => {
+        setUpdateProgress(progress);
+        if (progress.status === "downloading") {
+          setIsDownloading(true);
+        } else if (progress.status === "installing") {
+          setIsDownloading(false);
+          setIsReadyToInstall(true);
+        } else if (progress.status === "ready") {
+          setIsDownloading(false);
+          setIsReadyToInstall(true);
+        } else if (progress.status === "error") {
+          setIsDownloading(false);
+        }
+      });
+      return unlisten;
+    };
+
+    setupListener().then((unlisten) => unlisten);
+  }, []);
+
+  const handleDownloadUpdate = useCallback(async () => {
+    setIsDownloading(true);
+    setUpdateProgress({ status: "downloading" });
+    try {
+      await downloadUpdate();
+      setIsReadyToInstall(true);
+      setUpdateProgress({ status: "ready", progress: 100 });
+    } catch (err) {
+      setUpdateProgress({
+        status: "error",
+        error: err instanceof Error ? err.message : "Failed to download update",
+      });
+      setIsDownloading(false);
+    }
+  }, []);
+
+  const handleInstallUpdate = useCallback(async () => {
+    setUpdateProgress({ status: "installing" });
+    try {
+      await installUpdate();
+      // App will restart - this code won't continue
+    } catch (err) {
+      setUpdateProgress({
+        status: "error",
+        error: err instanceof Error ? err.message : "Failed to install update",
+      });
+    }
+  }, []);
 
   const handleExportDiagnostics = useCallback(async () => {
     setExportingDiag(true);
@@ -50,6 +107,16 @@ export function AboutTab({
       setExportingDiag(false);
     }
   }, []);
+
+  const progressBar =
+    updateProgress && updateProgress.status === "downloading" ? (
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+        <div
+          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+          style={{ width: `${updateProgress.progress || 50}%` }}
+        />
+      </div>
+    ) : null;
 
   return (
     <div className="space-y-4">
@@ -94,14 +161,46 @@ export function AboutTab({
           <button
             type="button"
             onClick={onCheckUpdate}
-            disabled={checkingUpdate}
+            disabled={checkingUpdate || isDownloading}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {checkingUpdate && <Spinner />}
             <RefreshCw className="w-4 h-4" />
             {checkingUpdate ? t("Checking…") : t("Check Now")}
           </button>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoUpdateEnabled}
+              onChange={(e) => setAutoUpdateEnabled(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            {t("Auto-update")}
+          </label>
         </div>
+
+        {updateProgress && (
+          <div className="text-sm text-gray-600">
+            {updateProgress.status === "downloading" && (
+              <span className="flex items-center gap-2">
+                <Spinner />
+                Downloading update...
+              </span>
+            )}
+            {updateProgress.status === "installing" && (
+              <span className="flex items-center gap-2 text-green-600">
+                <CheckCircle2 className="w-4 h-4" />
+                Installing update...
+              </span>
+            )}
+            {updateProgress.status === "error" && (
+              <span className="text-red-600">Error: {updateProgress.error}</span>
+            )}
+          </div>
+        )}
+
+        {progressBar}
 
         {updateCheck && (
           <div
@@ -118,19 +217,45 @@ export function AboutTab({
                     {t("Update available")}: v{updateCheck.latestVersion}
                   </span>
                 </div>
-                {updateCheck.downloadUrl && (
-                  <a
-                    href={updateCheck.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    {t("Download Update")}
-                  </a>
-                )}
+
+                <div className="flex items-center gap-2 pt-2">
+                  {!isDownloading && !isReadyToInstall && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadUpdate}
+                      disabled={isDownloading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {t("Download Update")}
+                    </button>
+                  )}
+
+                  {isDownloading && (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-400 text-white text-sm font-medium cursor-not-allowed"
+                    >
+                      <Spinner />
+                      {t("Downloading...")}
+                    </button>
+                  )}
+
+                  {isReadyToInstall && (
+                    <button
+                      type="button"
+                      onClick={handleInstallUpdate}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      {t("Install and Restart")}
+                    </button>
+                  )}
+                </div>
+
                 <a
-                  href={updateCheck.releaseUrl}
+                  href={updateCheck.downloadUrl || updateCheck.releaseUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-green-600 hover:text-green-800 transition-colors"

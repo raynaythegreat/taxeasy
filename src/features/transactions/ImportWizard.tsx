@@ -34,6 +34,7 @@ interface QueueItem {
 }
 
 interface ImportWizardProps {
+  clientId: string;
   onClose: () => void;
   onImported: () => void;
 }
@@ -120,9 +121,12 @@ function fileName(path: string): string {
   return path.split("/").pop() ?? path;
 }
 
-export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
+export function ImportWizard({ clientId, onClose, onImported }: ImportWizardProps) {
   const { t } = useI18n();
-  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: listAccounts });
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
+  });
   const assetAccounts = accounts.filter((a) => a.account_type === "asset");
 
   const [bankAccountId, setBankAccountId] = useState("");
@@ -277,7 +281,10 @@ export function ImportWizard({ onClose, onImported }: ImportWizardProps) {
               { account_id: row.categoryAccountId, credit: amt },
             ];
       try {
-        await createTransaction({ txn_date: row.date, description: row.description, entries });
+        await createTransaction(
+          { txn_date: row.date, description: row.description, entries },
+          clientId,
+        );
       } catch {
         failed++;
       }

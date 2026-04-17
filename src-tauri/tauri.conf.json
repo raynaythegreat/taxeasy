@@ -38,6 +38,16 @@
   "plugins": {
     "shell": {
       "open": false
+    },
+    "updater": {
+      "active": true,
+      "pubkey": "RWTp0LBzKNDHLw2ldkBjwhBSpMpqnF1xhl4dor7jRmIJ80+jlPPPwwN/",
+      "endpoints": [
+        "https://api.github.com/repos/raynaythegreat/taxeasy/releases/latest"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

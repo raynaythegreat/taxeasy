@@ -81,3 +81,15 @@ export function periodRange(year: number, period: ReportPeriod): { from: string;
   const to = `${toYear}-${String(toMonth).padStart(2, "0")}-01`;
   return { from, to };
 }
+
+/**
+ * Masks an EIN number, showing only the first 2 digits.
+ * Example: "12-3456789" → "12-XXXXXXX"
+ * @param ein - The EIN to mask
+ * @returns The masked EIN, or the original if it's too short to mask
+ */
+export function maskEin(ein: string): string {
+  if (!ein || ein.length < 3) return ein;
+  // Keep first 2 characters, mask the rest
+  return ein[0] + ein[1] + "X".repeat(ein.length - 2);
+}

@@ -16,6 +16,7 @@ pub mod logger;
 pub mod period;
 pub mod print_helper;
 pub mod recurring;
+pub mod scoped;
 pub mod settings;
 pub mod tax_news;
 pub mod transactions;

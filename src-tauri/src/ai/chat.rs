@@ -13,6 +13,27 @@ If asked about unrelated topics, politely redirect to bookkeeping."#
         .to_owned()
 }
 
+pub fn chat_system_prompt_with_tools() -> String {
+    let tools = crate::ai::tools::get_tool_definitions();
+    let tools_text = crate::ai::tools::format_tools_for_prompt(&tools);
+
+    format!(
+        r#"You are a bookkeeping assistant for Taxeasy. You help with bookkeeping, tax, and accounting questions.
+
+{tools_text}
+
+When asked to create a transaction, use the create_transaction tool.
+When asked about spending categories, use the categorize tool.
+When asked a data question, use the query_ledger tool.
+When asked for a report, use the run_report tool.
+
+For general questions, respond normally with helpful bookkeeping advice.
+Amounts are in cents (integer). $50.00 = 5000.
+Never post anything automatically — you only create drafts.
+If asked about unrelated topics, politely redirect to bookkeeping."#
+    )
+}
+
 pub fn build_chat_context(conn: &rusqlite::Connection, client_id: &str) -> String {
     let mut context = String::new();
 

@@ -19,8 +19,13 @@ export interface ExportResult {
   documentCount: number;
 }
 
-export async function listDocuments(category?: string, taxYear?: number): Promise<TaxDocument[]> {
+export async function listDocuments(
+  clientId: string,
+  category?: string,
+  taxYear?: number,
+): Promise<TaxDocument[]> {
   return invoke<TaxDocument[]>("list_documents", {
+    clientId,
     category: category ?? null,
     taxYear: taxYear ?? null,
   });
@@ -36,21 +41,27 @@ export interface AddDocumentPayload {
   description?: string;
 }
 
-export async function addDocument(payload: AddDocumentPayload): Promise<TaxDocument> {
-  return invoke<TaxDocument>("add_document", { payload });
+export async function addDocument(
+  payload: AddDocumentPayload,
+  clientId: string,
+): Promise<TaxDocument> {
+  return invoke<TaxDocument>("add_document", { payload, clientId });
 }
 
-export async function deleteDocument(id: string): Promise<void> {
-  return invoke("delete_document", { id });
+export async function deleteDocument(id: string, clientId: string): Promise<void> {
+  return invoke("delete_document", { id, clientId });
 }
 
-export async function updateDocument(params: {
-  id: string;
-  category?: string;
-  taxYear?: number;
-  description?: string;
-}): Promise<void> {
-  return invoke("update_document", params);
+export async function updateDocument(
+  params: {
+    id: string;
+    category?: string;
+    taxYear?: number;
+    description?: string;
+  },
+  clientId: string,
+): Promise<void> {
+  return invoke("update_document", { ...params, clientId });
 }
 
 export async function exportClientDocuments(

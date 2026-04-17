@@ -16,6 +16,7 @@ interface NetCashTrendChartProps {
   start: string;
   end: string;
   reducedMotion?: boolean;
+  clientId?: string;
 }
 
 function bucketFor(start: string, end: string): TrendBucket {
@@ -25,13 +26,18 @@ function bucketFor(start: string, end: string): TrendBucket {
   return "monthly";
 }
 
-export function NetCashTrendChart({ start, end, reducedMotion = false }: NetCashTrendChartProps) {
+export function NetCashTrendChart({
+  start,
+  end,
+  reducedMotion = false,
+  clientId,
+}: NetCashTrendChartProps) {
   const { t } = useI18n();
   const bucket = bucketFor(start, end);
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ["net_cash_trend", start, end, bucket],
-    queryFn: () => getNetCashTrend(start, end, bucket),
+    queryKey: ["net_cash_trend", start, end, bucket, clientId],
+    queryFn: () => getNetCashTrend(start, end, bucket, clientId),
     enabled: Boolean(start && end),
   });
 

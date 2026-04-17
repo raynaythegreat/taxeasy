@@ -26,7 +26,14 @@ import { handleExportReport } from "../lib/export-api";
 import { useI18n } from "../lib/i18n";
 import { triggerPrint } from "../lib/print-utils";
 import type { Client } from "../lib/tauri";
-import { cn, formatDate, PERIOD_LABELS, periodRange, type ReportPeriod } from "../lib/utils";
+import {
+  cn,
+  formatDate,
+  maskEin,
+  PERIOD_LABELS,
+  periodRange,
+  type ReportPeriod,
+} from "../lib/utils";
 
 const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
@@ -98,7 +105,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
   async function handleExport() {
     setExporting(true);
     try {
-      await handleExportReport(reportType, from, toHalfOpen);
+      await handleExportReport(reportType, from, toHalfOpen, client.id);
     } finally {
       setExporting(false);
     }
@@ -115,7 +122,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
             </span>
             {client.ein && (
               <span className="text-xs text-gray-500 shrink-0">
-                {t("EIN")}: {client.ein}
+                {t("EIN")}: {maskEin(client.ein)}
               </span>
             )}
             <span className="ml-auto text-xs text-gray-400 capitalize shrink-0">
@@ -256,19 +263,19 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
               )}
             </div>
             <div className="shrink-0 border-t border-gray-200">
-              <AccountManagementPage compact />
+              <AccountManagementPage compact clientId={client.id} />
             </div>
             <div className="shrink-0 border-t border-gray-200">
-              <InvoicesPage compact />
+              <InvoicesPage compact clientId={client.id} />
             </div>
             <div className="shrink-0 border-t border-gray-200">
-              <DocumentsPage compact />
+              <DocumentsPage compact clientId={client.id} />
             </div>
           </div>
         )}
-        {tab === "transactions" && <TransactionsPage />}
-        {tab === "invoices" && <InvoicesPage />}
-        {tab === "documents" && <DocumentsPage />}
+        {tab === "transactions" && <TransactionsPage clientId={client.id} />}
+        {tab === "invoices" && <InvoicesPage clientId={client.id} />}
+        {tab === "documents" && <DocumentsPage clientId={client.id} />}
         {tab === "reports" && (
           <div className="flex flex-col h-full">
             {/* Two-row sticky toolbar */}
@@ -458,11 +465,17 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                   priorTo={priorTo}
                   clientName={client.name}
                   currentYear={taxYear}
+                  clientId={client.id}
                 />
               ) : (
                 <>
                   {reportType === "pnl" && (
-                    <PnLView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />
+                    <PnLView
+                      dateFrom={from}
+                      dateTo={toHalfOpen}
+                      clientName={client.name}
+                      clientId={client.id}
+                    />
                   )}
                   {reportType === "balance_sheet" && (
                     <BalanceSheetView
@@ -470,10 +483,16 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                       dateTo={toHalfOpen}
                       clientName={client.name}
                       mode={balanceSheetMode}
+                      clientId={client.id}
                     />
                   )}
                   {reportType === "cash_flow" && (
-                    <CashFlowView dateFrom={from} dateTo={toHalfOpen} clientName={client.name} />
+                    <CashFlowView
+                      dateFrom={from}
+                      dateTo={toHalfOpen}
+                      clientName={client.name}
+                      clientId={client.id}
+                    />
                   )}
                 </>
               )}

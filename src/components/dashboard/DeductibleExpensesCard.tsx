@@ -6,14 +6,15 @@ import { formatCurrency } from "../../lib/utils";
 interface DeductibleExpensesCardProps {
   start: string;
   end: string;
+  clientId?: string;
 }
 
-export function DeductibleExpensesCard({ start, end }: DeductibleExpensesCardProps) {
+export function DeductibleExpensesCard({ start, end, clientId }: DeductibleExpensesCardProps) {
   const { t } = useI18n();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["deductible_expenses", start, end],
-    queryFn: () => getDeductibleExpenses(start, end),
+    queryKey: ["deductible_expenses", start, end, clientId],
+    queryFn: () => getDeductibleExpenses(start, end, clientId),
     enabled: Boolean(start && end),
   });
 

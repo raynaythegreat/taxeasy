@@ -1,10 +1,9 @@
-/// Profit & Loss (Income Statement) report.
 use rusqlite::params;
 use rust_decimal::Decimal;
 use serde::Serialize;
 
-use crate::{error::Result, state::AppState};
 use crate::domain::transaction::cents_to_decimal;
+use crate::{error::Result, state::AppState};
 
 #[derive(Debug, Serialize)]
 pub struct PnlLineItem {
@@ -33,32 +32,20 @@ pub struct PnlReport {
 pub fn get_pnl(
     date_from: String,
     date_to: String,
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<PnlReport> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(crate::error::AppError::NoActiveClient)?;
-    compute_pnl(ac.db.conn(), &date_from, &date_to)
+    crate::commands::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+        compute_pnl(conn, &date_from, &date_to)
+    })
 }
 
-/// Core P&L computation against an open `rusqlite::Connection`.
-///
-/// Separated from `get_pnl` so integration tests can call the real SQL
-/// without a Tauri `State` wrapper.
 pub fn compute_pnl(
     conn: &rusqlite::Connection,
     date_from: &str,
     date_to: &str,
 ) -> Result<PnlReport> {
-    // Sum net activity per account for the period.
-    // For revenue accounts: normal balance is credit → net = SUM(credit) - SUM(debit)
-    // For expense/COGS accounts: normal balance is debit → net = SUM(debit) - SUM(credit)
-    // B3: half-open [date_from, date_to) — date_to is the exclusive upper bound.
-    // B1: AND t.status = 'posted' — excludes drafts and voided transactions.
-    //
-    // FIX: wrap SUM columns in CASE WHEN t.id IS NOT NULL so that entries
-    // belonging to transactions that failed the ON-clause date/status filter
-    // are counted as zero rather than leaking through the LEFT JOIN.
-    // The LEFT JOIN is kept so accounts with zero activity still appear.
     let mut stmt = conn.prepare(
         "SELECT a.id, a.code, a.name, a.account_type, a.schedule_c_line,
                 COALESCE(SUM(CASE WHEN t.id IS NOT NULL THEN e.debit_cents  ELSE 0 END), 0) AS dr,
@@ -106,8 +93,10 @@ pub fn compute_pnl(
     for row in rows {
         match row.account_type.as_str() {
             "revenue" => {
-                let amount = cents_to_decimal(row.cr - row.dr); // credit-normal
-                if amount == Decimal::ZERO { continue; }
+                let amount = cents_to_decimal(row.cr - row.dr);
+                if amount == Decimal::ZERO {
+                    continue;
+                }
                 revenue_lines.push(PnlLineItem {
                     account_id: row.id,
                     code: row.code,
@@ -117,9 +106,10 @@ pub fn compute_pnl(
                 });
             }
             "expense" => {
-                let amount = cents_to_decimal(row.dr - row.cr); // debit-normal
-                if amount == Decimal::ZERO { continue; }
-                // Separate COGS (code prefix "5") from operating expenses ("6"/"7")
+                let amount = cents_to_decimal(row.dr - row.cr);
+                if amount == Decimal::ZERO {
+                    continue;
+                }
                 if row.code.starts_with('5') {
                     cogs_lines.push(PnlLineItem {
                         account_id: row.id,
@@ -169,7 +159,6 @@ mod tests {
 
     #[test]
     fn net_income_calculation_is_correct() {
-        // revenue 5000 - COGS 1000 - expenses 2000 = 2000
         let total_revenue = dec!(5000);
         let total_cogs = dec!(1000);
         let gross = total_revenue - total_cogs;

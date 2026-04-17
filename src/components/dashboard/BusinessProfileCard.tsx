@@ -2,6 +2,7 @@ import { Building2 } from "lucide-react";
 import type { BusinessProfile } from "../../lib/business-profile-api";
 import { useI18n } from "../../lib/i18n";
 import type { EntityType } from "../../lib/tauri";
+import { maskEin } from "../../lib/utils";
 
 const ENTITY_LABELS: Record<EntityType, string> = {
   sole_prop: "Sole Proprietor",
@@ -38,7 +39,7 @@ export function BusinessProfileCard({ profile, onNavigate }: BusinessProfileCard
                 </span>
                 {profile.ein && (
                   <span className="text-xs text-gray-500">
-                    {t("EIN")}: {profile.ein}
+                    {t("EIN")}: {maskEin(profile.ein)}
                   </span>
                 )}
               </div>

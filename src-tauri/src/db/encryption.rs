@@ -56,6 +56,11 @@ pub fn client_db_key(passphrase: &str, client_id: &str) -> Result<[u8; 32]> {
     derive_key(passphrase, &salt)
 }
 
+/// Derive the owner ledger SQLCipher key.
+pub fn owner_db_key(passphrase: &str) -> Result<[u8; 32]> {
+    derive_key(passphrase, b"taxeasy-owner-db-v1")
+}
+
 /// Derive the EIN field-encryption key.
 pub fn ein_key(passphrase: &str) -> Result<[u8; 32]> {
     derive_key(passphrase, b"taxeasy-ein-field-v1")

@@ -16,18 +16,20 @@ interface TopExpenseCategoriesChartProps {
   start: string;
   end: string;
   reducedMotion?: boolean;
+  clientId?: string;
 }
 
 export function TopExpenseCategoriesChart({
   start,
   end,
   reducedMotion = false,
+  clientId,
 }: TopExpenseCategoriesChartProps) {
   const { t } = useI18n();
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ["top_categories", start, end],
-    queryFn: () => getTopCategories(start, end, 5),
+    queryKey: ["top_categories", start, end, clientId],
+    queryFn: () => getTopCategories(start, end, 5, clientId),
     enabled: Boolean(start && end),
   });
 

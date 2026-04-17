@@ -43,6 +43,10 @@ export async function ollamaHealthUrl(url: string): Promise<boolean> {
   return invoke("ollama_health_url", { url });
 }
 
+export async function checkAiHealthWithUrl(url: string): Promise<boolean> {
+  return invoke("check_ai_health_with_url", { url });
+}
+
 export async function ollamaListModels(url: string): Promise<string[]> {
   return invoke("ollama_list_models", { url });
 }

@@ -99,7 +99,13 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function InvoicesPage({ compact = false }: { compact?: boolean }) {
+export function InvoicesPage({
+  clientId,
+  compact = false,
+}: {
+  clientId: string;
+  compact?: boolean;
+}) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -112,44 +118,45 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ["invoices", typeFilter, statusFilter],
+    queryKey: ["invoices", clientId, typeFilter, statusFilter],
     queryFn: () =>
-      listInvoices({
+      listInvoices(clientId, {
         invoiceType: typeFilter || undefined,
         status: statusFilter || undefined,
       }),
   });
 
   const { data: detail } = useQuery({
-    queryKey: ["invoice", selectedId],
-    queryFn: () => getInvoice(selectedId ?? ""),
+    queryKey: ["invoice", clientId, selectedId],
+    queryFn: () => getInvoice(selectedId ?? "", clientId),
     enabled: !!selectedId,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteInvoice,
+    mutationFn: (id: string) => deleteInvoice(id, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
       setDeleteConfirm(null);
       if (selectedId) setSelectedId(null);
     },
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateInvoiceStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateInvoiceStatus(id, status, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", clientId, selectedId] });
     },
   });
 
   const handleSaved = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    queryClient.invalidateQueries({ queryKey: ["invoices", clientId] });
     if (selectedId) {
-      queryClient.invalidateQueries({ queryKey: ["invoice", selectedId] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", clientId, selectedId] });
     }
     setFormInvoice(undefined);
-  }, [queryClient, selectedId]);
+  }, [queryClient, selectedId, clientId]);
 
   const openCreate = useCallback((type: InvoiceType) => {
     setFormInvoice(undefined);
@@ -423,7 +430,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
                               e.stopPropagation();
                               setFormInvoice(undefined);
                               setFormDefaultType(inv.invoice_type);
-                              getInvoice(inv.id).then((d) => {
+                              getInvoice(inv.id, clientId).then((d) => {
                                 setFormInvoice(d);
                                 setShowForm(true);
                               });
@@ -469,6 +476,7 @@ export function InvoicesPage({ compact = false }: { compact?: boolean }) {
 
       {showForm && (
         <InvoiceForm
+          clientId={clientId}
           invoice={formInvoice}
           defaultType={formDefaultType}
           onClose={() => {

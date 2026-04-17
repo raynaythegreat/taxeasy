@@ -145,11 +145,7 @@ function StepIndicator({ step }: { step: Step }) {
 
 // ── Step 1: File pick ──────────────────────────────────────────────────────────
 
-function Step1({
-  onPreview,
-}: {
-  onPreview: (path: string, preview: CsvPreview) => void;
-}) {
+function Step1({ onPreview }: { onPreview: (path: string, preview: CsvPreview) => void }) {
   const { t } = useI18n();
   const [filePath, setFilePath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -344,9 +340,10 @@ function parsePreviewRows(preview: CsvPreview, mapping: MappingState): ParsedPre
     const rawDate = row[mapping.dateCol] ?? "";
     const description = row[mapping.descriptionCol]?.trim() ?? "";
     const rawAmt = row[mapping.amountCol] ?? "";
-    const reference = mapping.referenceCol !== undefined
-      ? (row[mapping.referenceCol]?.trim() || undefined)
-      : undefined;
+    const reference =
+      mapping.referenceCol !== undefined
+        ? row[mapping.referenceCol]?.trim() || undefined
+        : undefined;
 
     // Simple client-side validation matching backend logic
     const dateOk =
@@ -536,13 +533,7 @@ function Step3({
 
 // ── Success screen ─────────────────────────────────────────────────────────────
 
-function SuccessScreen({
-  result,
-  onClose,
-}: {
-  result: ImportResult;
-  onClose: () => void;
-}) {
+function SuccessScreen({ result, onClose }: { result: ImportResult; onClose: () => void }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center flex-1 gap-6 px-8 py-12">
@@ -557,9 +548,7 @@ function SuccessScreen({
             skipped: String(result.skipped),
           })}
         </p>
-        <p className="text-xs text-gray-500">
-          {t("Review and approve them in the draft queue.")}
-        </p>
+        <p className="text-xs text-gray-500">{t("Review and approve them in the draft queue.")}</p>
       </div>
       <button
         type="button"
@@ -575,11 +564,12 @@ function SuccessScreen({
 // ── Main wizard component ──────────────────────────────────────────────────────
 
 interface CsvImportWizardProps {
+  clientId: string;
   onClose: () => void;
   onImported: () => void;
 }
 
-export function CsvImportWizard({ onClose, onImported }: CsvImportWizardProps) {
+export function CsvImportWizard({ clientId, onClose, onImported }: CsvImportWizardProps) {
   const { t } = useI18n();
   const [step, setStep] = useState<Step>(1);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -593,8 +583,8 @@ export function CsvImportWizard({ onClose, onImported }: CsvImportWizardProps) {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: listAccounts,
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const handlePreview = (path: string, data: CsvPreview) => {

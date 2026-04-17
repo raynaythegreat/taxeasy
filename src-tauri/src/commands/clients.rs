@@ -582,6 +582,13 @@ fn seed_values(entity_type: &EntityType) -> Result<Vec<Value>> {
     Ok(serde_json::from_str(seed_json)?)
 }
 
+pub fn ensure_chart_of_accounts_public(
+    conn: &rusqlite::Connection,
+    entity_type: &EntityType,
+) -> Result<()> {
+    ensure_chart_of_accounts(conn, entity_type)
+}
+
 fn ensure_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityType) -> Result<()> {
     let seeds = seed_values(entity_type)?;
 

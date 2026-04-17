@@ -25,7 +25,6 @@ import {
   pickExportFolder,
 } from "../../lib/documents-api";
 import { useI18n } from "../../lib/i18n";
-import { getActiveClientId } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
 
 const CATEGORIES = [
@@ -63,10 +62,11 @@ function mimeFromName(name: string): string {
 }
 
 interface DocumentsPageProps {
+  clientId: string;
   compact?: boolean;
 }
 
-export function DocumentsPage({ compact = false }: DocumentsPageProps) {
+export function DocumentsPage({ clientId, compact = false }: DocumentsPageProps) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -85,8 +85,8 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const { data: documents = [], isLoading } = useQuery({
-    queryKey: ["documents", filterCategory, filterYear],
-    queryFn: () => listDocuments(filterCategory ?? undefined, filterYear ?? undefined),
+    queryKey: ["documents", clientId, filterCategory, filterYear],
+    queryFn: () => listDocuments(clientId, filterCategory ?? undefined, filterYear ?? undefined),
   });
 
   const filteredDocs = useMemo(() => {
@@ -101,9 +101,9 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
   }, [documents, searchQuery]);
 
   const deleteMutation = useMutation({
-    mutationFn: deleteDocument,
+    mutationFn: (id: string) => deleteDocument(id, clientId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["documents", clientId] });
       setConfirmDelete(null);
     },
   });
@@ -116,16 +116,19 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       const fileArr = Array.isArray(files) ? files : [files];
       for (const fp of fileArr) {
         const name = fp.split("/").pop() ?? fp.split("\\").pop() ?? fp;
-        await addDocument({
-          fileName: name,
-          filePath: fp,
-          fileSize: 0,
-          mimeType: mimeFromName(name),
-          category: "general",
-          taxYear: filterYear ?? undefined,
-        });
+        await addDocument(
+          {
+            fileName: name,
+            filePath: fp,
+            fileSize: 0,
+            mimeType: mimeFromName(name),
+            category: "general",
+            taxYear: filterYear ?? undefined,
+          },
+          clientId,
+        );
       }
-      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["documents", clientId] });
       showToast(t("Documents uploaded"), "success");
     } catch (e) {
       showToast(`${t("Upload failed")}: ${e}`, "error");
@@ -133,18 +136,13 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       setUploading(false);
     }
     // biome-ignore lint/correctness/useExhaustiveDependencies: Tauri command references are stable module-level functions
-  }, [filterYear, queryClient, t, showToast]);
+  }, [clientId, filterYear, queryClient, t, showToast]);
 
   const handleExportClient = useCallback(async () => {
     setExporting(true);
     try {
       const folder = await pickExportFolder();
       if (!folder) return;
-      const clientId = await getActiveClientId();
-      if (!clientId) {
-        showToast(t("No active client"), "error");
-        return;
-      }
       const result = await exportClientDocuments(clientId, folder);
       showToast(
         t("Exported {count} documents to {folder}", {
@@ -159,7 +157,7 @@ export function DocumentsPage({ compact = false }: DocumentsPageProps) {
       setExporting(false);
     }
     // biome-ignore lint/correctness/useExhaustiveDependencies: Tauri command references are stable module-level functions
-  }, [t, showToast]);
+  }, [clientId, t, showToast]);
 
   const handleExportAll = useCallback(async () => {
     setExporting(true);

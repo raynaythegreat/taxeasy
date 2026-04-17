@@ -18,6 +18,7 @@ tauri-plugin-opener   = "2"
 tauri-plugin-dialog   = "2"
 tauri-plugin-fs       = "2"
 tauri-plugin-shell    = "2"
+tauri-plugin-updater  = "2"
 
 # Serialization
 serde          = { version = "1", features = ["derive"] }
@@ -43,7 +44,8 @@ sha2           = "0.10"
 
 # Async runtime + HTTP (for Ollama)
 tokio          = { version = "1", features = ["full"] }
-reqwest        = { version = "0.12", features = ["json"] }
+reqwest        = { version = "0.12", features = ["json", "stream"] }
+futures-util   = "0.3"
 base64         = "0.22"
 
 # CSV parsing (bank import)

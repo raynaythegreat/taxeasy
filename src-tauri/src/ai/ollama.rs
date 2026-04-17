@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 use crate::{error::{AppError, Result}, state::AppState};
 
 pub struct AiConfig {
-    provider: String,
-    ollama_url: String,
-    ollama_model: String,
-    lm_studio_url: String,
-    lm_studio_model: String,
+    pub provider: String,
+    pub ollama_url: String,
+    pub ollama_model: String,
+    pub lm_studio_url: String,
+    pub lm_studio_model: String,
 }
 
 fn looks_like_ocr_or_embedding_model(model: &str) -> bool {
@@ -50,7 +50,7 @@ fn preferred_ollama_model(models: &[String]) -> Option<String> {
         .cloned()
 }
 
-async fn resolve_ollama_chat_model(url: &str, configured_model: &str) -> Result<String> {
+pub async fn resolve_ollama_chat_model(url: &str, configured_model: &str) -> Result<String> {
     if !configured_model.trim().is_empty() && !looks_like_ocr_or_embedding_model(configured_model) {
         return Ok(configured_model.trim().to_owned());
     }
@@ -101,6 +101,26 @@ pub async fn ollama_health() -> bool {
     let client = Client::new();
     match client
         .get("http://localhost:11434/api/tags")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+    {
+        Ok(resp) => resp.status().is_success(),
+        Err(_) => false,
+    }
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn check_ai_health_with_url(url: String) -> bool {
+    let client = Client::new();
+    let is_lmstudio = url.contains("1234");
+    let endpoint = if is_lmstudio {
+        format!("{}/v1/models", url.trim_end_matches('/'))
+    } else {
+        format!("{}/api/tags", url.trim_end_matches('/'))
+    };
+    match client
+        .get(&endpoint)
         .timeout(std::time::Duration::from_secs(3))
         .send()
         .await

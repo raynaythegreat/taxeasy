@@ -7,6 +7,7 @@ import { getPnl, type PnlLineItem } from "../../lib/tauri";
 import { formatCurrency, formatDate } from "../../lib/utils";
 
 interface PnLViewProps {
+  clientId: string;
   dateFrom: string;
   dateTo: string;
   clientName?: string;
@@ -46,11 +47,11 @@ function LoadingSkeleton() {
   );
 }
 
-export function PnLView({ dateFrom, dateTo, clientName, onChangePeriod }: PnLViewProps) {
+export function PnLView({ clientId, dateFrom, dateTo, clientName, onChangePeriod }: PnLViewProps) {
   const { t } = useI18n();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["pnl", dateFrom, dateTo],
-    queryFn: () => getPnl(dateFrom, dateTo),
+    queryKey: ["pnl", clientId, dateFrom, dateTo],
+    queryFn: () => getPnl(dateFrom, dateTo, clientId),
     meta: { silent: true },
   });
 

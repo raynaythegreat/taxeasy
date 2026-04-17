@@ -11,6 +11,7 @@ interface ChartsRowProps {
   revenueCents: number;
   expensesCents: number;
   accountBalances: Array<{ account_type: string; balance: string }>;
+  clientId?: string;
 }
 
 export function ChartsRow({
@@ -18,6 +19,7 @@ export function ChartsRow({
   revenueCents,
   expensesCents,
   accountBalances,
+  clientId,
 }: ChartsRowProps) {
   const { t } = useI18n();
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -47,7 +49,12 @@ export function ChartsRow({
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
           {t("Net Cash Trend")}
         </h3>
-        <NetCashTrendChart start={period.start} end={period.end} reducedMotion={reducedMotion} />
+        <NetCashTrendChart
+          start={period.start}
+          end={period.end}
+          reducedMotion={reducedMotion}
+          clientId={clientId}
+        />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -58,6 +65,7 @@ export function ChartsRow({
           start={period.start}
           end={period.end}
           reducedMotion={reducedMotion}
+          clientId={clientId}
         />
       </div>
 

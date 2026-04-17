@@ -1,0 +1,11 @@
+- [ ] `export-api.ts` needs scope awareness
+- [ ] `TransactionsPage.tsx` needs `clientId` prop
+- [ ] `InvoicesPage.tsx` needs `clientId` prop
+- [ ] `DocumentsPage.tsx` needs `clientId` prop
+- [ ] `AccountManagementPage.tsx` needs `clientId` prop
+- [ ] All report views need `clientId` prop
+- [ ] `AppShell.tsx` needs My Business button and routing
+- [ ] `lib/tauri.ts` needs `clientId` added to relevant command signatures
+- [ ] Rebuild and open app
+- [ ] Verify owner/client data isolation
+- [ ] Commit and push all changes

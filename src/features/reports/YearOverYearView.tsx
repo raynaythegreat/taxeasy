@@ -5,6 +5,7 @@ import { type BalanceSheetReport, getBalanceSheet, getPnl, type PnlReport } from
 import { cn, formatCurrency, formatDate } from "../../lib/utils";
 
 interface YearOverYearViewProps {
+  clientId: string;
   reportType: "pnl" | "balance_sheet";
   currentFrom: string;
   currentTo: string;
@@ -298,6 +299,7 @@ function BalanceSheetComparison({
 // ── Main export ─────────────────────────────────────────────────────────────
 
 export function YearOverYearView({
+  clientId,
   reportType,
   currentFrom,
   currentTo,
@@ -309,29 +311,29 @@ export function YearOverYearView({
   const { t } = useI18n();
 
   const pnlCurrentQuery = useQuery({
-    queryKey: ["pnl", currentFrom, currentTo],
-    queryFn: () => getPnl(currentFrom, currentTo),
+    queryKey: ["pnl", clientId, currentFrom, currentTo],
+    queryFn: () => getPnl(currentFrom, currentTo, clientId),
     enabled: reportType === "pnl",
     meta: { silent: true },
   });
 
   const pnlPriorQuery = useQuery({
-    queryKey: ["pnl", priorFrom, priorTo],
-    queryFn: () => getPnl(priorFrom, priorTo),
+    queryKey: ["pnl", clientId, priorFrom, priorTo],
+    queryFn: () => getPnl(priorFrom, priorTo, clientId),
     enabled: reportType === "pnl",
     meta: { silent: true },
   });
 
   const bsCurrentQuery = useQuery({
-    queryKey: ["balance_sheet", "period", currentFrom, currentTo],
-    queryFn: () => getBalanceSheet(currentFrom, currentTo),
+    queryKey: ["balance_sheet", clientId, "period", currentFrom, currentTo],
+    queryFn: () => getBalanceSheet(currentFrom, currentTo, clientId),
     enabled: reportType === "balance_sheet",
     meta: { silent: true },
   });
 
   const bsPriorQuery = useQuery({
-    queryKey: ["balance_sheet", "period", priorFrom, priorTo],
-    queryFn: () => getBalanceSheet(priorFrom, priorTo),
+    queryKey: ["balance_sheet", clientId, "period", priorFrom, priorTo],
+    queryFn: () => getBalanceSheet(priorFrom, priorTo, clientId),
     enabled: reportType === "balance_sheet",
     meta: { silent: true },
   });

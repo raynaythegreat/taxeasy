@@ -1,8 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
-// ── Domain types ──────────────────────────────────────────────────────────────
-
 export type EntityType = "sole_prop" | "smllc" | "scorp" | "ccorp" | "partnership";
 export type AccountingMethod = "cash" | "accrual";
 export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
@@ -99,7 +97,6 @@ export interface EntryPayload {
   memo?: string;
 }
 
-// Reports
 export interface PnlLineItem {
   account_id: string;
   code: string;
@@ -121,7 +118,6 @@ export interface PnlReport {
   net_income: string;
 }
 
-// BalanceSheetLineItem is exported for use in views
 export interface BalanceSheetLineItem {
   account_id: string;
   code: string;
@@ -162,13 +158,9 @@ export interface CashFlowReport {
   ending_cash: string;
 }
 
-// ── IPC wrappers ──────────────────────────────────────────────────────────────
-
-// Auth
 export const unlock = (passphrase: string): Promise<boolean> =>
   invoke("unlock_app", { passphrase });
 
-// Clients
 export const listClients = (): Promise<Client[]> => invoke("list_clients");
 
 export const createClient = (payload: CreateClientPayload): Promise<Client> =>
@@ -179,27 +171,34 @@ export const switchClient = (clientId: string): Promise<void> =>
 
 export const getActiveClientId = (): Promise<string | null> => invoke("get_active_client_id");
 
-// Accounts
-export const listAccounts = (): Promise<Account[]> => invoke("list_accounts");
+export const listAccounts = (clientId: string): Promise<Account[]> =>
+  invoke("list_accounts", { clientId });
 
-export const getAccountBalance = (accountId: string, asOfDate: string): Promise<string> =>
-  invoke("get_account_balance", { accountId, asOfDate });
+export const getAccountBalance = (
+  accountId: string,
+  asOfDate: string,
+  clientId: string,
+): Promise<string> => invoke("get_account_balance", { accountId, asOfDate, clientId });
 
-// Transactions
-export const listTransactions = (params?: {
-  dateFrom?: string;
-  dateTo?: string;
-  accountId?: string;
-}): Promise<TransactionWithEntries[]> =>
+export const listTransactions = (
+  params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    accountId?: string;
+  },
+  clientId?: string,
+): Promise<TransactionWithEntries[]> =>
   invoke("list_transactions", {
     dateFrom: params?.dateFrom ?? null,
     dateTo: params?.dateTo ?? null,
     accountId: params?.accountId ?? null,
+    clientId,
   });
 
 export const createTransaction = (
   payload: CreateTransactionPayload,
-): Promise<TransactionWithEntries> => invoke("create_transaction", { payload });
+  clientId: string,
+): Promise<TransactionWithEntries> => invoke("create_transaction", { payload, clientId });
 
 export interface UpdateTransactionPayload {
   txnId: string;
@@ -209,27 +208,33 @@ export interface UpdateTransactionPayload {
   entries?: EntryPayload[];
 }
 
-export const updateTransaction = (payload: UpdateTransactionPayload): Promise<void> =>
-  invoke("update_transaction", { ...payload });
+export const updateTransaction = (
+  payload: UpdateTransactionPayload,
+  clientId: string,
+): Promise<void> => invoke("update_transaction", { ...payload, clientId });
 
-export const deleteTransaction = (txnId: string): Promise<void> =>
-  invoke("delete_transaction", { txnId });
+export const deleteTransaction = (txnId: string, clientId: string): Promise<void> =>
+  invoke("delete_transaction", { txnId, clientId });
 
-// Reports
-export const getPnl = (dateFrom: string, dateTo: string): Promise<PnlReport> =>
-  invoke("get_pnl", { dateFrom, dateTo });
+export const getPnl = (dateFrom: string, dateTo: string, clientId: string): Promise<PnlReport> =>
+  invoke("get_pnl", { dateFrom, dateTo, clientId });
 
-/** Period-scoped balance sheet for a half-open [start, end) range. */
-export const getBalanceSheet = (start: string, end: string): Promise<BalanceSheetReport> =>
-  invoke("get_balance_sheet", { start, end });
+export const getBalanceSheet = (
+  start: string,
+  end: string,
+  clientId: string,
+): Promise<BalanceSheetReport> => invoke("get_balance_sheet", { start, end, clientId });
 
-/** Cumulative balance sheet: sums all posted transactions with txn_date <= asOfDate.
- *  Traditional "as of year-end" semantics — every balance ever accumulated shows up. */
-export const getBalanceSheetCumulative = (asOfDate: string): Promise<BalanceSheetReport> =>
-  invoke("get_balance_sheet_cumulative", { asOfDate });
+export const getBalanceSheetCumulative = (
+  asOfDate: string,
+  clientId: string,
+): Promise<BalanceSheetReport> => invoke("get_balance_sheet_cumulative", { asOfDate, clientId });
 
-export const getCashFlow = (dateFrom: string, dateTo: string): Promise<CashFlowReport> =>
-  invoke("get_cash_flow", { dateFrom, dateTo });
+export const getCashFlow = (
+  dateFrom: string,
+  dateTo: string,
+  clientId: string,
+): Promise<CashFlowReport> => invoke("get_cash_flow", { dateFrom, dateTo, clientId });
 
 export const setActiveClientPref = (clientId: string): Promise<void> =>
   invoke("set_active_client_pref", { clientId });
@@ -290,19 +295,11 @@ export const pickReceiptFiles = (): Promise<string[] | null> =>
 
 export const listDirFiles = (path: string): Promise<string[]> => invoke("list_dir_files", { path });
 
-// ── B4: Period range — single source of truth ─────────────────────────────────
-
-/** Half-open date range [start, end) as returned by report_period_for. */
 export interface PeriodRange {
   start: string;
   end: string;
 }
 
-/**
- * Period types understood by report_period_for.
- * All types except "custom" are computed server-side using the client's
- * fiscal_year_start_month so frontend and backend always agree.
- */
 export type PeriodTypeInput =
   | { type: "this_year" }
   | { type: "ytd" }
@@ -313,21 +310,11 @@ export type PeriodTypeInput =
   | { type: "last_month" }
   | { type: "custom"; start: string; end: string };
 
-/**
- * Compute a half-open [start, end) period range on the backend.
- * Pass today's ISO date as anchorDate so relative periods are stable.
- *
- * @example
- *   const { start, end } = await reportPeriodFor(clientId, { type: "tax_year" }, today());
- *   const report = await getPnl(start, end);
- */
 export const reportPeriodFor = (
   clientId: string,
   periodType: PeriodTypeInput,
   anchorDate: string,
 ): Promise<PeriodRange> => invoke("report_period_for", { clientId, periodType, anchorDate });
-
-// ─── Tax News ────────────────────────────────────────────────────────────────
 
 export type { NewsItem } from "./tax-news-api";
 

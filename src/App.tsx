@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { KeyboardShortcutsHelp } from "./components/KeyboardShortcutsHelp";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { UnlockScreen } from "./features/unlock/UnlockScreen";
 import { useKeyboardShortcuts } from "./lib/use-keyboard-shortcuts";
 
@@ -25,8 +26,10 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <AppShell />
-      <KeyboardShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <SettingsProvider>
+        <AppShell />
+        <KeyboardShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      </SettingsProvider>
     </ErrorBoundary>
   );
 }

@@ -3,11 +3,13 @@ import { Calendar, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "../../lib/i18n";
 import {
-  type RecurringTransaction,
   deleteRecurring,
   listRecurring,
+  type RecurringTransaction,
   updateRecurring,
 } from "../../lib/recurring-api";
+import type { Account } from "../../lib/tauri";
+import { listAccounts } from "../../lib/tauri";
 import { RecurringForm } from "./RecurringForm";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -41,16 +43,24 @@ function FrequencyBadge({ f }: { f: string }) {
 
 function RecurringRow({
   rec,
+  accounts,
   onEdit,
   onToggle,
   onDelete,
 }: {
   rec: RecurringTransaction;
+  accounts: Account[];
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
   const { t } = useI18n();
+
+  // Map account IDs to names
+  const accountMap = new Map(accounts.map((a) => [a.id, `${a.code} — ${a.name}`]));
+  const debitAccountName = accountMap.get(rec.debit_account_id) || "Unknown";
+  const creditAccountName = accountMap.get(rec.credit_account_id) || "Unknown";
+
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors group">
       <td className="px-4 py-2.5">
@@ -67,6 +77,8 @@ function RecurringRow({
         <FrequencyBadge f={rec.frequency} />
       </td>
       <td className="px-4 py-2.5 text-sm text-gray-600 whitespace-nowrap">{rec.next_run_date}</td>
+      <td className="px-4 py-2.5 text-sm text-gray-600">{debitAccountName}</td>
+      <td className="px-4 py-2.5 text-sm text-gray-600">{creditAccountName}</td>
       <td className="px-4 py-2.5">
         {rec.active ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-full">
@@ -115,6 +127,11 @@ export function RecurringTransactionsPage() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["recurring"],
     queryFn: listRecurring,
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: () => listAccounts(""),
   });
 
   const toggleMutation = useMutation({
@@ -220,8 +237,12 @@ export function RecurringTransactionsPage() {
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-600">
                   {t("Frequency")}
                 </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-600">{t("Next Run")}</th>
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-600">
-                  {t("Next Run")}
+                  {t("Debit Account")}
+                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-gray-600">
+                  {t("Credit Account")}
                 </th>
                 <th className="px-4 py-2.5 text-xs font-semibold text-gray-600">{t("Status")}</th>
                 <th className="px-4 py-2.5 w-20"></th>
@@ -232,6 +253,7 @@ export function RecurringTransactionsPage() {
                 <RecurringRow
                   key={rec.id}
                   rec={rec}
+                  accounts={accounts}
                   onEdit={() => handleEdit(rec)}
                   onToggle={() => toggleMutation.mutate({ id: rec.id, active: !rec.active })}
                   onDelete={() => handleDelete(rec.id)}
