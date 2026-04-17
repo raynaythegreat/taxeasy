@@ -11,7 +11,6 @@ import { DeductibleExpensesCard } from "./DeductibleExpensesCard";
 import { EstimatedQuarterlyTaxCard } from "./EstimatedQuarterlyTaxCard";
 import { RecentTransactionsPanel } from "./RecentTransactionsPanel";
 import { StatCardGrid, StatSkeleton } from "./StatCardGrid";
-import { TaxNewsSection } from "./TaxNewsSection";
 
 function allTime(): PeriodRange {
   const now = new Date();
@@ -30,7 +29,6 @@ interface DashboardAnalyticsProps {
   onOpenClients?: () => void;
   onOpenTransactions?: () => void;
   onOpenReports?: () => void;
-  onOpenTaxNews?: (clientId?: string) => void;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
 }
@@ -41,7 +39,6 @@ export function DashboardAnalytics({
   onOpenClients,
   onOpenTransactions,
   onOpenReports,
-  onOpenTaxNews,
   emptyStateTitle,
   emptyStateDescription,
 }: DashboardAnalyticsProps) {
@@ -74,10 +71,6 @@ export function DashboardAnalytics({
   const skeletonKeys = showTotalClientsCard
     ? ["clients", "revenue", "expenses", "net", "txns"]
     : ["revenue", "expenses", "net", "txns"];
-
-  function handleOpenTaxNews() {
-    onOpenTaxNews?.(clientId ?? undefined);
-  }
 
   function handleNavigate(page: string) {
     switch (page) {
@@ -188,7 +181,6 @@ export function DashboardAnalytics({
         />
       )}
 
-      <TaxNewsSection clientId={clientId ?? undefined} onViewAll={handleOpenTaxNews} />
     </div>
   );
 }

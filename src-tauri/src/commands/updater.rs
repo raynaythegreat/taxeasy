@@ -14,6 +14,27 @@ pub struct GithubRelease {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GithubCommit {
+    sha: String,
+    html_url: String,
+    commit: GithubCommitInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GithubCommitInfo {
+    message: String,
+    author: GithubCommitAuthor,
+    committer: GithubCommitAuthor,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GithubCommitAuthor {
+    name: String,
+    email: String,
+    date: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GithubAsset {
     name: String,
     browser_download_url: String,
@@ -30,6 +51,11 @@ pub struct UpdateCheck {
     release_notes: Option<String>,
     published_at: String,
     download_url: Option<String>,
+    // Commit-based update detection
+    is_behind_on_commits: bool,
+    latest_commit_sha: Option<String>,
+    local_commit_sha: Option<String>,
+    commits_behind: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -44,6 +70,11 @@ fn current_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+fn current_commit_sha() -> Option<String> {
+    // This is set at build time via build.rs
+    option_env!("GIT_COMMIT_SHA").map(String::from)
+}
+
 fn platform_asset_pattern() -> &'static str {
     match (consts::OS, consts::ARCH) {
         ("macos", "x86_64") => "x64.dmg",
@@ -55,7 +86,7 @@ fn platform_asset_pattern() -> &'static str {
     }
 }
 
-/// Check for updates using GitHub API
+/// Check for updates using GitHub API (releases + commits)
 #[tauri::command(rename_all = "camelCase")]
 pub async fn check_for_updates(_app: tauri::AppHandle) -> Result<UpdateCheck, String> {
     let client = reqwest::Client::builder()
@@ -64,46 +95,73 @@ pub async fn check_for_updates(_app: tauri::AppHandle) -> Result<UpdateCheck, St
         .build()
         .map_err(|e| e.to_string())?;
 
-    let resp = client
+    let local_commit = current_commit_sha();
+
+    // Check latest release
+    let release_resp = client
         .get("https://api.github.com/repos/raynaythegreat/taxeasy/releases/latest")
         .send()
         .await
         .map_err(|e| e.to_string())?;
 
-    if !resp.status().is_success() {
-        return Ok(UpdateCheck {
-            has_update: false,
-            current_version: current_version(),
-            latest_version: current_version(),
-            release_url: "https://github.com/raynaythegreat/taxeasy/releases".to_string(),
-            release_notes: None,
-            published_at: String::new(),
-            download_url: None,
-        });
-    }
+    let (has_release_update, latest_version, release_url, release_notes, published_at, download_url) =
+        if release_resp.status().is_success() {
+            let release: GithubRelease = release_resp.json().await.map_err(|e| e.to_string())?;
+            let latest = release.tag_name.trim_start_matches('v').to_string();
+            let pattern = platform_asset_pattern();
+            let dl_url = release
+                .assets
+                .iter()
+                .find(|a| a.name.contains(pattern))
+                .map(|a| a.browser_download_url.clone());
+            (
+                latest != current_version(),
+                latest,
+                release.html_url,
+                release.body,
+                release.published_at,
+                dl_url,
+            )
+        } else {
+            (false, current_version(), String::new(), None, String::new(), None)
+        };
 
-    let release: GithubRelease = resp.json().await.map_err(|e| e.to_string())?;
+    // Check commits behind on main branch
+    let commits_resp = client
+        .get("https://api.github.com/repos/raynaythegreat/taxeasy/commits")
+        .query(&[("sha", "main"), ("per_page", "1")])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
 
-    let latest = release.tag_name.trim_start_matches('v').to_string();
-    let current = current_version();
+    let (is_behind_on_commits, latest_commit_sha, commits_behind) =
+        if commits_resp.status().is_success() {
+            let commits: Vec<GithubCommit> = commits_resp.json().await.map_err(|e| e.to_string())?;
+            if let Some(latest) = commits.first() {
+                let is_behind = Some(&latest.sha) != local_commit.as_ref();
+                (is_behind, Some(latest.sha.clone()), if is_behind { 1 } else { 0 })
+            } else {
+                (false, None, 0)
+            }
+        } else {
+            (false, None, 0)
+        };
 
-    let has_update = latest != current;
-
-    let pattern = platform_asset_pattern();
-    let download_url = release
-        .assets
-        .iter()
-        .find(|a| a.name.contains(pattern))
-        .map(|a| a.browser_download_url.clone());
+    let has_update = has_release_update || is_behind_on_commits;
 
     Ok(UpdateCheck {
         has_update,
-        current_version: current,
-        latest_version: latest,
-        release_url: release.html_url,
-        release_notes: release.body,
-        published_at: release.published_at,
+        has_update: has_release_update || is_behind_on_commits,
+        current_version: current_version(),
+        latest_version,
+        release_url,
+        release_notes,
+        published_at,
         download_url,
+        is_behind_on_commits,
+        latest_commit_sha,
+        local_commit_sha: local_commit,
+        commits_behind,
     })
 }
 

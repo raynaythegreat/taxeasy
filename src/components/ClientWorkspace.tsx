@@ -114,9 +114,6 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     }
   }
 
-  function handleOpenTaxNews(_clientId?: string) {
-    // Tax news handling - can be implemented later if needed
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -287,7 +284,6 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                   showTotalClientsCard={false}
                   onOpenTransactions={() => setTab("transactions")}
                   onOpenReports={() => setTab("reports")}
-                  onOpenTaxNews={handleOpenTaxNews}
                 />
               </Suspense>
             </div>

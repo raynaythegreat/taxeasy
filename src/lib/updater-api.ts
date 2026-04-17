@@ -9,6 +9,11 @@ export interface UpdateCheck {
   releaseNotes: string | null;
   publishedAt: string;
   downloadUrl: string | null;
+  // Commit-based update detection
+  isBehindOnCommits: boolean;
+  latestCommitSha: string | null;
+  localCommitSha: string | null;
+  commitsBehind: number;
 }
 
 export interface UpdateProgress {
