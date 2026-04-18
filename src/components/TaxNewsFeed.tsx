@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ExternalLink, RefreshCw, Rss, WifiOff } from "lucide-react";
-import { useState } from "react";
 import { fetchTaxNews, type NewsItem, refreshTaxNews } from "../lib/tax-news-api";
 
 // ── Highlighted tags that surface a "Why this matters" line ──────────────────

@@ -50,7 +50,9 @@ export type WorkspaceTab =
   | "documents"
   | "reports"
   | "ai"
-  | "mileage";
+  | "mileage"
+  | "schedule-c"
+  | "vendors";
 
 const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 
