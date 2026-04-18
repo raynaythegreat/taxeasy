@@ -161,9 +161,7 @@ export function AppShell() {
             onNavigate={handleNavigate}
           />
         )}
-        {view === "my-business" && (
-          <MyBusinessWorkspace />
-        )}
+        {view === "my-business" && <MyBusinessWorkspace />}
         {view === "clients" && (
           <ClientsPage
             initialClientId={initialClientId}

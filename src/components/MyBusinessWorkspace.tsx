@@ -50,9 +50,7 @@ interface MyBusinessWorkspaceProps {
   initialTab?: WorkspaceTab;
 }
 
-export function MyBusinessWorkspace({
-  initialTab = "overview",
-}: MyBusinessWorkspaceProps) {
+export function MyBusinessWorkspace({ initialTab = "overview" }: MyBusinessWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
