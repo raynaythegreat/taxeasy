@@ -116,6 +116,7 @@ pub fn run() {
             commands::mileage::create_mileage_log,
             commands::mileage::list_mileage_logs,
             commands::mileage::delete_mileage_log,
+            commands::mileage::get_mileage_summary,
             commands::mileage::get_irs_mileage_rate,
             commands::mileage::get_mileage_deduction_total,
             commands::schedule_c::list_schedule_c_mappings,
