@@ -192,7 +192,7 @@ pub fn list_invoices(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Vec<Invoice>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut where_clauses: Vec<String> = Vec::new();
         if invoice_type.is_some() {
             where_clauses.push("invoice_type = ?".into());
@@ -240,7 +240,7 @@ pub fn get_invoice(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<InvoiceDetail> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         load_invoice_detail(conn, &id)
     })
 }
@@ -252,7 +252,7 @@ pub fn create_invoice(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<InvoiceDetail> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let tax_rate = payload.tax_rate.unwrap_or(0.0);
         let (subtotal_cents, tax_cents, total_cents) = compute_totals(&payload.lines, tax_rate);
 
@@ -306,7 +306,7 @@ pub fn update_invoice(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<InvoiceDetail> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let _existing: Invoice = conn
             .query_row(
                 "SELECT id, invoice_number, invoice_type, status, issue_date, due_date, client_name,
@@ -429,7 +429,7 @@ pub fn delete_invoice(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM invoices WHERE id = ?1",
             params![id],
@@ -456,7 +456,7 @@ pub fn update_invoice_status(
         return Err(AppError::Validation(format!("invalid status: {status}")));
     }
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let now = chrono::Utc::now().to_rfc3339();
         let affected = conn.execute(
             "UPDATE invoices SET status = ?1, updated_at = ?2 WHERE id = ?3",

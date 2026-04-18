@@ -25,3 +25,12 @@ pub mod transactions;
 pub mod unlock;
 pub mod updater;
 pub mod vendors_1099;
+
+#[cfg(test)]
+mod schedule_c_test;
+
+#[cfg(test)]
+mod vendors_1099_test;
+
+#[cfg(test)]
+mod mileage_test;

@@ -25,6 +25,7 @@ impl OwnerDb {
     }
 
     fn run_migrations(&self) -> Result<()> {
+        eprintln!("DEBUG owner_db: Running migrations, creating schema_migrations table");
         let schema = include_str!("../../migrations/002_client.sql");
         self.conn.execute_batch(schema)?;
         let invoices = include_str!("../../migrations/003_invoices.sql");
@@ -48,6 +49,12 @@ impl OwnerDb {
         self.apply_alter_migration(
             include_str!("../../migrations/010_recurring_transactions.sql"),
             10,
+        )?;
+        // IRS mileage rates reference table (shared across clients)
+        eprintln!("DEBUG owner_db: Applying migration 12 (irs_rates)");
+        self.apply_alter_migration(
+            include_str!("../../migrations/012_mileage_irs_rates.sql"),
+            12,
         )?;
         Ok(())
     }

@@ -4,21 +4,26 @@ use crate::{
     state::AppState,
 };
 use rusqlite::params;
+use tauri::AppHandle;
 use uuid::Uuid;
 
-/// List vendors for active client.
-#[tauri::command(rename_all = "camelCase")]
-pub fn list_vendors(
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+// ============================================================================
+// Internal implementation functions (testable)
+// ============================================================================
+
+/// List vendors for active client (internal implementation).
+pub fn list_vendors_impl(
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vec<Vendor>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let mut stmt = conn.prepare(
             r#"
@@ -58,9 +63,8 @@ pub fn list_vendors(
     })
 }
 
-/// Create a new vendor.
-#[tauri::command(rename_all = "camelCase")]
-pub fn create_vendor(
+/// Create a new vendor (internal implementation).
+pub fn create_vendor_impl(
     name: String,
     ein: Option<String>,
     ssn_encrypted: Option<Vec<u8>>,
@@ -71,16 +75,17 @@ pub fn create_vendor(
     postal_code: Option<String>,
     phone: Option<String>,
     email: Option<String>,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vendor> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
@@ -128,9 +133,8 @@ pub fn create_vendor(
     })
 }
 
-/// Update a vendor.
-#[tauri::command(rename_all = "camelCase")]
-pub fn update_vendor(
+/// Update a vendor (internal implementation).
+pub fn update_vendor_impl(
     vendor_id: String,
     name: Option<String>,
     ein: Option<String>,
@@ -142,16 +146,17 @@ pub fn update_vendor(
     postal_code: Option<String>,
     phone: Option<String>,
     email: Option<String>,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vendor> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         // Build dynamic update with only provided fields
         let mut sql_parts = Vec::new();
@@ -209,6 +214,13 @@ pub fn update_vendor(
             param_idx += 1;
         }
 
+        // Update is_1099_required based on whether EIN or SSN is provided
+        if ein.is_some() || ssn_encrypted.is_some() {
+            sql_parts.push(format!("is_1099_required = ?{}", param_idx));
+            bind_params.push(&1i32);
+            param_idx += 1;
+        }
+
         if sql_parts.is_empty() {
             return Err(AppError::Validation("No fields to update".to_string()));
         }
@@ -254,30 +266,42 @@ pub fn update_vendor(
     })
 }
 
-/// Delete a vendor.
-#[tauri::command(rename_all = "camelCase")]
-pub fn delete_vendor(
+/// Delete a vendor (internal implementation).
+pub fn delete_vendor_impl(
     vendor_id: String,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
         conn.execute("DELETE FROM vendors WHERE id = ?1", params![vendor_id])?;
         Ok(())
     })
 }
 
-/// Record a contractor payment.
-#[tauri::command(rename_all = "camelCase")]
-pub fn record_contractor_payment(
+/// Record a contractor payment (internal implementation).
+pub fn record_contractor_payment_impl(
     vendor_id: String,
     transaction_id: String,
     amount_cents: i64,
     payment_date: String,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<ContractorPayment> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
 
@@ -314,15 +338,21 @@ pub fn record_contractor_payment(
     })
 }
 
-/// List contractor payments for a vendor and year.
-#[tauri::command(rename_all = "camelCase")]
-pub fn list_contractor_payments(
+/// List contractor payments for a vendor and year (internal implementation).
+pub fn list_contractor_payments_impl(
     vendor_id: String,
     year: i32,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vec<ContractorPayment>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
 
@@ -352,15 +382,21 @@ pub fn list_contractor_payments(
     })
 }
 
-/// Generate 1099-NEC for a vendor and year.
-#[tauri::command(rename_all = "camelCase")]
-pub fn generate_1099_nec(
+/// Generate 1099-NEC for a vendor and year (internal implementation).
+pub fn generate_1099_nec_impl(
     vendor_id: String,
     tax_year: i32,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Generated1099Nec> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
         let date_from = format!("{tax_year}-01-01");
         let date_to = format!("{}-01-01", tax_year + 1);
 
@@ -453,20 +489,20 @@ pub fn generate_1099_nec(
     })
 }
 
-/// List generated 1099-NEC forms for active client and year.
-#[tauri::command(rename_all = "camelCase")]
-pub fn list_generated_1099_nec(
+/// List generated 1099-NEC forms for active client and year (internal implementation).
+pub fn list_generated_1099_nec_impl(
     year: i32,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vec<Generated1099Nec>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let mut stmt = conn.prepare(
             r#"
@@ -497,4 +533,122 @@ pub fn list_generated_1099_nec(
 
         Ok(forms)
     })
+}
+
+// ============================================================================
+// Tauri command wrappers (delegates to _impl functions)
+// ============================================================================
+
+/// List vendors for active client.
+#[tauri::command(rename_all = "camelCase")]
+pub fn list_vendors(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vec<Vendor>> {
+    list_vendors_impl(Some(&app_handle), state.inner())
+}
+
+/// Create a new vendor.
+#[tauri::command(rename_all = "camelCase")]
+pub fn create_vendor(
+    name: String,
+    ein: Option<String>,
+    ssn_encrypted: Option<Vec<u8>>,
+    address_line1: Option<String>,
+    address_line2: Option<String>,
+    city: Option<String>,
+    state_prov: Option<String>,
+    postal_code: Option<String>,
+    phone: Option<String>,
+    email: Option<String>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vendor> {
+    create_vendor_impl(
+        name, ein, ssn_encrypted, address_line1, address_line2,
+        city, state_prov, postal_code, phone, email,
+        Some(&app_handle), state.inner(),
+    )
+}
+
+/// Update a vendor.
+#[tauri::command(rename_all = "camelCase")]
+pub fn update_vendor(
+    vendor_id: String,
+    name: Option<String>,
+    ein: Option<String>,
+    ssn_encrypted: Option<Vec<u8>>,
+    address_line1: Option<String>,
+    address_line2: Option<String>,
+    city: Option<String>,
+    state_val: Option<String>,
+    postal_code: Option<String>,
+    phone: Option<String>,
+    email: Option<String>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vendor> {
+    update_vendor_impl(
+        vendor_id, name, ein, ssn_encrypted, address_line1, address_line2,
+        city, state_val, postal_code, phone, email,
+        Some(&app_handle), state.inner(),
+    )
+}
+
+/// Delete a vendor.
+#[tauri::command(rename_all = "camelCase")]
+pub fn delete_vendor(
+    vendor_id: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<()> {
+    delete_vendor_impl(vendor_id, Some(&app_handle), state.inner())
+}
+
+/// Record a contractor payment.
+#[tauri::command(rename_all = "camelCase")]
+pub fn record_contractor_payment(
+    vendor_id: String,
+    transaction_id: String,
+    amount_cents: i64,
+    payment_date: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<ContractorPayment> {
+    record_contractor_payment_impl(
+        vendor_id, transaction_id, amount_cents, payment_date,
+        Some(&app_handle), state.inner(),
+    )
+}
+
+/// List contractor payments for a vendor and year.
+#[tauri::command(rename_all = "camelCase")]
+pub fn list_contractor_payments(
+    vendor_id: String,
+    year: i32,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vec<ContractorPayment>> {
+    list_contractor_payments_impl(vendor_id, year, Some(&app_handle), state.inner())
+}
+
+/// Generate 1099-NEC for a vendor and year.
+#[tauri::command(rename_all = "camelCase")]
+pub fn generate_1099_nec(
+    vendor_id: String,
+    tax_year: i32,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Generated1099Nec> {
+    generate_1099_nec_impl(vendor_id, tax_year, Some(&app_handle), state.inner())
+}
+
+/// List generated 1099-NEC forms for active client and year.
+#[tauri::command(rename_all = "camelCase")]
+pub fn list_generated_1099_nec(
+    year: i32,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vec<Generated1099Nec>> {
+    list_generated_1099_nec_impl(year, Some(&app_handle), state.inner())
 }

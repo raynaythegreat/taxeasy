@@ -1,4 +1,6 @@
 -- COA to Schedule C line mappings (per-client overrides allowed)
+-- Note: client_id is a text field tracking which client owns this mapping.
+-- No FK constraint to accounts table — client DBs are standalone.
 CREATE TABLE coa_schedule_c_mappings (
     id              TEXT PRIMARY KEY,
     client_id       TEXT NOT NULL,
@@ -6,7 +8,6 @@ CREATE TABLE coa_schedule_c_mappings (
     schedule_c_line TEXT NOT NULL,  -- e.g., "line_1", "line_8", "line_24b"
     is_custom       INTEGER DEFAULT 0,  -- 1 = client override, 0 = default
     created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (account_id) REFERENCES accounts(id),
     UNIQUE(client_id, account_id)
 );
 
@@ -52,3 +53,5 @@ INSERT INTO schedule_c_default_mappings (coa_pattern, schedule_c_line, descripti
     ('Expense:Salaries', 'line_26', 'Wages and Salaries', NULL),
     ('Expense:Benefits', 'line_27', 'Employee Benefit Programs', NULL),
     ('Expense:Other', 'line_30', 'Other Expenses', NULL);
+
+INSERT OR IGNORE INTO schema_migrations (version) VALUES (13);

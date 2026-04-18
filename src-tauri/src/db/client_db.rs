@@ -50,11 +50,15 @@ impl ClientDb {
         // Chat tools: AI assistant integration.
         self.apply_alter_migration(include_str!("../../migrations/011_chat_tools.sql"), 11)?;
         // Phase 1: Mileage tracking with IRS rates.
+        eprintln!("DEBUG: Applying migration 12");
         self.apply_alter_migration(include_str!("../../migrations/012_mileage.sql"), 12)?;
         // Phase 1: Schedule C tax form mappings.
+        eprintln!("DEBUG: Applying migration 13");
         self.apply_alter_migration(include_str!("../../migrations/013_schedule_c.sql"), 13)?;
         // Phase 1: Vendors and 1099-NEC tracking.
+        eprintln!("DEBUG: Applying migration 14");
         self.apply_alter_migration(include_str!("../../migrations/014_vendors_1099.sql"), 14)?;
+        eprintln!("DEBUG: All migrations applied");
         Ok(())
     }
 
@@ -69,8 +73,16 @@ impl ClientDb {
                 |row| row.get(0),
             )
             .unwrap_or(false);
+        eprintln!("DEBUG apply_alter_migration v{}: already_applied={}", version, already_applied);
         if !already_applied {
+            eprintln!("DEBUG: Executing migration SQL for version {}", version);
             self.conn.execute_batch(sql)?;
+            eprintln!("DEBUG: SQL executed, inserting version {}", version);
+            self.conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?1)",
+                rusqlite::params![version],
+            )?;
+            eprintln!("DEBUG: Version {} inserted", version);
         }
         Ok(())
     }

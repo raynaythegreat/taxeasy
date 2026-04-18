@@ -38,7 +38,7 @@ pub fn get_cash_flow(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<CashFlowReport> {
-    crate::commands::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    crate::commands::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
             "SELECT
                 COALESCE(SUM(CASE WHEN a.account_type='revenue' THEN e.credit_cents ELSE 0 END),0),

@@ -14,7 +14,7 @@ pub fn list_accounts(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Vec<Account>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut stmt = conn.prepare(
             "SELECT id, code, name, account_type, parent_id, schedule_c_line, active, sort_order
              FROM accounts WHERE active = 1 ORDER BY sort_order, code",
@@ -51,7 +51,7 @@ pub fn get_account_balance(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<String> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let (debit_sum, credit_sum): (i64, i64) = conn.query_row(
             "SELECT COALESCE(SUM(e.debit_cents),0), COALESCE(SUM(e.credit_cents),0)
              FROM entries e
@@ -100,7 +100,7 @@ pub fn create_account(
         .parse()
         .map_err(|e: String| AppError::Validation(e))?;
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let id = Uuid::new_v4().to_string();
         let max_sort: i32 = conn
             .query_row(
@@ -138,7 +138,7 @@ pub fn update_account(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Account> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         if let Some(ref name) = payload.name {
             let trimmed = name.trim().to_owned();
             if trimmed.is_empty() {
@@ -199,7 +199,7 @@ pub fn toggle_account_active(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let rows = conn.execute(
             "UPDATE accounts SET active = ?1 WHERE id = ?2",
             params![active as i32, id],

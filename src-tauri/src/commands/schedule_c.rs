@@ -4,21 +4,26 @@ use crate::{
     state::AppState,
 };
 use rusqlite::params;
+use tauri::AppHandle;
 use uuid::Uuid;
 
-/// List Schedule C mappings for active client.
-#[tauri::command(rename_all = "camelCase")]
-pub fn list_schedule_c_mappings(
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+// ============================================================================
+// Internal implementation functions (testable)
+// ============================================================================
+
+/// List Schedule C mappings for active client (internal implementation).
+pub fn list_schedule_c_mappings_impl(
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<Vec<ScheduleCMapping>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let mut stmt = conn.prepare(
             r#"
@@ -51,21 +56,21 @@ pub fn list_schedule_c_mappings(
     })
 }
 
-/// Create or update a Schedule C mapping.
-#[tauri::command(rename_all = "camelCase")]
-pub fn upsert_schedule_c_mapping(
+/// Create or update a Schedule C mapping (internal implementation).
+pub fn upsert_schedule_c_mapping_impl(
     account_id: String,
     schedule_c_line: String,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<ScheduleCMapping> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
@@ -150,33 +155,39 @@ pub fn upsert_schedule_c_mapping(
     })
 }
 
-/// Delete a Schedule C mapping.
-#[tauri::command(rename_all = "camelCase")]
-pub fn delete_schedule_c_mapping(
+/// Delete a Schedule C mapping (internal implementation).
+pub fn delete_schedule_c_mapping_impl(
     mapping_id: String,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
         conn.execute("DELETE FROM coa_schedule_c_mappings WHERE id = ?1", params![mapping_id])?;
         Ok(())
     })
 }
 
-/// Calculate Schedule C summary for a tax year.
-#[tauri::command(rename_all = "camelCase")]
-pub fn calculate_schedule_c_summary(
+/// Calculate Schedule C summary for a tax year (internal implementation).
+pub fn calculate_schedule_c_summary_impl(
     year: i32,
-    app_handle: tauri::AppHandle,
-    state: tauri::State<AppState>,
+    app_handle: Option<&AppHandle>,
+    state: &AppState,
 ) -> Result<ScheduleCSummary> {
-    super::scoped::with_scoped_conn(&state, &app_handle, None, |conn| {
-        let active_lock = state.active_client.lock().unwrap();
-        let client_id = active_lock
-            .as_ref()
-            .map(|ac| ac.client_id.clone())
-            .ok_or(AppError::NoActiveClient)?;
-        drop(active_lock);
+    let active_lock = state.active_client.lock().unwrap();
+    let client_id = active_lock
+        .as_ref()
+        .map(|ac| ac.client_id.clone())
+        .ok_or(AppError::NoActiveClient)?;
+    drop(active_lock);
+
+    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
 
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
@@ -310,4 +321,48 @@ pub fn calculate_schedule_c_summary(
             tentative_profit,
         })
     })
+}
+
+// ============================================================================
+// Tauri command wrappers (delegates to _impl functions)
+// ============================================================================
+
+/// List Schedule C mappings for active client.
+#[tauri::command(rename_all = "camelCase")]
+pub fn list_schedule_c_mappings(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vec<ScheduleCMapping>> {
+    list_schedule_c_mappings_impl(Some(&app_handle), state.inner())
+}
+
+/// Create or update a Schedule C mapping.
+#[tauri::command(rename_all = "camelCase")]
+pub fn upsert_schedule_c_mapping(
+    account_id: String,
+    schedule_c_line: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<ScheduleCMapping> {
+    upsert_schedule_c_mapping_impl(account_id, schedule_c_line, Some(&app_handle), state.inner())
+}
+
+/// Delete a Schedule C mapping.
+#[tauri::command(rename_all = "camelCase")]
+pub fn delete_schedule_c_mapping(
+    mapping_id: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<()> {
+    delete_schedule_c_mapping_impl(mapping_id, Some(&app_handle), state.inner())
+}
+
+/// Calculate Schedule C summary for a tax year.
+#[tauri::command(rename_all = "camelCase")]
+pub fn calculate_schedule_c_summary(
+    year: i32,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<ScheduleCSummary> {
+    calculate_schedule_c_summary_impl(year, Some(&app_handle), state.inner())
 }

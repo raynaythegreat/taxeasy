@@ -41,7 +41,7 @@ pub fn list_documents(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Vec<Document>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut where_clauses: Vec<String> = Vec::new();
         if category.is_some() {
             where_clauses.push("category = ?".into());
@@ -100,7 +100,7 @@ pub fn add_document(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Document> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
         let category = payload
@@ -135,7 +135,7 @@ pub fn delete_document(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         conn.execute("DELETE FROM documents WHERE id = ?1", params![id])?;
         Ok(())
     })
@@ -151,7 +151,7 @@ pub fn update_document(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         if let Some(cat) = category {
             conn.execute(
                 "UPDATE documents SET category = ?1 WHERE id = ?2",

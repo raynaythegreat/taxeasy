@@ -61,7 +61,7 @@ pub fn get_balance_sheet(
             .unwrap_or(1)
     };
 
-    crate::commands::scoped::with_scoped_conn(&state, &app_handle, scope, |conn| {
+    crate::commands::scoped::with_scoped_conn(&state, Some(&app_handle), scope, |conn| {
         compute_balance_sheet(conn, &start, &end, fiscal_year_start_month)
     })
 }
@@ -96,7 +96,7 @@ pub fn get_balance_sheet_cumulative(
             .unwrap_or(1)
     };
 
-    crate::commands::scoped::with_scoped_conn(&state, &app_handle, scope, |conn| {
+    crate::commands::scoped::with_scoped_conn(&state, Some(&app_handle), scope, |conn| {
         compute_balance_sheet_cumulative(conn, &as_of_date, fiscal_year_start_month)
     })
 }

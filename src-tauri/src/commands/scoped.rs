@@ -8,15 +8,19 @@ use crate::{
 };
 
 fn client_db_filename(state: &AppState, client_id: &str) -> Result<String> {
+    eprintln!("DEBUG client_db_filename: querying for client_id='{}'", client_id);
     let lock = state.app_db.lock().unwrap();
     let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    db.conn()
+    eprintln!("DEBUG client_db_filename: app_db is present");
+    let result = db.conn()
         .query_row(
             "SELECT db_filename FROM clients WHERE id = ?1 AND archived_at IS NULL",
             rusqlite::params![client_id],
             |row| row.get(0),
         )
-        .map_err(|_| AppError::NotFound(format!("client {client_id}")))
+        .map_err(|_| AppError::NotFound(format!("client {client_id}")));
+    eprintln!("DEBUG client_db_filename: query result={:?}", result.is_ok());
+    result
 }
 
 fn open_client_db(
@@ -46,9 +50,12 @@ fn open_client_db(
 ///
 /// - `Some("owner")` or `None` → owner ledger DB
 /// - `Some(client_id)` → active client DB (if matched) or opens the client DB by filename
+///
+/// The `app_handle` is only used when opening a non-active client database.
+/// Pass `None` if you're certain the active client will be used (e.g., in tests).
 pub fn with_scoped_conn<T>(
     state: &AppState,
-    app_handle: &tauri::AppHandle,
+    app_handle: Option<&tauri::AppHandle>,
     scope: Option<&str>,
     f: impl FnOnce(&Connection) -> Result<T>,
 ) -> Result<T> {
@@ -60,13 +67,23 @@ pub fn with_scoped_conn<T>(
         }
         Some(client_id) => {
             let active_lock = state.active_client.lock().unwrap();
+            eprintln!("DEBUG scoped: looking for client_id='{}'", client_id);
             if let Some(ac) = active_lock.as_ref() {
+                eprintln!("DEBUG scoped: active_client.client_id='{}'", ac.client_id);
                 if ac.client_id == client_id {
+                    eprintln!("DEBUG scoped: using active client connection");
                     return f(ac.db.conn());
                 }
             }
             drop(active_lock);
+            eprintln!("DEBUG scoped: falling through to open_client_db");
 
+            let app_handle = app_handle.ok_or_else(|| {
+                AppError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "AppHandle required to open non-active client database",
+                ))
+            })?;
             let db = open_client_db(state, app_handle, client_id)?;
             f(db.conn())
         }

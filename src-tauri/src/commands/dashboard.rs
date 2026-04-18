@@ -266,7 +266,7 @@ pub fn get_dashboard_stats(
         }
     };
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         compute_dashboard_stats(
             conn,
             total_clients,
@@ -320,7 +320,7 @@ pub fn get_net_cash_trend(
          ORDER BY bucket"
     );
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut stmt = conn.prepare(&sql)?;
         let points: Vec<NetCashPoint> = stmt
             .query_map(params![start, end], |row| {
@@ -348,7 +348,7 @@ pub fn get_top_categories(
 ) -> Result<Vec<CategoryTotal>> {
     let limit = n.unwrap_or(5).clamp(1, 20);
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut stmt = conn.prepare(
             "SELECT a.id, a.name,
                     COALESCE(SUM(e.debit_cents - e.credit_cents), 0) AS total_cents
@@ -402,7 +402,7 @@ pub fn get_deductible_expenses(
     end: String,
     client_id: Option<String>,
 ) -> Result<DeductibleSummary> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let total_cents: i64 = conn.query_row(
             "SELECT COALESCE(SUM(e.debit_cents - e.credit_cents), 0)
              FROM entries e

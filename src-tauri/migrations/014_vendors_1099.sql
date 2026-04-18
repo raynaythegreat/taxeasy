@@ -1,4 +1,6 @@
 -- Vendors (contractors, not employees)
+-- Note: client_id is a text field tracking which client owns this vendor.
+-- No FK constraint to clients table — client DBs are standalone (clients table only exists in app_db).
 CREATE TABLE vendors (
     id              TEXT PRIMARY KEY,
     client_id       TEXT NOT NULL,
@@ -14,11 +16,12 @@ CREATE TABLE vendors (
     email           TEXT,
     total_payments_cents INTEGER DEFAULT 0,  -- Cached total for quick lookup
     is_1099_required INTEGER DEFAULT 0,      -- True if EIN/SSN provided
-    created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (client_id) REFERENCES clients(id)
+    created_at      TEXT DEFAULT (datetime('now'))
 );
 
 -- Track individual payments to contractors
+-- Note: transaction_id is a text field referencing a transaction conceptually.
+-- No FK constraint to transactions table — client DBs are standalone.
 CREATE TABLE contractor_payments (
     id              TEXT PRIMARY KEY,
     vendor_id       TEXT NOT NULL,
@@ -26,8 +29,7 @@ CREATE TABLE contractor_payments (
     amount_cents    INTEGER NOT NULL,
     payment_date    TEXT NOT NULL,
     created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (vendor_id) REFERENCES vendors(id),
-    FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
 );
 
 -- Generated 1099-NEC forms (audit trail)
@@ -51,3 +53,5 @@ CREATE INDEX idx_contractor_payments_vendor ON contractor_payments(vendor_id);
 CREATE INDEX idx_contractor_payments_date ON contractor_payments(payment_date);
 CREATE INDEX idx_1099_nec_vendor ON generated_1099_nec(vendor_id);
 CREATE INDEX idx_1099_nec_year ON generated_1099_nec(tax_year);
+
+INSERT OR IGNORE INTO schema_migrations (version) VALUES (14);

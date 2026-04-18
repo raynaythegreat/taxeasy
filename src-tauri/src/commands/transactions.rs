@@ -21,7 +21,7 @@ pub fn list_transactions(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Vec<TransactionWithEntries>> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let mut where_clauses: Vec<String> = Vec::new();
         if date_from.is_some() {
             where_clauses.push("t.txn_date >= ?".into());
@@ -140,7 +140,7 @@ pub fn create_transaction(
         });
     }
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let locked_count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM periods WHERE locked_at IS NOT NULL AND ?1 BETWEEN start_date AND end_date",
             params![payload.txn_date],
@@ -268,7 +268,7 @@ pub fn update_transaction(
         }
     }
 
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let locked: i32 = conn
             .query_row(
                 "SELECT locked FROM transactions WHERE id = ?1",
@@ -350,7 +350,7 @@ pub fn delete_transaction(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    super::scoped::with_scoped_conn(&state, &app_handle, client_id.as_deref(), |conn| {
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
         let locked: i32 = conn
             .query_row(
                 "SELECT locked FROM transactions WHERE id = ?1",
