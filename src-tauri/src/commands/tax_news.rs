@@ -46,6 +46,14 @@ const FEED_SOURCES: &[FeedSource] = &[
         label: "IRS Tax Tips",
         url: "https://www.irs.gov/newsroom/irs-tax-tips",
     },
+    FeedSource {
+        label: "IRS News Releases",
+        url: "https://www.irs.gov/newsroom/news-releases/rss.xml",
+    },
+    FeedSource {
+        label: "IRS Business",
+        url: "https://www.irs.gov/business/rss",
+    },
 ];
 
 // ── Relevance keyword → tag map ───────────────────────────────────────────────
