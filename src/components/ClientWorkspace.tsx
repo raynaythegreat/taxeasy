@@ -10,6 +10,8 @@ import {
   Printer,
   Receipt,
   Sparkles,
+  Users,
+  FileSpreadsheet,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
@@ -21,6 +23,8 @@ import { CashFlowView } from "../features/reports/CashFlowView";
 import { PnLView } from "../features/reports/PnLView";
 import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
+import { ScheduleCPage } from "../features/schedule-c/ScheduleCPage";
+import { VendorsPage } from "../features/vendors/VendorsPage";
 import { lastDayOf } from "../lib/date-utils";
 import { handleExportReport } from "../lib/export-api";
 import { useI18n } from "../lib/i18n";
@@ -48,7 +52,9 @@ export type WorkspaceTab =
   | "invoices"
   | "documents"
   | "reports"
-  | "ai";
+  | "ai"
+  | "schedule-c"
+  | "vendors";
 
 const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 
@@ -87,6 +93,8 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     { id: "invoices", label: t("Invoices"), icon: <FileText className="w-3.5 h-3.5" /> },
     { id: "documents", label: t("Documents") },
     { id: "reports", label: t("Reports"), icon: <Printer className="w-3.5 h-3.5" /> },
+    { id: "schedule-c", label: t("Schedule C"), icon: <FileSpreadsheet className="w-3.5 h-3.5" /> },
+    { id: "vendors", label: t("Vendors & 1099"), icon: <Users className="w-3.5 h-3.5" /> },
     { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3.5 h-3.5" /> },
   ];
 
@@ -534,6 +542,8 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
             <AiWorkspace clientId={client.id} />
           </Suspense>
         )}
+        {tab === "schedule-c" && <ScheduleCPage onBack={() => setTab("overview")} />}
+        {tab === "vendors" && <VendorsPage onBack={() => setTab("overview")} />}
       </div>
       {editingClient && (
         <ClientEditModal

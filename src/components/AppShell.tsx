@@ -72,6 +72,14 @@ export function AppShell() {
         setInitialClientTab("ai");
         setView("clients");
         return;
+      case "schedule-c":
+        setInitialClientTab("schedule-c");
+        setView("clients");
+        return;
+      case "vendors":
+        setInitialClientTab("vendors");
+        setView("clients");
+        return;
       default:
         setInitialClientTab("overview");
         setView("clients");
