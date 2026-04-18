@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Rss, WifiOff } from "lucide-react";
-import { fetchTaxNews, type NewsItem } from "../lib/tax-news-api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ExternalLink, RefreshCw, Rss, WifiOff } from "lucide-react";
+import { useState } from "react";
+import { fetchTaxNews, type NewsItem, refreshTaxNews } from "../lib/tax-news-api";
 
 // ── Highlighted tags that surface a "Why this matters" line ──────────────────
 const HIGHLIGHTED_TAGS = new Set([
@@ -130,17 +131,27 @@ interface TaxNewsFeedProps {
 }
 
 export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedProps) {
-  const { data, isLoading, isError, dataUpdatedAt } = useQuery<NewsItem[]>({
+  const { data, isLoading, isError, dataUpdatedAt, refetch } = useQuery<NewsItem[]>({
     queryKey: ["tax_news", clientId ?? "global"],
     queryFn: () => fetchTaxNews(clientId),
-    staleTime: 6 * 60 * 60 * 1000, // 6 hours — matches backend cache window
-    retry: 1,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours — auto-update daily on launch
+    gcTime: 24 * 60 * 60 * 1000, // Keep in cache for 24 hours
+    refetchOnMount: true, // Always fetch when component mounts (app launch)
+    refetchOnWindowFocus: true, // Fetch when app gains focus
+    retry: 2,
     meta: { silent: true },
+  });
+
+  const refreshMutation = useMutation({
+    mutationFn: () => refreshTaxNews(clientId),
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const items = (data ?? []).slice(0, maxItems);
   const isStale =
-    !isLoading && dataUpdatedAt > 0 && Date.now() - dataUpdatedAt > 6 * 60 * 60 * 1000;
+    !isLoading && dataUpdatedAt > 0 && Date.now() - dataUpdatedAt > 24 * 60 * 60 * 1000;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -154,15 +165,28 @@ export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedPr
             />
           )}
         </div>
-        {onViewAll && (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onViewAll}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            onClick={() => refetch()}
+            disabled={isLoading || refreshMutation.isPending}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh news"
           >
-            View all
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading || refreshMutation.isPending ? "animate-spin" : ""}`}
+            />
           </button>
-        )}
+          {onViewAll && (
+            <button
+              type="button"
+              onClick={onViewAll}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              View all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Body */}

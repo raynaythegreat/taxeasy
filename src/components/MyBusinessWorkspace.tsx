@@ -29,6 +29,7 @@ import { triggerPrint } from "../lib/print-utils";
 import { cn, formatDate, PERIOD_LABELS, periodRange, type ReportPeriod } from "../lib/utils";
 import { BusinessProfileEditModal } from "./BusinessProfileEditModal";
 import { DashboardAnalytics } from "./dashboard/DashboardAnalytics";
+import { TaxNewsFeed } from "./TaxNewsFeed";
 
 const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
@@ -188,6 +189,9 @@ export function MyBusinessWorkspace({ initialTab = "overview" }: MyBusinessWorks
                 onOpenTransactions={() => openWorkspaceTab("transactions")}
                 onOpenReports={() => openWorkspaceTab("reports")}
               />
+            </div>
+            <div className="shrink-0 px-6 py-6 border-b border-gray-200 bg-white">
+              <TaxNewsFeed clientId={OWNER_SCOPE} maxItems={3} />
             </div>
             <div className="shrink-0 border-t border-gray-200">
               <AccountManagementPage compact clientId={OWNER_SCOPE} />

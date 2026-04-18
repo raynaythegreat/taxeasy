@@ -341,7 +341,7 @@ fn is_cache_stale(oldest_fetched: Option<&str>) -> bool {
     let Ok(dt) = ts.parse::<DateTime<Utc>>() else {
         return true;
     };
-    Utc::now() - dt > Duration::hours(6)
+    Utc::now() - dt > Duration::hours(24)
 }
 
 // ── Background refresh ────────────────────────────────────────────────────────

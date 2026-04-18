@@ -86,19 +86,41 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
     if (!settingsLoaded) return;
 
     let cancelled = false;
-    setModelStatus("checking");
+    let intervalId: number | null = null;
 
-    const providerUrl = ai_provider === "lmstudio" ? lm_studio_url : ollama_url;
+    const checkHealth = async () => {
+      if (cancelled) return;
+      setModelStatus("checking");
 
-    checkAiHealthWithUrl(providerUrl)
-      .then((ok) => {
-        if (!cancelled) setModelStatus(ok ? "online" : "offline");
-      })
-      .catch(() => {
-        if (!cancelled) setModelStatus("offline");
-      });
+      const providerUrl = ai_provider === "lmstudio" ? lm_studio_url : ollama_url;
+
+      try {
+        const isOnline = await checkAiHealthWithUrl(providerUrl);
+        if (!cancelled) {
+          setModelStatus(isOnline ? "online" : "offline");
+
+          // If offline, check more frequently (every 5 seconds)
+          // If online, check less frequently (every 30 seconds)
+          if (intervalId) clearInterval(intervalId);
+          const pollInterval = isOnline ? 30000 : 5000;
+          intervalId = window.setInterval(checkHealth, pollInterval);
+        }
+      } catch {
+        if (!cancelled) {
+          setModelStatus("offline");
+          // On error, check more frequently
+          if (intervalId) clearInterval(intervalId);
+          intervalId = window.setInterval(checkHealth, 5000);
+        }
+      }
+    };
+
+    // Initial check
+    checkHealth();
+
     return () => {
       cancelled = true;
+      if (intervalId) clearInterval(intervalId);
     };
   }, [settingsLoaded, ai_provider, ollama_url, lm_studio_url]);
 

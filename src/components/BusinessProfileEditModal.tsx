@@ -2,13 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import {
-  saveBusinessProfile,
   type BusinessProfile,
   type SaveBusinessProfilePayload,
+  saveBusinessProfile,
 } from "../lib/business-profile-api";
 import { useI18n } from "../lib/i18n";
-import { cn } from "../lib/utils";
 import type { EntityType } from "../lib/tauri";
+import { cn } from "../lib/utils";
 
 const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
   { value: "sole_prop", label: "Sole Proprietor" },
@@ -146,14 +146,19 @@ export function BusinessProfileEditModal({
             </div>
 
             <div>
-              <label htmlFor="edit-contact" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="edit-contact"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Contact Name")}
               </label>
               <input
                 id="edit-contact"
                 type="text"
                 value={formState.contact_name ?? ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("contact_name", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateField("contact_name", e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
@@ -167,7 +172,9 @@ export function BusinessProfileEditModal({
                 id="edit-email"
                 type="email"
                 value={formState.email ?? ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("email", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateField("email", e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
@@ -181,7 +188,9 @@ export function BusinessProfileEditModal({
                 id="edit-phone"
                 type="tel"
                 value={formState.phone ?? ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("phone", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateField("phone", e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
@@ -196,7 +205,9 @@ export function BusinessProfileEditModal({
               id="edit-website"
               type="url"
               value={formState.website ?? ""}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("website", e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                updateField("website", e.target.value)
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
@@ -210,7 +221,9 @@ export function BusinessProfileEditModal({
               id="edit-address1"
               type="text"
               value={formState.address_line1 ?? ""}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("address_line1", e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                updateField("address_line1", e.target.value)
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
@@ -224,7 +237,9 @@ export function BusinessProfileEditModal({
               id="edit-address2"
               type="text"
               value={formState.address_line2 ?? ""}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("address_line2", e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                updateField("address_line2", e.target.value)
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
@@ -253,7 +268,9 @@ export function BusinessProfileEditModal({
                 id="edit-state"
                 type="text"
                 value={formState.state ?? ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("state", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateField("state", e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
@@ -267,7 +284,9 @@ export function BusinessProfileEditModal({
                 id="edit-postal"
                 type="text"
                 value={formState.postal_code ?? ""}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("postal_code", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  updateField("postal_code", e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={mutation.isPending}
               />
@@ -282,7 +301,9 @@ export function BusinessProfileEditModal({
               id="edit-country"
               type="text"
               value={formState.country ?? ""}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("country", e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                updateField("country", e.target.value)
+              }
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
@@ -311,7 +332,10 @@ export function BusinessProfileEditModal({
             </div>
 
             <div>
-              <label htmlFor="edit-accounting" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="edit-accounting"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {t("Accounting Method")}
               </label>
               <select
@@ -330,7 +354,10 @@ export function BusinessProfileEditModal({
           </div>
 
           <div>
-            <label htmlFor="edit-tax-notes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="edit-tax-notes"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {t("Tax Preparer Notes")}
             </label>
             <textarea
@@ -346,7 +373,10 @@ export function BusinessProfileEditModal({
           </div>
 
           <div>
-            <label htmlFor="edit-filing-notes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="edit-filing-notes"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {t("Filing Notes")}
             </label>
             <textarea
