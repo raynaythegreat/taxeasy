@@ -151,7 +151,6 @@ pub async fn check_for_updates(_app: tauri::AppHandle) -> Result<UpdateCheck, St
 
     Ok(UpdateCheck {
         has_update,
-        has_update: has_release_update || is_behind_on_commits,
         current_version: current_version(),
         latest_version,
         release_url,
@@ -222,4 +221,47 @@ pub fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_app_version() -> String {
     current_version()
+}
+
+/// Pull latest commits from main branch using git.
+/// Use this for development builds instead of downloading releases.
+#[tauri::command(rename_all = "camelCase")]
+pub async fn pull_latest_commits(app: tauri::AppHandle) -> Result<String, String> {
+    use std::process::Command;
+
+    // Emit start event
+    let _ = app.emit(
+        "updater://progress",
+        UpdateProgress {
+            status: "pulling".to_string(),
+            downloaded: 0,
+            content_length: 0,
+        },
+    );
+
+    // Run git pull
+    let output = Command::new("git")
+        .args(["pull", "origin", "main"])
+        .current_dir(app.package_info().name.clone())
+        .output()
+        .map_err(|e| format!("Failed to execute git pull: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        // Emit success event
+        let _ = app.emit(
+            "updater://progress",
+            UpdateProgress {
+                status: "ready".to_string(),
+                downloaded: 0,
+                content_length: 0,
+            },
+        );
+
+        Ok(format!("Successfully pulled latest changes:\n{}", stdout))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Git pull failed: {}", stderr))
+    }
 }

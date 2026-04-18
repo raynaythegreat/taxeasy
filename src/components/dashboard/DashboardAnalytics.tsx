@@ -156,9 +156,7 @@ export function DashboardAnalytics({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="space-y-4">
-              <EstimatedQuarterlyTaxCard
-                ytdNetIncome={statValues.ytd_net_income}
-              />
+              <EstimatedQuarterlyTaxCard ytdNetIncome={statValues.ytd_net_income} />
               <DeductibleExpensesCard clientId={clientId} start={period.start} end={period.end} />
             </div>
             <div className="lg:col-span-2">

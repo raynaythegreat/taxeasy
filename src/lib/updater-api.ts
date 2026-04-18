@@ -17,7 +17,7 @@ export interface UpdateCheck {
 }
 
 export interface UpdateProgress {
-  status: "checking" | "downloading" | "installing" | "ready" | "error";
+  status: "checking" | "downloading" | "installing" | "pulling" | "ready" | "error";
   progress?: number;
   total?: number;
   error?: string;
@@ -53,4 +53,8 @@ export async function installUpdate(): Promise<void> {
 
 export async function getAppVersion(): Promise<string> {
   return invoke<string>("get_app_version");
+}
+
+export async function pullLatestCommits(): Promise<string> {
+  return invoke<string>("pull_latest_commits");
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../../../lib/i18n";
 import { getErrorLogPath } from "../../../lib/logger";
 import type { UpdateCheck, UpdateProgress } from "../../../lib/updater-api";
-import { downloadUpdate, installUpdate, onUpdateProgress } from "../../../lib/updater-api";
+import { downloadUpdate, installUpdate, onUpdateProgress, pullLatestCommits } from "../../../lib/updater-api";
 import { cn } from "../../../lib/utils";
 
 function Spinner() {
@@ -35,6 +35,8 @@ export function AboutTab({
   const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isReadyToInstall, setIsReadyToInstall] = useState(false);
+  const [isPullingCommits, setIsPullingCommits] = useState(false);
+  const [pullMessage, setPullMessage] = useState<string | null>(null);
 
   // Listen for update progress events
   useEffect(() => {
@@ -85,6 +87,25 @@ export function AboutTab({
         status: "error",
         error: err instanceof Error ? err.message : "Failed to install update",
       });
+    }
+  }, []);
+
+  const handlePullCommits = useCallback(async () => {
+    setIsPullingCommits(true);
+    setPullMessage(null);
+    setUpdateProgress({ status: "pulling" });
+    try {
+      const message = await pullLatestCommits();
+      setPullMessage(message);
+      setUpdateProgress({ status: "ready", progress: 100 });
+    } catch (err) {
+      setPullMessage(err instanceof Error ? err.message : "Failed to pull commits");
+      setUpdateProgress({
+        status: "error",
+        error: err instanceof Error ? err.message : "Failed to pull commits",
+      });
+    } finally {
+      setIsPullingCommits(false);
     }
   }, []);
 
@@ -169,6 +190,17 @@ export function AboutTab({
             {checkingUpdate ? t("Checking…") : t("Check Now")}
           </button>
 
+          <button
+            type="button"
+            onClick={handlePullCommits}
+            disabled={isPullingCommits || isDownloading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+          >
+            {isPullingCommits && <Spinner />}
+            <Download className="w-4 h-4" />
+            {isPullingCommits ? t("Pulling...") : t("Pull Latest Commits")}
+          </button>
+
           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input
               type="checkbox"
@@ -182,6 +214,12 @@ export function AboutTab({
 
         {updateProgress && (
           <div className="text-sm text-gray-600">
+            {updateProgress.status === "pulling" && (
+              <span className="flex items-center gap-2">
+                <Spinner />
+                Pulling latest commits...
+              </span>
+            )}
             {updateProgress.status === "downloading" && (
               <span className="flex items-center gap-2">
                 <Spinner />
@@ -197,6 +235,13 @@ export function AboutTab({
             {updateProgress.status === "error" && (
               <span className="text-red-600">Error: {updateProgress.error}</span>
             )}
+          </div>
+        )}
+
+        {pullMessage && (
+          <div className="text-sm bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <p className="font-medium text-purple-800">Git Pull Result:</p>
+            <pre className="mt-1 text-xs text-purple-700 whitespace-pre-wrap">{pullMessage}</pre>
           </div>
         )}
 

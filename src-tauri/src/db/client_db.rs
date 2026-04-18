@@ -47,6 +47,14 @@ impl ClientDb {
         self.apply_alter_migration(include_str!("../../migrations/009_accounts_deductible.sql"), 9)?;
         // Data entry: recurring transaction schedules.
         self.apply_alter_migration(include_str!("../../migrations/010_recurring_transactions.sql"), 10)?;
+        // Chat tools: AI assistant integration.
+        self.apply_alter_migration(include_str!("../../migrations/011_chat_tools.sql"), 11)?;
+        // Phase 1: Mileage tracking with IRS rates.
+        self.apply_alter_migration(include_str!("../../migrations/012_mileage.sql"), 12)?;
+        // Phase 1: Schedule C tax form mappings.
+        self.apply_alter_migration(include_str!("../../migrations/013_schedule_c.sql"), 13)?;
+        // Phase 1: Vendors and 1099-NEC tracking.
+        self.apply_alter_migration(include_str!("../../migrations/014_vendors_1099.sql"), 14)?;
         Ok(())
     }
 

@@ -400,7 +400,7 @@ export function ClientsPage({
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 min-w-0 overflow-hidden bg-gray-50 print:w-full print:overflow-visible">
+      <main className="flex-1 min-w-0 overflow-auto h-full bg-gray-50 print:w-full print:overflow-visible">
         {showForm ? (
           /* ── New Client Form ── */
           <div className="p-6 max-w-lg">
