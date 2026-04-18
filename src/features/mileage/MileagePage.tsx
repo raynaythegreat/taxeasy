@@ -1,19 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
-import { getActiveClientId } from "../../lib/tauri";
-import { cn } from "../../lib/utils";
 import {
   type CreateMileagePayload,
-  type MileageLog,
   createMileageLog,
   deleteMileageLog,
   getIrsMileageRate,
   getMileageDeductionTotal,
   listMileageLogs,
+  type MileageLog,
 } from "../../lib/mileage-api";
-import { EmptyState } from "../../components/ui/EmptyState";
+import { getActiveClientId } from "../../lib/tauri";
+import { cn } from "../../lib/utils";
 
 export function MileagePage({ onBack }: { onBack: () => void }) {
   const { t } = useI18n();
@@ -174,10 +174,7 @@ export function MileagePage({ onBack }: { onBack: () => void }) {
             action={{ label: t("Add Mileage"), onClick: () => setShowForm(true) }}
           />
         ) : (
-          <MileageLogTable
-            logs={logs || []}
-            onDelete={(id) => deleteMutation.mutate(id)}
-          />
+          <MileageLogTable logs={logs || []} onDelete={(id) => deleteMutation.mutate(id)} />
         )}
       </div>
     </div>
@@ -277,9 +274,8 @@ function MileageLogForm({
           />
           {rate && (
             <p className="mt-1 text-sm text-green-600">
-              {t("At")} {formatRate(rate)} = <strong>{formatCurrency(deduction)}</strong> {t(
-                "deduction",
-              )}
+              {t("At")} {formatRate(rate)} = <strong>{formatCurrency(deduction)}</strong>{" "}
+              {t("deduction")}
             </p>
           )}
         </div>

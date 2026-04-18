@@ -34,7 +34,9 @@ export async function listScheduleCMappings(): Promise<ScheduleCMapping[]> {
   return invoke("list_schedule_c_mappings");
 }
 
-export async function upsertScheduleCMapping(payload: UpsertMappingPayload): Promise<ScheduleCMapping> {
+export async function upsertScheduleCMapping(
+  payload: UpsertMappingPayload,
+): Promise<ScheduleCMapping> {
   return invoke("upsert_schedule_c_mapping", payload);
 }
 

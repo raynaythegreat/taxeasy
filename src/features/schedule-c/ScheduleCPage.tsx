@@ -2,16 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { useI18n } from "../../lib/i18n";
 import {
-  type ScheduleCMapping,
-  type UpsertMappingPayload,
   calculateScheduleCSummary,
   deleteScheduleCMapping,
   listScheduleCMappings,
+  type ScheduleCMapping,
+  type UpsertMappingPayload,
   upsertScheduleCMapping,
 } from "../../lib/schedule-c-api";
 import { cn } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 const SCHEDULE_C_LINES: { value: string; label: string; category: string }[] = [
   // Income
@@ -88,13 +88,16 @@ export function ScheduleCPage({ onBack }: { onBack: () => void }) {
     }).format(cents / 100);
   };
 
-  const groupedMappings = mappings?.reduce((acc, mapping) => {
-    const lineInfo = SCHEDULE_C_LINES.find((l) => l.value === mapping.schedule_c_line);
-    const category = lineInfo?.category || "other";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(mapping);
-    return acc;
-  }, {} as Record<string, ScheduleCMapping[]>);
+  const groupedMappings = mappings?.reduce(
+    (acc, mapping) => {
+      const lineInfo = SCHEDULE_C_LINES.find((l) => l.value === mapping.schedule_c_line);
+      const category = lineInfo?.category || "other";
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(mapping);
+      return acc;
+    },
+    {} as Record<string, ScheduleCMapping[]>,
+  );
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -179,8 +182,18 @@ export function ScheduleCPage({ onBack }: { onBack: () => void }) {
         ) : !mappings || mappings.length === 0 ? (
           <EmptyState
             icon={
-              <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-12 h-12 text-gray-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             }
             title={t("No Schedule C mappings yet")}
@@ -189,7 +202,10 @@ export function ScheduleCPage({ onBack }: { onBack: () => void }) {
         ) : (
           <div className="space-y-6">
             {Object.entries(groupedMappings || {}).map(([category, categoryMappings]) => (
-              <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div
+                key={category}
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+              >
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-700 capitalize">
                     {category === "income" ? t("Income") : t("Expenses")}
@@ -215,13 +231,18 @@ export function ScheduleCPage({ onBack }: { onBack: () => void }) {
                       <tr key={mapping.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-900">{mapping.account_name}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {SCHEDULE_C_LINES.find((l) => l.value === mapping.schedule_c_line)?.label || mapping.schedule_c_line}
+                          {SCHEDULE_C_LINES.find((l) => l.value === mapping.schedule_c_line)
+                            ?.label || mapping.schedule_c_line}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={cn(
-                            "px-2 py-1 rounded text-xs font-medium",
-                            mapping.account_type === "income" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                          )}>
+                          <span
+                            className={cn(
+                              "px-2 py-1 rounded text-xs font-medium",
+                              mapping.account_type === "income"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-orange-100 text-orange-700",
+                            )}
+                          >
                             {mapping.account_type}
                           </span>
                         </td>
@@ -307,7 +328,7 @@ function MappingForm({
             disabled={isSubmitting}
             className={cn(
               "px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700",
-              isSubmitting && "opacity-50 cursor-not-allowed"
+              isSubmitting && "opacity-50 cursor-not-allowed",
             )}
           >
             {isSubmitting ? t("Saving...") : t("Save Mapping")}
@@ -318,7 +339,7 @@ function MappingForm({
             disabled={isSubmitting}
             className={cn(
               "px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50",
-              isSubmitting && "opacity-50 cursor-not-allowed"
+              isSubmitting && "opacity-50 cursor-not-allowed",
             )}
           >
             {t("Cancel")}

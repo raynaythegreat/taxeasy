@@ -93,15 +93,23 @@ export async function deleteVendor(vendorId: string): Promise<void> {
   return invoke("delete_vendor", { vendorId });
 }
 
-export async function recordContractorPayment(payload: RecordPaymentPayload): Promise<ContractorPayment> {
+export async function recordContractorPayment(
+  payload: RecordPaymentPayload,
+): Promise<ContractorPayment> {
   return invoke("record_contractor_payment", payload);
 }
 
-export async function listContractorPayments(vendorId: string, year: number): Promise<ContractorPayment[]> {
+export async function listContractorPayments(
+  vendorId: string,
+  year: number,
+): Promise<ContractorPayment[]> {
   return invoke("list_contractor_payments", { vendorId, year });
 }
 
-export async function generate1099Nec(vendorId: string, taxYear: number): Promise<Generated1099Nec> {
+export async function generate1099Nec(
+  vendorId: string,
+  taxYear: number,
+): Promise<Generated1099Nec> {
   return invoke("generate_1099_nec", { vendorId, taxYear });
 }
 

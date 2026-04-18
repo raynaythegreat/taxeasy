@@ -48,12 +48,10 @@ const OWNER_SCOPE = "owner";
 
 interface MyBusinessWorkspaceProps {
   initialTab?: WorkspaceTab;
-  onOpenTaxNews?: (clientId?: string) => void;
 }
 
 export function MyBusinessWorkspace({
   initialTab = "overview",
-  onOpenTaxNews,
 }: MyBusinessWorkspaceProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
@@ -191,7 +189,6 @@ export function MyBusinessWorkspace({
                 showTotalClientsCard={false}
                 onOpenTransactions={() => openWorkspaceTab("transactions")}
                 onOpenReports={() => openWorkspaceTab("reports")}
-                onOpenTaxNews={onOpenTaxNews}
               />
             </div>
             <div className="shrink-0 border-t border-gray-200">

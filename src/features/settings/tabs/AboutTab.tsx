@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../../../lib/i18n";
 import { getErrorLogPath } from "../../../lib/logger";
 import type { UpdateCheck, UpdateProgress } from "../../../lib/updater-api";
-import { downloadUpdate, installUpdate, onUpdateProgress, pullLatestCommits } from "../../../lib/updater-api";
+import {
+  downloadUpdate,
+  installUpdate,
+  onUpdateProgress,
+  pullLatestCommits,
+} from "../../../lib/updater-api";
 import { cn } from "../../../lib/utils";
 
 function Spinner() {

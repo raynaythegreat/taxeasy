@@ -2,22 +2,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Download, Edit, FileText, Plus, Trash2, User } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { useI18n } from "../../lib/i18n";
+import { cn } from "../../lib/utils";
 import {
   type CreateVendorPayload,
-  type Generated1099Nec,
-  type RecordPaymentPayload,
-  type UpdateVendorPayload,
-  type Vendor,
   createVendor,
   deleteVendor,
+  type Generated1099Nec,
   generate1099Nec,
   listGenerated1099Nec,
   listVendors,
+  type RecordPaymentPayload,
   recordContractorPayment,
+  type UpdateVendorPayload,
   updateVendor,
+  type Vendor,
 } from "../../lib/vendors-1099-api";
-import { cn } from "../../lib/utils";
-import { useI18n } from "../../lib/i18n";
 
 export function VendorsPage({ onBack }: { onBack: () => void }) {
   const { t } = useI18n();
@@ -68,7 +68,6 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
       queryClient.invalidateQueries({ queryKey: ["1099-nec-forms"] });
     },
   });
-
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -507,7 +506,7 @@ function VendorForm({
             disabled={isSubmitting}
             className={cn(
               "px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700",
-              isSubmitting && "opacity-50 cursor-not-allowed"
+              isSubmitting && "opacity-50 cursor-not-allowed",
             )}
           >
             {isSubmitting ? t("Saving...") : t("Save Vendor")}
@@ -518,7 +517,7 @@ function VendorForm({
             disabled={isSubmitting}
             className={cn(
               "px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50",
-              isSubmitting && "opacity-50 cursor-not-allowed"
+              isSubmitting && "opacity-50 cursor-not-allowed",
             )}
           >
             {t("Cancel")}
@@ -571,9 +570,7 @@ function PaymentForm({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("Amount ($")}
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("Amount ($")}</label>
           <input
             type="number"
             step="0.01"
@@ -723,7 +720,7 @@ function Forms1099View({
                   disabled={isGenerating}
                   className={cn(
                     "px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700",
-                    isGenerating && "opacity-50 cursor-not-allowed"
+                    isGenerating && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   {isGenerating ? t("Generating...") : t("Generate 1099")}

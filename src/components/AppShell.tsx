@@ -162,11 +162,7 @@ export function AppShell() {
           />
         )}
         {view === "my-business" && (
-          <MyBusinessWorkspace
-            onOpenTaxNews={() => {
-              setView("tax-news");
-            }}
-          />
+          <MyBusinessWorkspace />
         )}
         {view === "clients" && (
           <ClientsPage

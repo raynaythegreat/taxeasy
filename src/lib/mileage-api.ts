@@ -47,9 +47,6 @@ export async function getIrsMileageRate(year: number): Promise<MileageRate> {
   return invoke("get_irs_mileage_rate", { year });
 }
 
-export async function getMileageDeductionTotal(
-  clientId: string,
-  year: number,
-): Promise<number> {
+export async function getMileageDeductionTotal(clientId: string, year: number): Promise<number> {
   return invoke("get_mileage_deduction_total", { clientId, year });
 }
