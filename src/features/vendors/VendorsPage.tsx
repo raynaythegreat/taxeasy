@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Download, Plus, Trash2, User } from "lucide-react";
+import { ChevronLeft, Download, Edit, FileText, Plus, Trash2, User } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
-  type ContractorPayment,
   type CreateVendorPayload,
   type Generated1099Nec,
   type RecordPaymentPayload,
@@ -12,13 +11,11 @@ import {
   createVendor,
   deleteVendor,
   generate1099Nec,
-  listContractorPayments,
   listGenerated1099Nec,
   listVendors,
   recordContractorPayment,
   updateVendor,
 } from "../../lib/vendors-1099-api";
-import { getActiveClientId } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
 
@@ -30,17 +27,15 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
   const [showPaymentForm, setShowPaymentForm] = useState<Vendor | null>(null);
   const [viewing1099s, setViewing1099s] = useState(false);
 
-  const clientId = getActiveClientId();
-
   const { data: vendors, isLoading } = useQuery({
-    queryKey: ["vendors", clientId],
+    queryKey: ["vendors"],
     queryFn: listVendors,
   });
 
   const { data: forms1099 } = useQuery({
-    queryKey: ["1099-nec-forms", clientId, selectedYear],
+    queryKey: ["1099-nec-forms", selectedYear],
     queryFn: () => listGenerated1099Nec(selectedYear),
-    enabled: viewing1099s && !!clientId,
+    enabled: viewing1099s,
   });
 
   const createMutation = useMutation({
@@ -74,22 +69,6 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
     },
   });
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
-  };
-
-  const formatSSN = (ssn?: string) => {
-    if (!ssn) return "—";
-    return `***-**-${ssn.slice(-4)}`;
-  };
-
-  const maskEin = (ein?: string) => {
-    if (!ein) return "—";
-    return `${ein.slice(0, 2)}-***${ein.slice(-4)}`;
-  };
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -218,7 +197,6 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
         ) : (
           <VendorsTable
             vendors={vendors}
-            year={selectedYear}
             onEdit={(vendor) => setEditingVendor(vendor)}
             onDelete={(id) => deleteMutation.mutate(id)}
             onRecordPayment={(vendor) => setShowPaymentForm(vendor)}
@@ -234,14 +212,12 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
 
 function VendorsTable({
   vendors,
-  year,
   onEdit,
   onDelete,
   onRecordPayment,
   onGenerate1099,
 }: {
   vendors: Vendor[];
-  year: number;
   onEdit: (vendor: Vendor) => void;
   onDelete: (id: string) => void;
   onRecordPayment: (vendor: Vendor) => void;
@@ -387,7 +363,12 @@ function VendorForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!payload.name) return;
-    onSubmit(payload as CreateVendorPayload);
+    if (vendor?.id) {
+      const updatePayload: UpdateVendorPayload = { vendor_id: vendor.id, ...payload };
+      onSubmit(updatePayload);
+    } else {
+      onSubmit(payload as unknown as CreateVendorPayload);
+    }
   };
 
   return (
@@ -730,6 +711,3 @@ function Forms1099View({
     </div>
   );
 }
-
-// Import FileText and Edit icons
-import { FileText, Edit } from "lucide-react";

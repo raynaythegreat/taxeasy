@@ -1,5 +1,7 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke as invokeCore } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+
+export const invoke = invokeCore;
 
 export type EntityType = "sole_prop" | "smllc" | "scorp" | "ccorp" | "partnership";
 export type AccountingMethod = "cash" | "accrual";

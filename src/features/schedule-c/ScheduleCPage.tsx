@@ -1,17 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   type ScheduleCMapping,
-  type ScheduleCSummary,
   type UpsertMappingPayload,
   calculateScheduleCSummary,
   deleteScheduleCMapping,
   listScheduleCMappings,
   upsertScheduleCMapping,
 } from "../../lib/schedule-c-api";
-import { getActiveClientId } from "../../lib/tauri";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../lib/i18n";
 
@@ -56,17 +54,14 @@ export function ScheduleCPage({ onBack }: { onBack: () => void }) {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [editingMapping, setEditingMapping] = useState<ScheduleCMapping | null>(null);
 
-  const clientId = getActiveClientId();
-
   const { data: mappings, isLoading } = useQuery({
-    queryKey: ["schedule-c-mappings", clientId],
+    queryKey: ["schedule-c-mappings"],
     queryFn: listScheduleCMappings,
   });
 
   const { data: summary } = useQuery({
-    queryKey: ["schedule-c-summary", clientId, selectedYear],
+    queryKey: ["schedule-c-summary", selectedYear],
     queryFn: () => calculateScheduleCSummary(selectedYear),
-    enabled: !!clientId,
   });
 
   const upsertMutation = useMutation({

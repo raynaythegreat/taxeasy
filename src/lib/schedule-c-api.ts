@@ -27,6 +27,7 @@ export interface ScheduleCSummary {
 export interface UpsertMappingPayload {
   account_id: string;
   schedule_c_line: string;
+  [key: string]: string;
 }
 
 export async function listScheduleCMappings(): Promise<ScheduleCMapping[]> {

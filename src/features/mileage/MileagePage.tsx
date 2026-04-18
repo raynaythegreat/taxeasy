@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Download, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "../../lib/i18n";
 import { getActiveClientId } from "../../lib/tauri";
@@ -25,7 +25,10 @@ export function MileagePage({ onBack }: { onBack: () => void }) {
 
   const { data: logs, isLoading } = useQuery({
     queryKey: ["mileage-logs", clientId, selectedYear],
-    queryFn: () => listMileageLogs(clientId!, selectedYear),
+    queryFn: async () => {
+      const id = await clientId;
+      return listMileageLogs(id!, selectedYear);
+    },
     enabled: !!clientId,
   });
 
@@ -36,7 +39,10 @@ export function MileagePage({ onBack }: { onBack: () => void }) {
 
   const { data: totalDeduction } = useQuery({
     queryKey: ["mileage-deduction-total", clientId, selectedYear],
-    queryFn: () => getMileageDeductionTotal(clientId!, selectedYear),
+    queryFn: async () => {
+      const id = await clientId;
+      return getMileageDeductionTotal(id!, selectedYear);
+    },
     enabled: !!clientId,
   });
 

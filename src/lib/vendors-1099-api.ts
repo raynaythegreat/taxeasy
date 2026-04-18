@@ -51,6 +51,7 @@ export interface CreateVendorPayload {
   postal_code?: string;
   phone?: string;
   email?: string;
+  [key: string]: string | Uint8Array | undefined;
 }
 
 export interface UpdateVendorPayload {
@@ -65,6 +66,7 @@ export interface UpdateVendorPayload {
   postal_code?: string;
   phone?: string;
   email?: string;
+  [key: string]: string | Uint8Array | undefined;
 }
 
 export interface RecordPaymentPayload {
@@ -72,6 +74,7 @@ export interface RecordPaymentPayload {
   transaction_id: string;
   amount_cents: number;
   payment_date: string;
+  [key: string]: string | number;
 }
 
 export async function listVendors(): Promise<Vendor[]> {
