@@ -130,7 +130,236 @@ export function BusinessProfileEditModal({
             </select>
           </div>
 
-          {/* Add all other fields from ClientEditModal, adapted for BusinessProfile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="edit-ein" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("EIN")}
+              </label>
+              <input
+                id="edit-ein"
+                type="text"
+                value={formState.ein ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("ein", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-contact" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Contact Name")}
+              </label>
+              <input
+                id="edit-contact"
+                type="text"
+                value={formState.contact_name ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("contact_name", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Email")}
+              </label>
+              <input
+                id="edit-email"
+                type="email"
+                value={formState.email ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("email", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Phone")}
+              </label>
+              <input
+                id="edit-phone"
+                type="tel"
+                value={formState.phone ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("phone", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-website" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Website")}
+            </label>
+            <input
+              id="edit-website"
+              type="url"
+              value={formState.website ?? ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("website", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-address1" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Address Line 1")}
+            </label>
+            <input
+              id="edit-address1"
+              type="text"
+              value={formState.address_line1 ?? ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("address_line1", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-address2" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Address Line 2")}
+            </label>
+            <input
+              id="edit-address2"
+              type="text"
+              value={formState.address_line2 ?? ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("address_line2", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="edit-city" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("City")}
+              </label>
+              <input
+                id="edit-city"
+                type="text"
+                value={formState.city ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("city", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-state" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("State")}
+              </label>
+              <input
+                id="edit-state"
+                type="text"
+                value={formState.state ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("state", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-postal" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Postal Code")}
+              </label>
+              <input
+                id="edit-postal"
+                type="text"
+                value={formState.postal_code ?? ""}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("postal_code", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-country" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Country")}
+            </label>
+            <input
+              id="edit-country"
+              type="text"
+              value={formState.country ?? ""}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("country", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="edit-fy" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Fiscal Year Start")}
+              </label>
+              <select
+                id="edit-fy"
+                value={formState.fiscal_year_start_month ?? 1}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  updateField("fiscal_year_start_month", parseInt(e.target.value, 10))
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  <option key={month} value={month}>
+                    {t("Month")} {month}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="edit-accounting" className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Accounting Method")}
+              </label>
+              <select
+                id="edit-accounting"
+                value={formState.accounting_method ?? "cash"}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  updateField("accounting_method", e.target.value)
+                }
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              >
+                <option value="cash">{t("Cash")}</option>
+                <option value="accrual">{t("Accrual")}</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-tax-notes" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Tax Preparer Notes")}
+            </label>
+            <textarea
+              id="edit-tax-notes"
+              value={formState.tax_preparer_notes ?? ""}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                updateField("tax_preparer_notes", e.target.value)
+              }
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-filing-notes" className="block text-sm font-medium text-gray-700 mb-1">
+              {t("Filing Notes")}
+            </label>
+            <textarea
+              id="edit-filing-notes"
+              value={formState.filing_notes ?? ""}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                updateField("filing_notes", e.target.value)
+              }
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              disabled={mutation.isPending}
+            />
+          </div>
 
           {error && (
             <div
