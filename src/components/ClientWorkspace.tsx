@@ -10,21 +10,18 @@ import {
   Printer,
   Receipt,
   Sparkles,
-  Users,
-  FileSpreadsheet,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AccountManagementPage } from "../features/accounts/AccountManagementPage";
 import { ClientEditModal } from "../features/clients/ClientEditModal";
 import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { InvoicesPage } from "../features/invoices/InvoicesPage";
+import { MileagePage } from "../features/mileage/MileagePage";
 import { type BalanceSheetMode, BalanceSheetView } from "../features/reports/BalanceSheetView";
 import { CashFlowView } from "../features/reports/CashFlowView";
 import { PnLView } from "../features/reports/PnLView";
 import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
-import { ScheduleCPage } from "../features/schedule-c/ScheduleCPage";
-import { VendorsPage } from "../features/vendors/VendorsPage";
 import { lastDayOf } from "../lib/date-utils";
 import { handleExportReport } from "../lib/export-api";
 import { useI18n } from "../lib/i18n";
@@ -53,8 +50,7 @@ export type WorkspaceTab =
   | "documents"
   | "reports"
   | "ai"
-  | "schedule-c"
-  | "vendors";
+  | "mileage";
 
 const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 
@@ -93,9 +89,8 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     { id: "invoices", label: t("Invoices"), icon: <FileText className="w-3.5 h-3.5" /> },
     { id: "documents", label: t("Documents") },
     { id: "reports", label: t("Reports"), icon: <Printer className="w-3.5 h-3.5" /> },
-    { id: "schedule-c", label: t("Schedule C"), icon: <FileSpreadsheet className="w-3.5 h-3.5" /> },
-    { id: "vendors", label: t("Vendors & 1099"), icon: <Users className="w-3.5 h-3.5" /> },
-    { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { id: "mileage", label: t("Mileage"), icon: <Receipt className="w-3.5 h-3.5" /> },
+    { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3. h-3.5" /> },
   ];
 
   const ENTITY_LABELS: Record<Client["entity_type"], string> = {
@@ -162,7 +157,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
         </nav>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto print:overflow-visible">
+      <div className="flex-1 min-h-0 overflow-auto print:overflow-visible pb-6">
         {tab === "overview" && (
           <div className="flex flex-col h-full">
             <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-5">
@@ -542,8 +537,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
             <AiWorkspace clientId={client.id} />
           </Suspense>
         )}
-        {tab === "schedule-c" && <ScheduleCPage onBack={() => setTab("overview")} />}
-        {tab === "vendors" && <VendorsPage onBack={() => setTab("overview")} />}
+        {tab === "mileage" && <MileagePage />}
       </div>
       {editingClient && (
         <ClientEditModal

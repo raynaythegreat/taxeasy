@@ -1,406 +1,244 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { EmptyState } from "../../components/ui/EmptyState";
-import { useI18n } from "../../lib/i18n";
 import {
   type CreateMileagePayload,
   createMileageLog,
   deleteMileageLog,
-  getIrsMileageRate,
-  getMileageDeductionTotal,
+  getMileageSummary,
   listMileageLogs,
   type MileageLog,
+  type UpdateMileagePayload,
+  updateMileageLog,
 } from "../../lib/mileage-api";
-import { getActiveClientId } from "../../lib/tauri";
-import { cn } from "../../lib/utils";
+import { MileageForm } from "./MileageForm";
+import { MileageSummary } from "./MileageSummary";
 
-export function MileagePage({ onBack }: { onBack: () => void }) {
-  const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+const recentYears = [
+  new Date().getFullYear(),
+  new Date().getFullYear() - 1,
+  new Date().getFullYear() - 2,
+];
+
+export function MileagePage() {
+  const [selectedYear, setSelectedYear] = useState(recentYears[0]);
+  const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const queryClient = useQueryClient();
 
-  const clientId = getActiveClientId();
-
-  const { data: logs, isLoading } = useQuery({
-    queryKey: ["mileage-logs", clientId, selectedYear],
-    queryFn: async () => {
-      const id = await clientId;
-      return listMileageLogs(id!, selectedYear);
-    },
-    enabled: !!clientId,
+  const { data: logs, isLoading: logsLoading } = useQuery({
+    queryKey: ["mileage-logs", selectedYear],
+    queryFn: () => listMileageLogs(selectedYear),
   });
 
-  const { data: currentRate } = useQuery({
-    queryKey: ["irs-mileage-rate", selectedYear],
-    queryFn: () => getIrsMileageRate(selectedYear),
-  });
-
-  const { data: totalDeduction } = useQuery({
-    queryKey: ["mileage-deduction-total", clientId, selectedYear],
-    queryFn: async () => {
-      const id = await clientId;
-      return getMileageDeductionTotal(id!, selectedYear);
-    },
-    enabled: !!clientId,
+  const { data: summary } = useQuery({
+    queryKey: ["mileage-summary", selectedYear],
+    queryFn: () => getMileageSummary(selectedYear),
   });
 
   const createMutation = useMutation({
     mutationFn: (payload: CreateMileagePayload) => createMileageLog(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["mileage-deduction-total"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
       setShowForm(false);
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (logId: string) => deleteMileageLog(logId),
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateMileagePayload }) =>
+      updateMileageLog(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["mileage-deduction-total"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
+      setEditingLog(null);
     },
   });
 
-  const formatDeduction = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
-  };
-
-  const formatRate = (cents: number) => {
-    return `${(cents / 100).toFixed(1)}¢/mile`;
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              aria-label={t("Back")}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">{t("Mileage Tracker")}</h1>
-              <p className="text-sm text-gray-500">{t("Track business mileage with IRS rates")}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {[2023, 2024, 2025, 2026].map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-              {t("Add Mileage")}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="px-6 py-4 grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">{t("IRS Rate")}</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {currentRate ? formatRate(currentRate.rate_cents) : "--"}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">{t("Total Miles")}</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {logs ? logs.reduce((sum, log) => sum + log.miles_real, 0).toFixed(1) : "--"}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">{t("Total Deduction")}</p>
-          <p className="text-2xl font-semibold text-green-600">
-            {totalDeduction ? formatDeduction(totalDeduction) : "--"}
-          </p>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 px-6 pb-6 overflow-auto">
-        {showForm ? (
-          <MileageLogForm
-            rate={currentRate?.rate_cents}
-            onSubmit={(payload) => createMutation.mutate(payload)}
-            onCancel={() => setShowForm(false)}
-            isSubmitting={createMutation.isPending}
-          />
-        ) : isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-sm text-gray-500">{t("Loading mileage logs...")}</div>
-          </div>
-        ) : logs && logs.length === 0 ? (
-          <EmptyState
-            icon={
-              <svg
-                className="w-12 h-12 text-gray-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                />
-              </svg>
-            }
-            title={t("No mileage logs yet")}
-            description={t("Add your first business mileage trip to get started.")}
-            action={{ label: t("Add Mileage"), onClick: () => setShowForm(true) }}
-          />
-        ) : (
-          <MileageLogTable logs={logs || []} onDelete={(id) => deleteMutation.mutate(id)} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MileageLogForm({
-  rate,
-  onSubmit,
-  onCancel,
-  isSubmitting,
-}: {
-  rate?: number;
-  onSubmit: (payload: CreateMileagePayload) => void;
-  onCancel: () => void;
-  isSubmitting: boolean;
-}) {
-  const { t } = useI18n();
-  const [payload, setPayload] = useState<CreateMileagePayload>({
-    date: new Date().toISOString().split("T")[0],
-    purpose: "",
-    origin: "",
-    destination: "",
-    miles_real: 0,
-    notes: "",
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteMileageLog(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
+    },
   });
 
-  const deduction = rate ? (payload.miles_real * rate) / 100 : 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payload.purpose || !payload.origin || !payload.destination) return;
-    onSubmit(payload);
+  const handleCreate = (payload: CreateMileagePayload | UpdateMileagePayload) => {
+    if ("client_id" in payload) {
+      createMutation.mutate(payload as CreateMileagePayload);
+    } else {
+      updateMutation.mutate({ id: editingLog!.id, payload });
+    }
   };
 
+  const handleUpdate = (payload: UpdateMileagePayload) => {
+    if (editingLog) {
+      updateMutation.mutate({ id: editingLog.id, payload });
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this mileage log?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  if (logsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-2xl">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("Add Mileage Log")}</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t("Date")}</label>
-          <input
-            type="date"
-            value={payload.date}
-            onChange={(e) => setPayload({ ...payload, date: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+    <div className="space-y-6 px-6 py-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-gray-900">Mileage Tracking</h1>
+          <p className="text-sm text-gray-600">Track business mileage for tax deductions</p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t("Purpose")}</label>
-          <input
-            type="text"
-            value={payload.purpose}
-            onChange={(e) => setPayload({ ...payload, purpose: e.target.value })}
-            placeholder={t("Client meeting, supply run, etc.")}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("Origin")}</label>
-            <input
-              type="text"
-              value={payload.origin}
-              onChange={(e) => setPayload({ ...payload, origin: e.target.value })}
-              placeholder={t("Starting location")}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("Destination")}
-            </label>
-            <input
-              type="text"
-              value={payload.destination}
-              onChange={(e) => setPayload({ ...payload, destination: e.target.value })}
-              placeholder={t("Ending location")}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t("Miles")}</label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            value={payload.miles_real}
-            onChange={(e) => setPayload({ ...payload, miles_real: Number(e.target.value) })}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {rate && (
-            <p className="mt-1 text-sm text-green-600">
-              {t("At")} {formatRate(rate)} = <strong>{formatCurrency(deduction)}</strong>{" "}
-              {t("deduction")}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t("Notes")}</label>
-          <textarea
-            value={payload.notes}
-            onChange={(e) => setPayload({ ...payload, notes: e.target.value })}
-            placeholder={t("Optional notes...")}
-            rows={2}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={cn(
-              "px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700",
-              isSubmitting && "opacity-50 cursor-not-allowed",
-            )}
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {isSubmitting ? t("Saving...") : t("Save Mileage Log")}
-          </button>
+            {recentYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
           <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className={cn(
-              "px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50",
-              isSubmitting && "opacity-50 cursor-not-allowed",
-            )}
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
-            {t("Cancel")}
+            Add Mileage Log
           </button>
         </div>
-      </form>
+      </div>
+
+      {/* Summary */}
+      {summary && <MileageSummary summary={summary} />}
+
+      {/* Forms - Render as overlays */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <MileageForm onSubmit={handleCreate} onCancel={() => setShowForm(false)} />
+          </div>
+        </div>
+      )}
+
+      {editingLog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <MileageForm
+              log={editingLog}
+              onSubmit={handleUpdate}
+              onCancel={() => setEditingLog(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Purpose
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Route
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Miles
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rate
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Deduction
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {logs && logs.length > 0 ? (
+                logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.date}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="font-medium">{log.purpose}</div>
+                      {log.notes && <div className="text-xs text-gray-500 mt-1">{log.notes}</div>}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {log.origin} → {log.destination}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.miles_real.toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ${(log.rate_cents / 100).toFixed(2)} / mi
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      ${formatCents(log.deduction_cents)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => setEditingLog(log)}
+                          className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(log.id)}
+                          className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <p className="text-lg font-medium text-gray-900 mb-2">No mileage logs yet</p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Track your business mileage for tax deductions
+                      </p>
+                      <button
+                        onClick={() => setShowForm(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        Add Your First Log
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MileageLogTable({
-  logs,
-  onDelete,
-}: {
-  logs: MileageLog[];
-  onDelete: (id: string) => void;
-}) {
-  const { t } = useI18n();
-
-  const formatDeduction = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
-  };
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-              {t("Date")}
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-              {t("Purpose")}
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-              {t("Route")}
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-              {t("Miles")}
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-              {t("Rate")}
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-              {t("Deduction")}
-            </th>
-            <th className="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {logs.map((log) => (
-            <tr key={log.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{log.date}</td>
-              <td className="px-4 py-3 text-sm text-gray-700">{log.purpose}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">
-                {log.origin} → {log.destination}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                {log.miles_real.toFixed(1)}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-500 text-right">
-                {(log.rate_cents / 100).toFixed(1)}¢
-              </td>
-              <td className="px-4 py-3 text-sm text-green-600 text-right font-medium">
-                {formatDeduction(log.deduction_cents)}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={() => onDelete(log.id)}
-                  className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50"
-                  title={t("Delete")}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function formatRate(cents: number): string {
-  return `${(cents / 100).toFixed(1)}¢/mile`;
-}
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
+function formatCents(cents: number): string {
+  return (cents / 100).toFixed(2);
 }
