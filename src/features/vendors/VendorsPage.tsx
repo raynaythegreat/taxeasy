@@ -164,11 +164,13 @@ export function VendorsPage({ onBack }: { onBack: () => void }) {
         ) : editingVendor ? (
           <VendorForm
             vendor={editingVendor.id ? editingVendor : null}
-            onSubmit={(payload) =>
-              editingVendor.id
-                ? updateMutation.mutate({ ...payload, vendor_id: editingVendor.id })
-                : createMutation.mutate(payload)
-            }
+            onSubmit={(payload) => {
+              if (editingVendor.id) {
+                updateMutation.mutate(payload as UpdateVendorPayload);
+              } else {
+                createMutation.mutate(payload as CreateVendorPayload);
+              }
+            }}
             onCancel={() => setEditingVendor(null)}
             isSubmitting={createMutation.isPending || updateMutation.isPending}
           />
@@ -364,10 +366,32 @@ function VendorForm({
     e.preventDefault();
     if (!payload.name) return;
     if (vendor?.id) {
-      const updatePayload: UpdateVendorPayload = { vendor_id: vendor.id, ...payload };
+      const updatePayload: UpdateVendorPayload = {
+        vendor_id: vendor.id,
+        name: payload.name,
+        ein: payload.ein || undefined,
+        address_line1: payload.address_line1 || undefined,
+        address_line2: payload.address_line2 || undefined,
+        city: payload.city || undefined,
+        state: payload.state || undefined,
+        postal_code: payload.postal_code || undefined,
+        phone: payload.phone || undefined,
+        email: payload.email || undefined,
+      };
       onSubmit(updatePayload);
     } else {
-      onSubmit(payload as unknown as CreateVendorPayload);
+      const createPayload: CreateVendorPayload = {
+        name: payload.name,
+        ein: payload.ein || undefined,
+        address_line1: payload.address_line1 || undefined,
+        address_line2: payload.address_line2 || undefined,
+        city: payload.city || undefined,
+        state: payload.state || undefined,
+        postal_code: payload.postal_code || undefined,
+        phone: payload.phone || undefined,
+        email: payload.email || undefined,
+      };
+      onSubmit(createPayload);
     }
   };
 
