@@ -12,9 +12,17 @@ export interface NewsItem {
 }
 
 export async function fetchTaxNews(clientId?: string): Promise<NewsItem[]> {
-  return invoke<NewsItem[]>("fetch_tax_news", {
-    clientId: clientId ?? null,
-  });
+  console.log('[TaxNews] Fetching tax news for client:', clientId ?? 'global');
+  try {
+    const result = await invoke<NewsItem[]>("fetch_tax_news", {
+      clientId: clientId ?? null,
+    });
+    console.log('[TaxNews] Fetched', result.length, 'items');
+    return result;
+  } catch (error) {
+    console.error('[TaxNews] Fetch failed:', error);
+    throw error;
+  }
 }
 
 export async function refreshTaxNews(clientId?: string): Promise<NewsItem[]> {

@@ -192,11 +192,22 @@ export function TaxNewsFeed({ clientId, maxItems = 3, onViewAll }: TaxNewsFeedPr
       {isLoading ? (
         <NewsSkeleton />
       ) : isError && items.length === 0 ? (
-        <p className="text-xs text-gray-400 py-4 text-center">
-          Unable to load news. Check your connection.
-        </p>
+        <div className="text-xs text-red-500 py-4 px-3 bg-red-50 rounded-lg mx-3">
+          <p className="font-medium">Failed to load news</p>
+          <p className="text-gray-600 mt-1">Check your internet connection and try refreshing.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+          >
+            Retry now
+          </button>
+        </div>
       ) : items.length === 0 ? (
-        <p className="text-xs text-gray-400 py-4 text-center">No news items yet.</p>
+        <div className="text-xs text-amber-600 py-4 px-3 bg-amber-50 rounded-lg mx-3">
+          <p className="font-medium">No news items available</p>
+          <p className="text-gray-600 mt-1">The news feeds may be temporarily unavailable.</p>
+        </div>
       ) : (
         <div>
           {items.map((item) => (
