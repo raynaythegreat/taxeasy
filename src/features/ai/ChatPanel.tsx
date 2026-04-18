@@ -93,9 +93,11 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
       setModelStatus("checking");
 
       const providerUrl = ai_provider === "lmstudio" ? lm_studio_url : ollama_url;
+      console.log('[AI Health] Checking provider:', ai_provider, 'at URL:', providerUrl);
 
       try {
         const isOnline = await checkAiHealthWithUrl(providerUrl);
+        console.log('[AI Health] Check result:', isOnline);
         if (!cancelled) {
           setModelStatus(isOnline ? "online" : "offline");
 
@@ -105,7 +107,8 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
           const pollInterval = isOnline ? 30000 : 5000;
           intervalId = window.setInterval(checkHealth, pollInterval);
         }
-      } catch {
+      } catch (error) {
+        console.log('[AI Health] Check failed:', error);
         if (!cancelled) {
           setModelStatus("offline");
           // On error, check more frequently
