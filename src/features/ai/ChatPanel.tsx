@@ -1,4 +1,4 @@
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowDown, Bot, Bug, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -216,8 +216,8 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
 
   const openDevTools = useCallback(async () => {
     try {
-      const webview = getCurrentWebviewWindow();
-      await webview.openDevTools();
+      const window = getCurrentWindow();
+      await window.openDevTools();
     } catch (err) {
       console.error("Failed to open DevTools:", err);
     }
