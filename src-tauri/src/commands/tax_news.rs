@@ -243,12 +243,16 @@ async fn fetch_all_feeds() -> Vec<RawItem> {
     let mut all: Vec<RawItem> = Vec::new();
     for src in FEED_SOURCES {
         match fetch_feed(src.label, src.url).await {
-            Ok(mut items) => all.append(&mut items),
+            Ok(mut items) => {
+                log::info!("tax_news: fetched {} items from {}", items.len(), src.label);
+                all.append(&mut items);
+            }
             Err(e) => {
-                log::warn!("tax_news: failed to fetch {} — {}", src.url, e);
+                log::error!("tax_news: failed to fetch {} — {}", src.url, e);
             }
         }
     }
+    log::info!("tax_news: total items fetched from all sources: {}", all.len());
     all
 }
 
