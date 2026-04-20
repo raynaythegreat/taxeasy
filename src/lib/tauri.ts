@@ -163,6 +163,8 @@ export interface CashFlowReport {
 export const unlock = (passphrase: string): Promise<boolean> =>
   invoke("unlock_app", { passphrase });
 
+export const isUnlocked = (): Promise<boolean> => invoke("is_unlocked");
+
 export const listClients = (): Promise<Client[]> => invoke("list_clients");
 
 export const createClient = (payload: CreateClientPayload): Promise<Client> =>
