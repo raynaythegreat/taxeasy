@@ -47,11 +47,7 @@ const PERIODS: ReportPeriod[] = ["annual", "h1", "h2", "q1", "q2", "q3", "q4"];
 const MIN_YEAR = 2000;
 const OWNER_SCOPE = "owner";
 
-interface MyBusinessWorkspaceProps {
-  initialTab?: WorkspaceTab;
-}
-
-export function MyBusinessWorkspace({ initialTab = "overview" }: MyBusinessWorkspaceProps) {
+export function MyBusinessWorkspace({ initialTab = "overview" }: { initialTab?: WorkspaceTab }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
@@ -182,6 +178,7 @@ export function MyBusinessWorkspace({ initialTab = "overview" }: MyBusinessWorks
                 </div>
               </div>
             </div>
+
             <div className="shrink-0 bg-gray-50 px-6 py-6 border-b border-gray-200">
               <DashboardAnalytics
                 clientId={OWNER_SCOPE}
