@@ -1,4 +1,4 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { ArrowDown, Bot, Bug, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -7,6 +7,7 @@ import { useI18n } from "../../lib/i18n";
 import { checkAiHealthWithUrl } from "../../lib/settings-api";
 import { useChatStream } from "../../lib/use-chat-stream";
 import { cn } from "../../lib/utils";
+import { ConsoleViewer } from "../debug/ConsoleViewer";
 import { MessageBubble } from "./MessageBubble";
 import { SlashCommandInput } from "./SlashCommandInput";
 import { ToolCallBlock } from "./ToolCallBlock";
@@ -79,6 +80,7 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
   const [modelStatus, setModelStatus] = useState<ModelStatus>("checking");
   const [error, setError] = useState<string | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showConsole, setShowConsole] = useState(false);
   const lastMessageCountRef = useRef(0);
 
   const { messages, streamingMessage, toolCalls, isStreaming, send } = useChatStream({ clientId });
@@ -127,6 +129,16 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
       if (intervalId) clearInterval(intervalId);
     };
   }, [settingsLoaded, ai_provider, ollama_url, lm_studio_url]);
+
+  useEffect(() => {
+    const unlistenPromise = listen("open_devtools", () => {
+      console.log("Opening DevTools...");
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -215,12 +227,7 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
   }, []);
 
   const openDevTools = useCallback(async () => {
-    try {
-      const window = getCurrentWindow();
-      await window.openDevTools();
-    } catch (err) {
-      console.error("Failed to open DevTools:", err);
-    }
+    setShowConsole((prev) => !prev);
   }, []);
 
   return (
@@ -422,6 +429,8 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
           />
         </div>
       </div>
+
+      {showConsole && <ConsoleViewer onClose={() => setShowConsole(false)} />}
     </div>
   );
 }
