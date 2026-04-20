@@ -6,6 +6,7 @@ pub mod client_export;
 pub mod clients;
 pub mod csv_import;
 pub mod dashboard;
+pub mod devtools;
 pub mod documents;
 pub mod drafts;
 pub mod evidence;

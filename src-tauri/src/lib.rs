@@ -18,6 +18,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
+            commands::devtools::open_dev_tools,
             commands::unlock::ping,
             commands::unlock::unlock_app,
             commands::unlock::lock_app,
