@@ -577,6 +577,7 @@ fn seed_values(entity_type: &EntityType) -> Result<Vec<Value>> {
         EntityType::Scorp => include_str!("../../seeds/coa_scorp.json"),
         EntityType::Ccorp => include_str!("../../seeds/coa_ccorp.json"),
         EntityType::Partnership => include_str!("../../seeds/coa_partnership.json"),
+        EntityType::I1040 => include_str!("../../seeds/coa_i1040.json"),
     };
 
     Ok(serde_json::from_str(seed_json)?)

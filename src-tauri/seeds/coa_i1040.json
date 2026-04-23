@@ -1,0 +1,343 @@
+[
+  {
+    "code": "1000",
+    "name": "Assets",
+    "account_type": "asset",
+    "parent_id": null,
+    "sort_order": 100
+  },
+  {
+    "code": "1010",
+    "name": "Checking Account",
+    "account_type": "asset",
+    "parent_id": "1000",
+    "sort_order": 110,
+    "system_account_role": "cash"
+  },
+  {
+    "code": "1020",
+    "name": "Savings Account",
+    "account_type": "asset",
+    "parent_id": "1000",
+    "sort_order": 120
+  },
+  {
+    "code": "1100",
+    "name": "Investment Accounts",
+    "account_type": "asset",
+    "parent_id": "1000",
+    "sort_order": 130
+  },
+  {
+    "code": "1200",
+    "name": "Property",
+    "account_type": "asset",
+    "parent_id": "1000",
+    "sort_order": 140
+  },
+  {
+    "code": "2000",
+    "name": "Liabilities",
+    "account_type": "liability",
+    "parent_id": null,
+    "sort_order": 200
+  },
+  {
+    "code": "2010",
+    "name": "Credit Cards",
+    "account_type": "liability",
+    "parent_id": "2000",
+    "sort_order": 210
+  },
+  {
+    "code": "2020",
+    "name": "Mortgage Payable",
+    "account_type": "liability",
+    "parent_id": "2000",
+    "sort_order": 220
+  },
+  {
+    "code": "2030",
+    "name": "Student Loans",
+    "account_type": "liability",
+    "parent_id": "2000",
+    "sort_order": 230
+  },
+  {
+    "code": "2040",
+    "name": "Tax Payable",
+    "account_type": "liability",
+    "parent_id": "2000",
+    "sort_order": 240
+  },
+  {
+    "code": "3000",
+    "name": "Equity",
+    "account_type": "equity",
+    "parent_id": null,
+    "sort_order": 300
+  },
+  {
+    "code": "4000",
+    "name": "Income",
+    "account_type": "revenue",
+    "parent_id": null,
+    "sort_order": 400
+  },
+  {
+    "code": "4010",
+    "name": "W-2 Wages",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 410
+  },
+  {
+    "code": "4020",
+    "name": "Self-Employment Income",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 420
+  },
+  {
+    "code": "4030",
+    "name": "Interest Income",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 430
+  },
+  {
+    "code": "4040",
+    "name": "Dividend Income",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 440
+  },
+  {
+    "code": "4050",
+    "name": "Short-Term Capital Gains",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 450
+  },
+  {
+    "code": "4060",
+    "name": "Long-Term Capital Gains",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 460
+  },
+  {
+    "code": "4070",
+    "name": "Rental Income",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 470
+  },
+  {
+    "code": "4080",
+    "name": "Other Income",
+    "account_type": "revenue",
+    "parent_id": "4000",
+    "sort_order": 480
+  },
+  {
+    "code": "5000",
+    "name": "Expenses & Deductions",
+    "account_type": "expense",
+    "parent_id": null,
+    "sort_order": 500
+  },
+  {
+    "code": "5010",
+    "name": "Federal Tax Withholding",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 510
+  },
+  {
+    "code": "5020",
+    "name": "State Tax Withholding",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 520
+  },
+  {
+    "code": "5030",
+    "name": "FICA Withholding",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 530
+  },
+  {
+    "code": "5040",
+    "name": "Estimated Tax Payments",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 540
+  },
+  {
+    "code": "5100",
+    "name": "Schedule A Deductions",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 550
+  },
+  {
+    "code": "5110",
+    "name": "Medical & Dental Expenses",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 551,
+    "deductible": true
+  },
+  {
+    "code": "5120",
+    "name": "State & Local Taxes (SALT)",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 552,
+    "deductible": true
+  },
+  {
+    "code": "5130",
+    "name": "Property Taxes",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 553,
+    "deductible": true
+  },
+  {
+    "code": "5140",
+    "name": "Mortgage Interest",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 554,
+    "deductible": true
+  },
+  {
+    "code": "5150",
+    "name": "Charitable Contributions",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 555,
+    "deductible": true
+  },
+  {
+    "code": "5160",
+    "name": "Casualty & Theft Losses",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 556,
+    "deductible": true
+  },
+  {
+    "code": "5170",
+    "name": "Other Itemized Deductions",
+    "account_type": "expense",
+    "parent_id": "5100",
+    "sort_order": 557,
+    "deductible": true
+  },
+  {
+    "code": "5200",
+    "name": "Above-the-Line Deductions",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 560
+  },
+  {
+    "code": "5210",
+    "name": "IRA Contributions",
+    "account_type": "expense",
+    "parent_id": "5200",
+    "sort_order": 561,
+    "deductible": true
+  },
+  {
+    "code": "5220",
+    "name": "Student Loan Interest",
+    "account_type": "expense",
+    "parent_id": "5200",
+    "sort_order": 562,
+    "deductible": true
+  },
+  {
+    "code": "5230",
+    "name": "Self-Employment Tax",
+    "account_type": "expense",
+    "parent_id": "5200",
+    "sort_order": 563,
+    "deductible": true
+  },
+  {
+    "code": "5240",
+    "name": "Health Insurance Premiums",
+    "account_type": "expense",
+    "parent_id": "5200",
+    "sort_order": 564,
+    "deductible": true
+  },
+  {
+    "code": "5300",
+    "name": "Education Expenses",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 570
+  },
+  {
+    "code": "5310",
+    "name": "Tuition and Fees",
+    "account_type": "expense",
+    "parent_id": "5300",
+    "sort_order": 571
+  },
+  {
+    "code": "5320",
+    "name": "Education Credits",
+    "account_type": "expense",
+    "parent_id": "5300",
+    "sort_order": 572
+  },
+  {
+    "code": "5400",
+    "name": "General Living Expenses",
+    "account_type": "expense",
+    "parent_id": "5000",
+    "sort_order": 580
+  },
+  {
+    "code": "5410",
+    "name": "Housing Expenses",
+    "account_type": "expense",
+    "parent_id": "5400",
+    "sort_order": 581
+  },
+  {
+    "code": "5420",
+    "name": "Transportation",
+    "account_type": "expense",
+    "parent_id": "5400",
+    "sort_order": 582
+  },
+  {
+    "code": "5430",
+    "name": "Food & Groceries",
+    "account_type": "expense",
+    "parent_id": "5400",
+    "sort_order": 583
+  },
+  {
+    "code": "5440",
+    "name": "Insurance Premiums",
+    "account_type": "expense",
+    "parent_id": "5400",
+    "sort_order": 584
+  },
+  {
+    "code": "5450",
+    "name": "Utilities",
+    "account_type": "expense",
+    "parent_id": "5400",
+    "sort_order": 585
+  }
+]

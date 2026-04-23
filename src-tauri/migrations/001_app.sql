@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS clients (
     id                    TEXT PRIMARY KEY,          -- UUID v4
     name                  TEXT NOT NULL,
     entity_type           TEXT NOT NULL CHECK (entity_type IN (
-                              'sole_prop', 'smllc', 'scorp', 'ccorp', 'partnership'
+                              'sole_prop', 'smllc', 'scorp', 'ccorp', 'partnership', 'i1040'
                           )),
     ein_encrypted         BLOB,                      -- AES-256-GCM ciphertext + nonce
     fiscal_year_start_month INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start_month BETWEEN 1 AND 12),

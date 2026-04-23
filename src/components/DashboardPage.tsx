@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Plus, Upload } from "lucide-react";
+import { FileText, Plus, Upload, Users } from "lucide-react";
 import { useState } from "react";
 import { getBusinessProfile } from "../lib/business-profile-api";
 import { getDashboardStats } from "../lib/dashboard-api";
@@ -35,7 +35,7 @@ interface DashboardPageProps {
 
 export function DashboardPage({
   onSelectClient: _onSelectClient,
-  onNewClient: _onNewClient,
+  onNewClient,
   onNavigate: _onNavigate,
 }: DashboardPageProps) {
   const { t } = useI18n();
@@ -85,6 +85,10 @@ export function DashboardPage({
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="primary" size="md" onClick={onNewClient}>
+              <Users className="w-4 h-4" />
+              {t("Add New Client")}
+            </Button>
             <PeriodPicker clientId="owner" value={period} onChange={setPeriod} />
             <Button variant="secondary" size="md" onClick={() => onNavigate("transactions")}>
               <Plus className="w-4 h-4" />

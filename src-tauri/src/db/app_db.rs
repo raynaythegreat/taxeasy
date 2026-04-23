@@ -40,6 +40,7 @@ impl AppDb {
         self.ensure_business_profile_table()?;
         let tax_news = include_str!("../../migrations/008_tax_news_cache.sql");
         self.conn.execute_batch(tax_news)?;
+        self.add_i1040_entity_type()?;
         Ok(())
     }
 
@@ -94,7 +95,7 @@ impl AppDb {
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL DEFAULT '',
                     entity_type TEXT NOT NULL DEFAULT 'sole-prop' CHECK (entity_type IN (
-                        'sole-prop', 'smllc', 'scorp', 'ccorp', 'partnership'
+                        'sole-prop', 'smllc', 'scorp', 'ccorp', 'partnership', 'i1040'
                     )),
                     ein TEXT,
                     contact_name TEXT,
@@ -136,6 +137,24 @@ impl AppDb {
             "INSERT OR IGNORE INTO schema_migrations (version) VALUES (6)",
             [],
         )?;
+
+        Ok(())
+    }
+
+    fn add_i1040_entity_type(&self) -> Result<()> {
+        let already_applied: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM schema_migrations WHERE version = 15",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+
+        if !already_applied {
+            let migration = include_str!("../../migrations/015_app_add_i1040_entity.sql");
+            self.conn.execute_batch(migration)?;
+        }
 
         Ok(())
     }

@@ -3,7 +3,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
 export const invoke = invokeCore;
 
-export type EntityType = "sole_prop" | "smllc" | "scorp" | "ccorp" | "partnership";
+export type EntityType = "sole_prop" | "smllc" | "scorp" | "ccorp" | "partnership" | "i1040";
 export type AccountingMethod = "cash" | "accrual";
 export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
 

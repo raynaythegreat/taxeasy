@@ -9,6 +9,7 @@ pub enum EntityType {
     Scorp,
     Ccorp,
     Partnership,
+    I1040,
 }
 
 impl EntityType {
@@ -19,6 +20,7 @@ impl EntityType {
             EntityType::Scorp => "coa_scorp.json",
             EntityType::Ccorp => "coa_ccorp.json",
             EntityType::Partnership => "coa_partnership.json",
+            EntityType::I1040 => "coa_i1040.json",
         }
     }
 
@@ -29,6 +31,7 @@ impl EntityType {
             EntityType::Scorp => "scorp",
             EntityType::Ccorp => "ccorp",
             EntityType::Partnership => "partnership",
+            EntityType::I1040 => "i1040",
         }
     }
 }
@@ -43,6 +46,7 @@ impl std::str::FromStr for EntityType {
             "scorp" => Ok(EntityType::Scorp),
             "ccorp" => Ok(EntityType::Ccorp),
             "partnership" => Ok(EntityType::Partnership),
+            "i1040" => Ok(EntityType::I1040),
             other => Err(format!("unknown entity type: {other}")),
         }
     }

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS business_profile (
     id                    TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),1,1) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     name                  TEXT NOT NULL,
     entity_type           TEXT NOT NULL DEFAULT 'sole-prop' CHECK (entity_type IN (
-                              'sole-prop', 'smllc', 'scorp', 'ccorp', 'partnership'
+                              'sole-prop', 'smllc', 'scorp', 'ccorp', 'partnership', 'i1040'
                           )),
     ein                   TEXT,
     contact_name          TEXT,

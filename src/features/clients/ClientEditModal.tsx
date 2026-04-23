@@ -12,6 +12,7 @@ const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
   { value: "scorp", label: "S-Corp" },
   { value: "ccorp", label: "C-Corp" },
   { value: "partnership", label: "Partnership" },
+  { value: "i1040", label: "1040 Individual" },
 ];
 
 const MONTHS = [
@@ -114,7 +115,8 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t("Business Name")} <span className="text-red-500">*</span>
+              {entityType === "i1040" ? t("Client Name") : t("Business Name")}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <input
               id="edit-name"
@@ -149,7 +151,8 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
 
           <div>
             <label htmlFor="edit-ein" className="block text-sm font-medium text-gray-700 mb-1">
-              {t("EIN")} <span className="text-gray-400 font-normal">(optional)</span>
+              {entityType === "i1040" ? t("SSN") : t("EIN")}{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               id="edit-ein"
@@ -157,12 +160,21 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               value={ein}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                const formatted =
-                  digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
+                let formatted: string;
+                if (entityType === "i1040") {
+                  if (digits.length > 5)
+                    formatted = `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+                  else if (digits.length > 3)
+                    formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
+                  else formatted = digits;
+                } else {
+                  formatted =
+                    digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
+                }
                 setEin(formatted);
               }}
-              placeholder="XX-XXXXXXX"
-              maxLength={10}
+              placeholder={entityType === "i1040" ? "XXX-XX-XXXX" : "XX-XXXXXXX"}
+              maxLength={entityType === "i1040" ? 11 : 10}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />

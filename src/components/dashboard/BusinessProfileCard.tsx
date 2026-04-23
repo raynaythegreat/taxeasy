@@ -10,6 +10,7 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   scorp: "S-Corp",
   ccorp: "C-Corp",
   partnership: "Partnership",
+  i1040: "1040 Individual",
 };
 
 interface BusinessProfileCardProps {

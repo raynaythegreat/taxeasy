@@ -1,4 +1,4 @@
-import { Briefcase, Globe, LayoutDashboard, Settings, Users } from "lucide-react";
+import { Globe, LayoutDashboard, Settings, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClientsPage } from "../features/clients/ClientsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
@@ -7,17 +7,17 @@ import { getActiveClientPref, switchClient } from "../lib/tauri";
 import { useKeyboardShortcuts } from "../lib/use-keyboard-shortcuts";
 import { cn } from "../lib/utils";
 import type { WorkspaceTab } from "./ClientWorkspace";
-import { DashboardPage } from "./DashboardPage";
-import { MyBusinessWorkspace } from "./MyBusinessWorkspace";
+import { DashboardWorkspace } from "./DashboardWorkspace";
 import { TaxNewsPage } from "./TaxNewsPage";
 
-type AppView = "dashboard" | "clients" | "settings" | "tax-news" | "my-business";
+type AppView = "dashboard" | "clients" | "settings" | "tax-news";
 
 export function AppShell() {
   const { t, locale, setLocale } = useI18n();
   const [view, setView] = useState<AppView>("dashboard");
   const [initialClientId, setInitialClientId] = useState<string | null>(null);
-  const [initialClientTab, setInitialClientTab] = useState<WorkspaceTab>("overview");
+  const [initialClientTab] = useState<WorkspaceTab>("overview");
+  const [autoShowForm, setAutoShowForm] = useState(false);
 
   useEffect(() => {
     getActiveClientPref()
@@ -32,63 +32,14 @@ export function AppShell() {
 
   useKeyboardShortcuts({
     "mod+,": () => setView("settings"),
+    "mod+n": () => {
+      setAutoShowForm(true);
+      setView("clients");
+    },
   });
-
-  const handleSelectClient = (clientId: string) => {
-    setInitialClientId(clientId);
-    setInitialClientTab("overview");
-    setView("clients");
-  };
-
-  const handleNavigate = (page: string) => {
-    switch (page) {
-      case "dashboard":
-        setView("dashboard");
-        return;
-      case "settings":
-        setView("settings");
-        return;
-      case "tax-news":
-        setView("tax-news");
-        return;
-      case "transactions":
-      case "ledger":
-        setInitialClientTab("transactions");
-        setView("clients");
-        return;
-      case "invoices":
-        setInitialClientTab("invoices");
-        setView("clients");
-        return;
-      case "documents":
-        setInitialClientTab("documents");
-        setView("clients");
-        return;
-      case "reports":
-        setInitialClientTab("reports");
-        setView("clients");
-        return;
-      case "ai":
-        setInitialClientTab("ai");
-        setView("clients");
-        return;
-      case "schedule-c":
-        setInitialClientTab("schedule-c");
-        setView("clients");
-        return;
-      case "vendors":
-        setInitialClientTab("vendors");
-        setView("clients");
-        return;
-      default:
-        setInitialClientTab("overview");
-        setView("clients");
-    }
-  };
 
   const NAV_ITEMS: { id: AppView; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: t("Dashboard"), icon: LayoutDashboard },
-    { id: "my-business", label: t("My Business"), icon: Briefcase },
     { id: "clients", label: t("Clients"), icon: Users },
     { id: "settings", label: t("Settings"), icon: Settings },
   ];
@@ -155,18 +106,22 @@ export function AppShell() {
 
       <main id="main" className="flex-1 min-h-0 overflow-hidden">
         {view === "dashboard" && (
-          <DashboardPage
-            onSelectClient={handleSelectClient}
-            onNewClient={() => handleNavigate("clients")}
-            onNavigate={handleNavigate}
+          <DashboardWorkspace
+            onNewClient={() => {
+              setAutoShowForm(true);
+              setView("clients");
+            }}
           />
         )}
-        {view === "my-business" && <MyBusinessWorkspace />}
         {view === "clients" && (
           <ClientsPage
             initialClientId={initialClientId}
             initialTab={initialClientTab}
-            onBack={() => setView("dashboard")}
+            onBack={() => {
+              setAutoShowForm(false);
+              setView("dashboard");
+            }}
+            autoShowForm={autoShowForm}
           />
         )}
         {view === "settings" && <SettingsPage onBack={() => setView("dashboard")} />}

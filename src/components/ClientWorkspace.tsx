@@ -85,15 +85,21 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
   const [taxYear, setTaxYear] = useState(currentYear);
   const isRecent = recentYears.includes(taxYear);
 
-  const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
+  const ALL_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
     { id: "transactions", label: t("Transactions"), icon: <Receipt className="w-3.5 h-3.5" /> },
     { id: "invoices", label: t("Invoices"), icon: <FileText className="w-3.5 h-3.5" /> },
     { id: "documents", label: t("Documents") },
     { id: "reports", label: t("Reports"), icon: <Printer className="w-3.5 h-3.5" /> },
     { id: "mileage", label: t("Mileage"), icon: <Receipt className="w-3.5 h-3.5" /> },
-    { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3. h-3.5" /> },
+    { id: "ai", label: t("ai.workspaceTitle"), icon: <Sparkles className="w-3.5 h-3.5" /> },
   ];
+
+  const is1040 = client.entity_type === "i1040";
+
+  const WORKSPACE_TABS = is1040
+    ? ALL_TABS.filter((t) => ["overview", "documents", "invoices", "ai"].includes(t.id))
+    : ALL_TABS;
 
   const ENTITY_LABELS: Record<Client["entity_type"], string> = {
     sole_prop: t("Sole Proprietor"),
@@ -101,7 +107,13 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
     scorp: t("S-Corp"),
     ccorp: t("C-Corp"),
     partnership: t("Partnership"),
+    i1040: t("1040 Individual"),
   };
+
+  function maskSsn(ssn: string): string {
+    if (ssn.length < 7) return ssn;
+    return `***-**-${ssn.slice(-4)}`;
+  }
 
   const { from, to: toHalfOpen } = useMemo(() => periodRange(taxYear, period), [taxYear, period]);
   const toInclusive = lastDayOf(toHalfOpen);
@@ -130,7 +142,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
             </span>
             {client.ein && (
               <span className="text-xs text-gray-500 shrink-0">
-                {t("EIN")}: {maskEin(client.ein)}
+                {client.entity_type === "i1040" ? t("SSN") : t("EIN")}: {maskEin(client.ein)}
               </span>
             )}
             <span className="ml-auto text-xs text-gray-400 capitalize shrink-0">
@@ -162,6 +174,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
       <div className="flex-1 min-h-0 overflow-auto print:overflow-visible pb-6">
         {tab === "overview" && (
           <div className="flex flex-col h-full">
+            {/* Profile header */}
             <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-5">
               <div className="flex items-start gap-5">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
@@ -180,7 +193,8 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                         </span>
                         {client.ein && (
                           <span className="text-xs text-gray-500">
-                            {t("EIN")}: {client.ein}
+                            {client.entity_type === "i1040" ? t("SSN") : t("EIN")}:{" "}
+                            {client.entity_type === "i1040" ? maskSsn(client.ein) : client.ein}
                           </span>
                         )}
                       </div>
@@ -212,10 +226,14 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                 </div>
               </div>
             </div>
+
+            {/* Business profile / address */}
             <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900">{t("Business Profile")}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    {is1040 ? t("Client Name") : t("Business Profile")}
+                  </h3>
                   <div className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
                     <span className="text-gray-500">{t("Contact Name")}</span>
                     <span className="text-gray-900">{client.contact_name || "—"}</span>
@@ -275,31 +293,103 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                 </div>
               )}
             </div>
-            <div className="shrink-0 border-t border-gray-200 px-6 py-5">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+
+            {is1040 ? (
+              /* Simplified 1040 overview - no transaction charts */
+              <div className="flex-1 px-6 py-6 space-y-6 bg-gray-50">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("Quick Actions")}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTab("documents")}
+                      className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {t("Upload Documents")}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {t("Upload tax documents, W-2s, 1099s, and other supporting files.")}
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("invoices")}
+                      className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                        <Receipt className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {t("New Invoice")}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {t("Create your first invoice or receipt.")}
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab("ai")}
+                      className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {t("Open AI Workspace")}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {t("ai.chatPlaceholder")}
+                        </div>
+                      </div>
+                    </button>
                   </div>
-                }
-              >
-                <DashboardAnalytics
-                  clientId={client.id}
-                  showTotalClientsCard={false}
-                  onOpenTransactions={() => setTab("transactions")}
-                  onOpenReports={() => setTab("reports")}
-                />
-              </Suspense>
-            </div>
-            <div className="shrink-0 border-t border-gray-200">
-              <AccountManagementPage compact clientId={client.id} />
-            </div>
-            <div className="shrink-0 border-t border-gray-200">
-              <InvoicesPage compact clientId={client.id} />
-            </div>
-            <div className="shrink-0 border-t border-gray-200">
-              <DocumentsPage compact clientId={client.id} />
-            </div>
+                </div>
+                <div className="border-t border-gray-200">
+                  <DocumentsPage compact clientId={client.id} />
+                </div>
+                <div className="border-t border-gray-200">
+                  <InvoicesPage compact clientId={client.id} />
+                </div>
+              </div>
+            ) : (
+              /* Business client overview - full dashboard */
+              <>
+                <div className="shrink-0 border-t border-gray-200 px-6 py-5">
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                      </div>
+                    }
+                  >
+                    <DashboardAnalytics
+                      clientId={client.id}
+                      showTotalClientsCard={false}
+                      onOpenTransactions={() => setTab("transactions")}
+                      onOpenReports={() => setTab("reports")}
+                    />
+                  </Suspense>
+                </div>
+                <div className="shrink-0 border-t border-gray-200">
+                  <AccountManagementPage compact clientId={client.id} />
+                </div>
+                <div className="shrink-0 border-t border-gray-200">
+                  <InvoicesPage compact clientId={client.id} />
+                </div>
+                <div className="shrink-0 border-t border-gray-200">
+                  <DocumentsPage compact clientId={client.id} />
+                </div>
+              </>
+            )}
           </div>
         )}
         {tab === "transactions" && <TransactionsPage clientId={client.id} />}
