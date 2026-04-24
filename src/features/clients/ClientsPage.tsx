@@ -1320,7 +1320,12 @@ export function ClientsPage({
 
       {/* Main content area */}
       <main className="flex-1 min-w-0 overflow-hidden">
-        {showForm ? (
+        {activeClientId && clients?.find((c) => c.id === activeClientId) ? (
+          <ClientWorkspace
+            client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
+            initialTab={initialTab}
+          />
+        ) : showForm ? (
           /* ── New Client Form ── */
           <div className="h-full overflow-auto">
             <div className="p-6 max-w-lg">
@@ -1622,11 +1627,6 @@ export function ClientsPage({
               </form>
             </div>
           </div>
-        ) : activeClientId && clients?.find((c) => c.id === activeClientId) ? (
-          <ClientWorkspace
-            client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
-            initialTab={initialTab}
-          />
         ) : (
           /* ── No client selected — show create form + drop zone ── */
           <div className="flex flex-col h-full overflow-hidden bg-gray-50/50">
