@@ -1,4 +1,4 @@
-import { FileText, HelpCircle, Search, Send, Tag, Upload } from "lucide-react";
+import { FileText, HelpCircle, Mic, MicOff, Search, Send, Tag, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SLASH_COMMANDS } from "../../lib/ai-api";
 import { cn } from "../../lib/utils";
@@ -17,6 +17,7 @@ interface SlashCommandInputProps {
   onSend: () => void;
   disabled?: boolean;
   placeholder?: string;
+  onVoiceResult?: (transcript: string) => void;
 }
 
 export function SlashCommandInput({
@@ -25,11 +26,59 @@ export function SlashCommandInput({
   onSend,
   disabled,
   placeholder,
+  onVoiceResult,
 }: SlashCommandInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const SpeechRecognition =
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const hasSpeech = !!SpeechRecognition;
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (onVoiceResult) {
+        onVoiceResult(transcript);
+      } else {
+        onChange(transcript);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    recognition.start();
+  }, [isListening, SpeechRecognition, onChange, onVoiceResult]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   const filterText = value.startsWith("/") ? value.toLowerCase() : "";
   const filtered = SLASH_COMMANDS.filter(
@@ -99,7 +148,7 @@ export function SlashCommandInput({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative flex-1">
       {shouldShowMenu && (
         <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg overflow-hidden z-10">
           {filtered.map((cmd, i) => {
@@ -143,6 +192,22 @@ export function SlashCommandInput({
           disabled={disabled}
           className="flex-1 px-3.5 py-2 text-sm border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
         />
+        {hasSpeech && (
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={disabled}
+            className={cn(
+              "flex items-center justify-center w-9 h-9 rounded-lg transition-colors",
+              isListening
+                ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
+                : "bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-600",
+            )}
+            title={isListening ? "Stop listening" : "Start voice input"}
+          >
+            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+        )}
         <button
           type="button"
           onClick={onSend}

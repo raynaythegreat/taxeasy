@@ -513,6 +513,12 @@ export function ClientsPage({
   }, [autoShowFormProp]);
 
   useEffect(() => {
+    if (!activeClientId && !showForm && !initialized) {
+      setShowForm(true);
+    }
+  }, [activeClientId, showForm, initialized]);
+
+  useEffect(() => {
     let mounted = true;
     let cleanup: (() => void) | undefined;
 
@@ -1565,11 +1571,249 @@ export function ClientsPage({
             initialTab={initialTab}
           />
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <p className="text-sm text-gray-400">
-                Select a client from the sidebar to get started.
-              </p>
+          /* ── No client selected — show create form + drop zone ── */
+          <div className="flex flex-col h-full items-center justify-center bg-gray-50/50 p-6">
+            <div className="w-full max-w-lg">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 mb-3">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">Welcome to Taxeasy</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Create a new client or drag and drop folders to import in bulk
+                </p>
+              </div>
+
+              <section
+                className={cn(
+                  "rounded-xl border-2 border-dashed p-6 transition-all",
+                  isDragging
+                    ? "border-blue-500 bg-blue-50/50"
+                    : "border-gray-300 bg-white hover:border-gray-400",
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                aria-label="Drop zone for folder import"
+              >
+                {isDragging ? (
+                  <div className="text-center py-4">
+                    <FolderSearch className="w-12 h-12 text-blue-500 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-900">
+                      Drop folders to import clients
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Each folder becomes a new client with all its files
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <FolderSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-600">
+                      Drag &amp; drop client folders here
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Or create a client manually below
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleImportFolders}
+                      className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <FolderSearch className="w-3.5 h-3.5" />
+                      {t("Browse Folders")}
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <div className="mt-6 flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  or create manually
+                </span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              {/* Client Type Toggle */}
+              <div className="mt-4">
+                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => updateField("entity_type", "i1040")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                      form.entity_type === "i1040"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-600 hover:bg-gray-50",
+                    )}
+                    disabled={createMutation.isPending}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    {t("Individual (1040)")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (form.entity_type === "i1040") updateField("entity_type", "sole_prop");
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300",
+                      form.entity_type !== "i1040"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-600 hover:bg-gray-50",
+                    )}
+                    disabled={createMutation.isPending}
+                    aria-label={t("Business")}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
+                    </svg>
+                    {t("Business")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="mt-4">
+                <label
+                  htmlFor="welcome-client-name"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
+                >
+                  {form.entity_type === "i1040" ? t("Full Name") : t("Business Name")}{" "}
+                  <span className="text-red-400">*</span>
+                </label>
+                <input
+                  id="welcome-client-name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    updateField("name", e.target.value)
+                  }
+                  placeholder={
+                    form.entity_type === "i1040" ? "John Doe" : "Acme Consulting LLC"
+                  }
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  disabled={createMutation.isPending}
+                />
+              </div>
+
+              {/* SSN / EIN */}
+              <div className="mt-4">
+                <label
+                  htmlFor="welcome-ein"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
+                >
+                  {form.entity_type === "i1040" ? t("SSN") : t("EIN")}{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="welcome-ein"
+                  type="text"
+                  value={form.ein}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                    let formatted: string;
+                    if (form.entity_type === "i1040") {
+                      if (digits.length > 5)
+                        formatted = `${digits.slice(0, 3)}-${digits.slice(3, 5)}${digits.length > 5 ? `-${digits.slice(5)}` : ""}`;
+                      else if (digits.length > 3)
+                        formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
+                      else formatted = digits;
+                    } else {
+                      formatted =
+                        digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
+                    }
+                    updateField("ein", formatted);
+                  }}
+                  placeholder={form.entity_type === "i1040" ? "XXX-XX-XXXX" : "XX-XXXXXXX"}
+                  maxLength={form.entity_type === "i1040" ? 11 : 10}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  disabled={createMutation.isPending}
+                />
+              </div>
+
+              {formError && (
+                <div
+                  role="alert"
+                  className="mt-4 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+                >
+                  {formError}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="mt-5 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormError(null);
+                    const trimmedName = form.name.trim();
+                    if (!trimmedName) {
+                      setFormError(t("Business name is required."));
+                      return;
+                    }
+                    const payload: CreateClientPayload = {
+                      name: trimmedName,
+                      entity_type: form.entity_type,
+                      fiscal_year_start_month: form.fiscal_year_start_month,
+                      accounting_method: form.accounting_method,
+                    };
+                    const trimmedEin = form.ein.trim();
+                    if (trimmedEin) {
+                      payload.ein = trimmedEin;
+                    }
+                    const trimmedSourceFolderPath = form.source_folder_path.trim();
+                    if (trimmedSourceFolderPath) {
+                      payload.source_folder_path = trimmedSourceFolderPath;
+                    }
+                    createMutation.mutate(payload);
+                  }}
+                  disabled={createMutation.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {createMutation.isPending ? (
+                    <>
+                      <Spinner />
+                      {t("Creating…")}
+                    </>
+                  ) : (
+                    t("Create Client")
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelForm}
+                  disabled={createMutation.isPending}
+                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {t("Cancel")}
+                </button>
+              </div>
             </div>
           </div>
         )}

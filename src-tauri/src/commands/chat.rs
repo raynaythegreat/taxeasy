@@ -11,29 +11,39 @@ pub struct ChatResponse {
     pub drafts: Vec<DraftTransaction>,
 }
 
+/// Helper: get a connection for either owner or a client.
+fn with_chat_conn<T>(
+    state: &AppState,
+    app_handle: Option<&tauri::AppHandle>,
+    client_id: &str,
+    f: impl FnOnce(&rusqlite::Connection) -> Result<T>,
+) -> Result<T> {
+    if client_id == "owner" {
+        crate::commands::scoped::with_scoped_conn(state, app_handle, Some("owner"), f)
+    } else {
+        crate::commands::scoped::with_scoped_conn(state, app_handle, Some(client_id), f)
+    }
+}
+
 #[tauri::command(rename_all = "camelCase")]
 pub async fn send_chat_message(
+    app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     client_id: String,
     message: String,
 ) -> Result<ChatResponse> {
-    let (_user_message, context, history) = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-        if ac.client_id != client_id {
-            return Err(AppError::NotFound(format!("client {client_id}")));
-        }
-
-        let conn = ac.db.conn();
-
-        let user_msg =
-            crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
-        let ctx = crate::ai::chat::build_chat_context(conn, &client_id);
-        let hist = crate::db::chat_db::get_history(conn, &client_id)?;
-
-        (user_msg, ctx, hist)
-    };
+    let (user_message, context, history) = with_chat_conn(
+        &state,
+        Some(&app_handle),
+        &client_id,
+        |conn| {
+            let user_msg =
+                crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
+            let ctx = crate::ai::chat::build_chat_context(conn, &client_id);
+            let hist = crate::db::chat_db::get_history(conn, &client_id)?;
+            Ok((user_msg, ctx, hist))
+        },
+    )?;
 
     let config = crate::ai::ollama::read_ai_config(&state);
 
@@ -56,43 +66,54 @@ pub async fn send_chat_message(
             let json_block = json_str[..json_end].trim();
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_block) {
                 if let Some(txns) = parsed["transactions"].as_array() {
-                    let lock = state.active_client.lock().unwrap();
-                    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-                    let conn = ac.db.conn();
+                    let _ = with_chat_conn(&state, Some(&app_handle), &client_id, |conn| {
+                        for txn in txns {
+                            let date = txn["date"].as_str();
+                            let desc = txn["description"].as_str();
+                            let amount = txn["amount"].as_i64();
+                            let debit_acct = txn["debit_account"].as_str();
+                            let credit_acct = txn["credit_account"].as_str();
 
-                    for txn in txns {
-                        let date = txn["date"].as_str();
-                        let desc = txn["description"].as_str();
-                        let amount = txn["amount"].as_i64();
-                        let debit_acct = txn["debit_account"].as_str();
-                        let credit_acct = txn["credit_account"].as_str();
-
-                        if let Ok(draft) = crate::db::draft_db::insert_draft(
-                            conn,
-                            &client_id,
-                            None,
-                            date,
-                            desc,
-                            None,
-                            debit_acct,
-                            credit_acct,
-                            amount,
-                            None,
-                        ) {
-                            drafts.push(draft);
+                            if let Ok(draft) = crate::db::draft_db::insert_draft(
+                                conn,
+                                &client_id,
+                                None,
+                                date,
+                                desc,
+                                None,
+                                debit_acct,
+                                credit_acct,
+                                amount,
+                                None,
+                            ) {
+                                drafts.push(draft);
+                            }
                         }
-                    }
+                        Ok::<_, AppError>(())
+                    });
                 }
             }
         }
     }
 
-    let assistant_msg = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = ac.db.conn();
-        crate::db::chat_db::insert_message(conn, &client_id, "assistant", &raw_response, None)?
-    };
+    let assistant_msg = with_chat_conn(
+        &state,
+        Some(&app_handle),
+        &client_id,
+        |conn| {
+            crate::db::chat_db::insert_message(conn, &client_id, "assistant", &raw_response, None)
+        },
+    )?;
+
+    // Remove the duplicate user message that was auto-inserted above so
+    // we only keep the one wrapped with the assistant reply.
+    let _ = with_chat_conn(&state, Some(&app_handle), &client_id, |conn| {
+        conn.execute(
+            "DELETE FROM chat_messages WHERE id = ?1 AND role = 'user' AND content = ?2",
+            rusqlite::params![user_message.id, message],
+        )?;
+        Ok::<_, AppError>(())
+    });
 
     Ok(ChatResponse {
         message: assistant_msg,
@@ -107,35 +128,23 @@ pub async fn send_chat_message_stream(
     client_id: String,
     message: String,
 ) -> Result<String> {
-    let (context, history) = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-        if ac.client_id != client_id {
-            return Err(AppError::NotFound(format!("client {client_id}")));
-        }
-
-        let conn = ac.db.conn();
-        crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
-        let ctx = crate::ai::chat::build_chat_context(conn, &client_id);
-        let hist = crate::db::chat_db::get_history(conn, &client_id)?;
-
-        (ctx, hist)
-    };
+    let (context, history) = with_chat_conn(
+        &state,
+        Some(&app_handle),
+        &client_id,
+        |conn| {
+            crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
+            let ctx = crate::ai::chat::build_chat_context(conn, &client_id);
+            let hist = crate::db::chat_db::get_history(conn, &client_id)?;
+            Ok((ctx, hist))
+        },
+    )?;
 
     let config = crate::ai::ollama::read_ai_config(&state);
     let conversation_id = uuid::Uuid::new_v4().to_string();
 
     let app_state: &AppState = state.inner();
     let cid = client_id.clone();
-
-    let execute_tool_fn =
-        |tool_call: &crate::ai::tools::ToolCall| -> Result<crate::ai::tools::ToolResult> {
-            let lock = app_state.active_client.lock().unwrap();
-            let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-            let conn = ac.db.conn();
-            crate::ai::tools::execute_tool(conn, &cid, tool_call)
-        };
 
     let agent_result = crate::ai::agent::run_agent_loop(
         &app_handle,
@@ -145,7 +154,11 @@ pub async fn send_chat_message_stream(
         &context,
         &history,
         &conversation_id,
-        &execute_tool_fn,
+        &|tool_call: &crate::ai::tools::ToolCall| -> Result<crate::ai::tools::ToolResult> {
+            with_chat_conn(app_state, Some(&app_handle), &cid, |conn| {
+                crate::ai::tools::execute_tool(conn, &cid, tool_call)
+            })
+        },
     )
     .await?;
 
@@ -193,29 +206,22 @@ pub async fn send_chat_message_stream(
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_chat_history(
+    app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     client_id: String,
 ) -> Result<Vec<ChatMessage>> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-    crate::db::chat_db::get_history(conn, &client_id)
+    with_chat_conn(&state, Some(&app_handle), &client_id, |conn| {
+        crate::db::chat_db::get_history(conn, &client_id)
+    })
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub fn clear_chat_history(state: tauri::State<'_, AppState>, client_id: String) -> Result<()> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-    crate::db::chat_db::clear_history(conn, &client_id)
+pub fn clear_chat_history(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    client_id: String,
+) -> Result<()> {
+    with_chat_conn(&state, Some(&app_handle), &client_id, |conn| {
+        crate::db::chat_db::clear_history(conn, &client_id)
+    })
 }
