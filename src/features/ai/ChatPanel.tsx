@@ -73,7 +73,8 @@ function formatTimestampHeader(dateStr: string): string {
 
 export function ChatPanel({ clientId }: ChatPanelProps) {
   const { t } = useI18n();
-  const { ai_provider, ollama_url, lm_studio_url, bonsai_url, bitnet_url, settingsLoaded } = useSettings();
+  const { ai_provider, ollama_url, lm_studio_url, bonsai_url, bitnet_url, settingsLoaded } =
+    useSettings();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -83,7 +84,9 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
   const [showConsole, setShowConsole] = useState(false);
   const lastMessageCountRef = useRef(0);
 
-  const { messages, streamingMessage, toolCalls, isStreaming, send } = useChatStream({ clientId });
+  const { messages, streamingMessage, toolCalls, isStreaming, send, reload } = useChatStream({
+    clientId,
+  });
 
   useEffect(() => {
     if (!settingsLoaded) return;
@@ -96,15 +99,15 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
       setModelStatus("checking");
 
       const providerUrl =
-        ai_provider === "lmstudio" ? lm_studio_url
-        : ai_provider === "bonsai" ? bonsai_url
-        : ai_provider === "bitnet" ? bitnet_url
-        : ollama_url;
-      console.log("[AI Health] Checking provider:", ai_provider, "at URL:", providerUrl);
-
+        ai_provider === "lmstudio"
+          ? lm_studio_url
+          : ai_provider === "bonsai"
+            ? bonsai_url
+            : ai_provider === "bitnet"
+              ? bitnet_url
+              : ollama_url;
       try {
         const isOnline = await checkAiHealthWithUrl(providerUrl);
-        console.log("[AI Health] Check result:", isOnline);
         if (!cancelled) {
           setModelStatus(isOnline ? "online" : "offline");
 
@@ -115,7 +118,6 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
           intervalId = window.setInterval(checkHealth, pollInterval);
         }
       } catch (error) {
-        console.log("[AI Health] Check failed:", error);
         if (!cancelled) {
           setModelStatus("offline");
           // On error, check more frequently
@@ -135,9 +137,7 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
   }, [settingsLoaded, ai_provider, ollama_url, lm_studio_url, bonsai_url, bitnet_url]);
 
   useEffect(() => {
-    const unlistenPromise = listen("open_devtools", () => {
-      console.log("Opening DevTools...");
-    });
+    const unlistenPromise = listen("open_devtools", () => {});
 
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
@@ -189,11 +189,12 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
   const handleClear = useCallback(async () => {
     try {
       await clearChatHistory(clientId);
+      reload();
       setShowClearConfirm(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clear history");
     }
-  }, [clientId]);
+  }, [clientId, reload]);
 
   const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages]);
 

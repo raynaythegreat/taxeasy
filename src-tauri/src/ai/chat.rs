@@ -26,10 +26,13 @@ When asked to create a transaction, use the create_transaction tool.
 When asked about spending categories, use the categorize tool.
 When asked a data question, use the query_ledger tool.
 When asked for a report, use the run_report tool.
+When asked about tax rules, filing requirements, IRS updates, or current tax guidance, use the lookup_tax_guidance tool before answering.
 
 For general questions, respond normally with helpful bookkeeping advice.
 Amounts are in cents (integer). $50.00 = 5000.
 Never post anything automatically — you only create drafts.
+When you answer with tax research, cite the official sources you used with source name, title, date if available, and URL.
+If no official source is available, say that you could not verify the answer from an official source.
 If asked about unrelated topics, politely redirect to bookkeeping."#
     )
 }

@@ -246,7 +246,7 @@ fn balance_range_by_role_returns_error_when_unmapped() {
         role_count, 0,
         "role count should be 0 when no account has the role"
     );
-    // Production code returns AppError::Validation("MissingSystemAccount:cash") when count == 0.
+    // Production code returns (0, 0) when count == 0 (graceful degradation).
     // We verify the detection condition directly since we can't call the Tauri command here.
 }
 

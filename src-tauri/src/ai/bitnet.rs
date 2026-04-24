@@ -38,7 +38,7 @@ pub async fn bitnet_health(url: String) -> bool {
 
 #[tauri::command(rename_all = "camelCase")]
 pub async fn bitnet_status(url: Option<String>) -> Result<BitNetStatus> {
-    let url = url.unwrap_or_else(|| "http://localhost:8088".to_string());
+    let url = url.unwrap_or_else(|| "http://localhost:8090".to_string());
 
     let client = Client::new();
     let endpoint = format!("{}/v1/models", url.trim_end_matches('/'));

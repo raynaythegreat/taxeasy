@@ -3,7 +3,7 @@ import { ChevronLeft, Download, Edit, FileText, Plus, Trash2, User } from "lucid
 import { useState } from "react";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
-import { cn } from "../../lib/utils";
+import { cn, formatCents } from "../../lib/utils";
 import {
   type CreateVendorPayload,
   createVendor,
@@ -226,13 +226,6 @@ function VendorsTable({
 }) {
   const { t } = useI18n();
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
-  };
-
   const maskEin = (ein?: string) => {
     if (!ein) return "—";
     return `${ein.slice(0, 2)}-***${ein.slice(-4)}`;
@@ -283,7 +276,7 @@ function VendorsTable({
               </td>
               <td className="px-4 py-3 text-sm text-right">
                 <span className="font-medium text-gray-900">
-                  {formatCurrency(vendor.total_payments_cents)}
+                  {formatCents(vendor.total_payments_cents)}
                 </span>
               </td>
               <td className="px-4 py-3 text-center">
@@ -627,13 +620,6 @@ function Forms1099View({
 }) {
   const { t } = useI18n();
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cents / 100);
-  };
-
   const getVendorName = (vendorId: string) => {
     return vendors.find((v) => v.id === vendorId)?.name || vendorId;
   };
@@ -674,7 +660,7 @@ function Forms1099View({
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{form.tax_year}</td>
                   <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
-                    {formatCurrency(form.box1_nonemployee_compensation)}
+                    {formatCents(form.box1_nonemployee_compensation)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
                     {new Date(form.generated_at).toLocaleDateString()}
@@ -711,7 +697,7 @@ function Forms1099View({
                 <div>
                   <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
                   <div className="text-xs text-gray-500">
-                    {formatCurrency(vendor.total_payments_cents)}
+                    {formatCents(vendor.total_payments_cents)}
                   </div>
                 </div>
                 <button

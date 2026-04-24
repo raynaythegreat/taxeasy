@@ -25,7 +25,7 @@ impl OwnerDb {
     }
 
     fn run_migrations(&self) -> Result<()> {
-        eprintln!("DEBUG owner_db: Running migrations, creating schema_migrations table");
+        log::debug!("owner_db: Running migrations, creating schema_migrations table");
         let schema = include_str!("../../migrations/002_client.sql");
         self.conn.execute_batch(schema)?;
         let invoices = include_str!("../../migrations/003_invoices.sql");
@@ -50,11 +50,22 @@ impl OwnerDb {
             include_str!("../../migrations/010_recurring_transactions.sql"),
             10,
         )?;
-        // IRS mileage rates reference table (shared across clients)
-        eprintln!("DEBUG owner_db: Applying migration 12 (irs_rates)");
+        self.apply_alter_migration(include_str!("../../migrations/011_chat_tools.sql"), 11)?;
+        log::debug!("owner_db: Applying migration 12 (mileage)");
+        self.apply_alter_migration(include_str!("../../migrations/012_mileage.sql"), 12)?;
+        log::debug!("owner_db: Applying migration 13 (schedule_c)");
+        self.apply_alter_migration(include_str!("../../migrations/013_schedule_c.sql"), 13)?;
+        log::debug!("owner_db: Applying migration 14 (vendors_1099)");
+        self.apply_alter_migration(include_str!("../../migrations/014_vendors_1099.sql"), 14)?;
+        log::debug!("owner_db: Applying migration 18 (owner_mileage_logs_backfill)");
         self.apply_alter_migration(
-            include_str!("../../migrations/012_mileage_irs_rates.sql"),
-            12,
+            include_str!("../../migrations/018_owner_mileage_logs_backfill.sql"),
+            18,
+        )?;
+        log::debug!("owner_db: Applying migration 17 (performance_indexes)");
+        self.apply_alter_migration(
+            include_str!("../../migrations/017_performance_indexes.sql"),
+            17,
         )?;
         Ok(())
     }

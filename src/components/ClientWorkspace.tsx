@@ -25,19 +25,19 @@ import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { lastDayOf } from "../lib/date-utils";
 import { handleExportReport } from "../lib/export-api";
- import { useI18n } from "../lib/i18n";
- import { triggerPrint } from "../lib/print-utils";
- import { useQueryClient } from "@tanstack/react-query";
- import type { Client } from "../lib/tauri";
- import {
-   cn,
-   formatDate,
-   maskEin,
-   PERIOD_LABELS,
-   periodRange,
-   type ReportPeriod,
- } from "../lib/utils";
- import { resyncClientFolder } from "../lib/tauri";
+import { useI18n } from "../lib/i18n";
+import { triggerPrint } from "../lib/print-utils";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Client } from "../lib/tauri";
+import {
+  cn,
+  formatDate,
+  maskEin,
+  PERIOD_LABELS,
+  periodRange,
+  type ReportPeriod,
+} from "../lib/utils";
+import { resyncClientFolder } from "../lib/tauri";
 
 const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
@@ -66,18 +66,18 @@ interface ClientWorkspaceProps {
   initialTab?: WorkspaceTab;
 }
 
-  export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorkspaceProps) {
-    const { t } = useI18n();
-    const queryClient = useQueryClient();
-    const [tab, setTab] = useState<WorkspaceTab>(initialTab);
-    const [prevClientId, setPrevClientId] = useState(client.id);
-    const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
-    const [balanceSheetMode, setBalanceSheetMode] = useState<BalanceSheetMode>("period");
-    const [period, setPeriod] = useState<ReportPeriod>("annual");
-    const [compareYears, setCompareYears] = useState(false);
-    const [exporting, setExporting] = useState(false);
-    const [editingClient, setEditingClient] = useState(false);
-    const [resyncing, setResyncing] = useState(false);
+export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorkspaceProps) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
+  const [prevClientId, setPrevClientId] = useState(client.id);
+  const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
+  const [balanceSheetMode, setBalanceSheetMode] = useState<BalanceSheetMode>("period");
+  const [period, setPeriod] = useState<ReportPeriod>("annual");
+  const [compareYears, setCompareYears] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [editingClient, setEditingClient] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     if (client.id !== prevClientId) {
@@ -90,28 +90,28 @@ interface ClientWorkspaceProps {
     setTab(initialTab);
   }, [initialTab]);
 
-   const currentYear = new Date().getFullYear();
-   const recentYears = useMemo(
-     () => Array.from({ length: 6 }, (_, i) => currentYear - i),
-     [currentYear],
-   );
-   const [taxYear, setTaxYear] = useState(currentYear);
-   const isRecent = recentYears.includes(taxYear);
+  const currentYear = new Date().getFullYear();
+  const recentYears = useMemo(
+    () => Array.from({ length: 6 }, (_, i) => currentYear - i),
+    [currentYear],
+  );
+  const [taxYear, setTaxYear] = useState(currentYear);
+  const isRecent = recentYears.includes(taxYear);
 
-   async function handleResync() {
-     if (!client.id || !client.source_folder_path) return;
-     setResyncing(true);
-     try {
-       await resyncClientFolder(client.id);
-       // Optionally show a success toast or refresh data
-       queryClient.invalidateQueries();
-     } catch (err) {
-       console.error("Resync failed:", err);
-       alert(t("Failed to re-sync folder. See console for details."));
-     } finally {
-       setResyncing(false);
-     }
-   }
+  async function handleResync() {
+    if (!client.id || !client.source_folder_path) return;
+    setResyncing(true);
+    try {
+      await resyncClientFolder(client.id);
+      // Optionally show a success toast or refresh data
+      queryClient.invalidateQueries();
+    } catch (err) {
+      console.error("Resync failed:", err);
+      alert(t("Failed to re-sync folder. See console for details."));
+    } finally {
+      setResyncing(false);
+    }
+  }
 
   const ALL_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
@@ -222,35 +222,43 @@ interface ClientWorkspaceProps {
                         {client.ein && (
                           <span className="text-xs text-gray-500">
                             {client.entity_type === "i1040" ? t("SSN") : t("EIN")}:{" "}
-                            {client.entity_type === "i1040" ? maskSsn(client.ein) : client.ein}
+                            {client.entity_type === "i1040"
+                              ? maskSsn(client.ein)
+                              : maskEin(client.ein)}
                           </span>
                         )}
                       </div>
-                     </div>
-                     <div className="flex items-center gap-2 mt-3">
-                       <button
-                         type="button"
-                         onClick={() => setEditingClient(true)}
-                         className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                       >
-                         {t("Edit Profile")}
-                       </button>
-                       {client.source_folder_path && (
-                         <button
-                           type="button"
-                           onClick={() => {
-                             if (confirm(t("Re-sync this client's folder? This will scan for new documents."))) {
-                               void handleResync();
-                             }
-                           }}
-                           disabled={resyncing}
-                           className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-                         >
-                           <RefreshCw className={`w-3.5 h-3.5 ${resyncing ? "animate-spin" : ""}`} />
-                           {t("Re-sync Folder")}
-                         </button>
-                       )}
-                     </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingClient(true)}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {t("Edit Profile")}
+                      </button>
+                      {client.source_folder_path && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                t(
+                                  "Re-sync this client's folder? This will scan for new documents.",
+                                ),
+                              )
+                            ) {
+                              void handleResync();
+                            }
+                          }}
+                          disabled={resyncing}
+                          className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${resyncing ? "animate-spin" : ""}`} />
+                          {t("Re-sync Folder")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
@@ -674,7 +682,7 @@ interface ClientWorkspaceProps {
             <AiWorkspace clientId={client.id} />
           </Suspense>
         )}
-        {tab === "mileage" && <MileagePage />}
+        {tab === "mileage" && <MileagePage clientId={client.id} />}
       </div>
       {editingClient && (
         <ClientEditModal

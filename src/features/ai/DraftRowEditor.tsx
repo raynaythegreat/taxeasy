@@ -2,7 +2,7 @@ import { AlertTriangle, Check, CheckCircle, Pencil, SkipForward, XCircle } from 
 import { useState } from "react";
 import type { DraftTransaction, OcrFieldConfidence } from "../../lib/ai-api";
 import { useI18n } from "../../lib/i18n";
-import { cn } from "../../lib/utils";
+import { cn, formatCents } from "../../lib/utils";
 
 interface AccountOption {
   id: string;
@@ -18,14 +18,6 @@ interface DraftUpdateData {
   creditAccountId: string | null;
   amount: number | null;
   notes: string | null;
-}
-
-function formatAmount(amount: number | null): string {
-  if (amount === null) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount / 100);
 }
 
 function statusClasses(status: string): string {
@@ -289,7 +281,7 @@ export function DraftRowEditor({
             </span>
             <span className="text-gray-400 dark:text-neutral-500">{t("ai.amount")}</span>
             <span className="text-gray-900 dark:text-neutral-100 font-medium tabular-nums">
-              {formatAmount(draft.amount)}
+              {draft.amount !== null ? formatCents(draft.amount) : "—"}
             </span>
             {draft.notes && (
               <>

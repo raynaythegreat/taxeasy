@@ -9,7 +9,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useI18n } from "../../../lib/i18n";
-import type { GlmOcrStatus, SaveSettingsPayload } from "../../../lib/settings-api";
+import type {
+  GlmOcrStatus,
+  OcrEngineStatus as OcrEngineStatusInfo,
+  SaveSettingsPayload,
+} from "../../../lib/settings-api";
 import { cn } from "../../../lib/utils";
 
 type AiProvider = "ollama" | "lmstudio" | "bonsai" | "bitnet";
@@ -17,7 +21,11 @@ type AiProvider = "ollama" | "lmstudio" | "bonsai" | "bitnet";
 type OcrEngine = "auto" | "glm-ocr" | "tesseract" | "surya";
 
 const OCR_ENGINES: { value: OcrEngine; label: string; description: string }[] = [
-  { value: "auto", label: "Auto", description: "AI chooses best engine, verifies with vision model" },
+  {
+    value: "auto",
+    label: "Auto",
+    description: "AI chooses best engine, verifies with vision model",
+  },
   {
     value: "glm-ocr",
     label: "GLM-OCR",
@@ -108,23 +116,27 @@ export interface AiSettingsTabProps {
   providerStatus: boolean | null;
   testingProvider: boolean;
   loadingModels: boolean;
-  glmocrStatus: boolean | null;
   glmocrDetails: GlmOcrStatus | null;
   testingGlmocr: boolean;
+  ocrStatuses: OcrEngineStatusInfo[];
+  checkingOcrStatuses: boolean;
   saving: boolean;
   ocrAutoPostThreshold: number;
   ocrEngine: OcrEngine;
   ocrVisionVerification: boolean;
+  govinfoApiKey: string;
   onProviderChange: (p: AiProvider) => void;
   onUrlChange: (url: string) => void;
   onModelChange: (model: string) => void;
   onTestProvider: () => void;
   onFetchModels: () => void;
   onTestGlmocr: () => void;
+  onRefreshOcrStatuses: () => void;
   onSave: (partial: SaveSettingsPayload) => void;
   onOcrThresholdChange: (value: number) => void;
   onOcrEngineChange: (engine: OcrEngine) => void;
   onOcrVisionVerificationChange: (value: boolean) => void;
+  onGovinfoApiKeyChange: (value: string) => void;
 }
 
 export function AiSettingsTab({
@@ -146,27 +158,35 @@ export function AiSettingsTab({
   providerStatus,
   testingProvider,
   loadingModels,
-  glmocrStatus,
   glmocrDetails,
   testingGlmocr,
+  ocrStatuses,
+  checkingOcrStatuses,
   saving,
   ocrAutoPostThreshold,
   ocrEngine,
   ocrVisionVerification,
+  govinfoApiKey,
   onProviderChange,
   onUrlChange,
   onModelChange,
   onTestProvider,
   onFetchModels,
   onTestGlmocr,
+  onRefreshOcrStatuses,
   onSave,
   onOcrThresholdChange,
   onOcrEngineChange,
   onOcrVisionVerificationChange,
+  onGovinfoApiKeyChange,
 }: AiSettingsTabProps) {
   const { t } = useI18n();
 
   const currentModelIsCustom = currentModel.trim() !== "" && !currentModels.includes(currentModel);
+  const ocrStatusByEngine = new Map(ocrStatuses.map((status) => [status.engine, status]));
+  const anyOcrAvailable = ocrStatuses.some(
+    (status) => status.engine !== "auto" && status.available,
+  );
   const visibleServerUrl = currentUrl.trim() || defaultUrl;
   const connectionState = testingProvider
     ? {
@@ -378,7 +398,21 @@ export function AiSettingsTab({
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900">OCR Engine</h3>
-          <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRefreshOcrStatuses}
+              disabled={checkingOcrStatuses}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              {checkingOcrStatuses ? <Spinner /> : <RefreshCw className="w-4 h-4" />}
+              <span>{t("Refresh")}</span>
+            </button>
+            <StatusDot
+              ok={ocrStatuses.length > 0 ? anyOcrAvailable : null}
+              testing={checkingOcrStatuses}
+            />
+          </div>
         </div>
 
         <p className="text-sm text-gray-500 -mt-3">
@@ -386,30 +420,52 @@ export function AiSettingsTab({
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {OCR_ENGINES.map((engine) => (
-            <button
-              type="button"
-              key={engine.value}
-              onClick={() => onOcrEngineChange(engine.value)}
-              className={cn(
-                "rounded-xl border-2 p-4 text-left transition-all focus:outline-none",
-                "hover:shadow-md hover:scale-[1.02]",
-                ocrEngine === engine.value
-                  ? "border-blue-600 bg-blue-50 shadow-md"
-                  : "border-gray-200 hover:border-gray-300",
-              )}
-            >
-              <span
+          {OCR_ENGINES.map((engine) => {
+            const status = ocrStatusByEngine.get(engine.value);
+            return (
+              <button
+                type="button"
+                key={engine.value}
+                onClick={() => onOcrEngineChange(engine.value)}
                 className={cn(
-                  "text-sm font-bold block",
-                  ocrEngine === engine.value ? "text-blue-700" : "text-gray-800",
+                  "rounded-xl border-2 p-4 text-left transition-all focus:outline-none",
+                  "hover:shadow-md hover:scale-[1.02]",
+                  ocrEngine === engine.value
+                    ? "border-blue-600 bg-blue-50 shadow-md"
+                    : "border-gray-200 hover:border-gray-300",
                 )}
               >
-                {engine.label}
-              </span>
-              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{engine.description}</p>
-            </button>
-          ))}
+                <div className="flex items-start justify-between gap-3">
+                  <span
+                    className={cn(
+                      "text-sm font-bold block",
+                      ocrEngine === engine.value ? "text-blue-700" : "text-gray-800",
+                    )}
+                  >
+                    {engine.label}
+                  </span>
+                  {status && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        status.available
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700",
+                      )}
+                    >
+                      {status.available ? t("Ready") : t("Unavailable")}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{engine.description}</p>
+                {status && (
+                  <p className="text-xs text-gray-400 mt-2 leading-relaxed break-words">
+                    {status.version ? `${status.message} (${status.version})` : status.message}
+                  </p>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Vision verification toggle */}
@@ -426,8 +482,9 @@ export function AiSettingsTab({
           </label>
         </div>
         <p className="text-xs text-gray-500 -mt-1">
-          After OCR extraction, the vision model reviews the image to catch missed text, wrong amounts, or formatting errors.
-          Adds ~5-10 seconds per document but significantly improves accuracy.
+          After OCR extraction, the vision model reviews the image to catch missed text, wrong
+          amounts, or formatting errors. Adds ~5-10 seconds per document but significantly improves
+          accuracy.
         </p>
 
         {/* Auto mode info */}
@@ -576,14 +633,16 @@ export function AiSettingsTab({
             </div>
           ))}
           <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-            {[t("Other clients' data"), t("Internet-based APIs"), t("System files or OS data")].map(
-              (label) => (
-                <div key={label} className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-400" />
-                  <span className="text-gray-400">{label}</span>
-                </div>
-              ),
-            )}
+            {[
+              t("Other clients' data"),
+              t("Arbitrary internet browsing"),
+              t("System files or OS data"),
+            ].map((label) => (
+              <div key={label} className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-red-400" />
+                <span className="text-gray-400">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -615,6 +674,66 @@ export function AiSettingsTab({
         </div>
       </div>
 
+      <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Official Tax Research</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Chat can cite official IRS, Federal Register, and GovInfo sources for tax questions. IRS
+            RSS and Federal Register work without keys. GovInfo search is optional and improves
+            document coverage.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium text-gray-900">IRS RSS feeds</p>
+              <p className="text-xs text-gray-500">Official IRS newsroom and business updates</p>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+              No key required
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-medium text-gray-900">Federal Register</p>
+              <p className="text-xs text-gray-500">Official Treasury and IRS rulemaking notices</p>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+              No key required
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="govinfo-api-key"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
+          >
+            GovInfo API Key
+          </label>
+          <input
+            id="govinfo-api-key"
+            type="password"
+            value={govinfoApiKey}
+            onChange={(e) => onGovinfoApiKeyChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Optional: add your GovInfo API key"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Used for official government document search in chat.{" "}
+            <a
+              href="https://api.govinfo.gov/sign-up"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Get a free API key from GovInfo
+            </a>
+          </p>
+        </div>
+      </div>
+
       <div className="flex justify-end">
         <button
           type="button"
@@ -629,6 +748,7 @@ export function AiSettingsTab({
               bonsai_model: bonsaiModel,
               bitnet_url: bitnetUrl,
               bitnet_model: bitnetModel,
+              govinfo_api_key: govinfoApiKey,
               ocr_auto_post_threshold: ocrAutoPostThreshold,
               ocr_engine: ocrEngine,
               ocr_vision_verification: ocrVisionVerification,

@@ -279,7 +279,7 @@ export function TransactionsPage({ clientId }: TransactionsPageProps) {
 
       <div className="flex-1 overflow-auto">
         {activeTab === "recurring" ? (
-          <RecurringTransactionsPage />
+          <RecurringTransactionsPage clientId={clientId} />
         ) : (
           <LedgerView
             clientId={clientId}

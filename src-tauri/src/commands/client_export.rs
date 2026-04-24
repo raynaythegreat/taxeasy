@@ -20,17 +20,21 @@ pub fn export_client_documents(
     state: tauri::State<AppState>,
 ) -> Result<ExportResult> {
     let (client_name, docs) = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = ac.db.conn();
-
-        let client_name: String = conn
+        let app_lock = state.app_db.lock().unwrap();
+        let app_db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let client_name: String = app_db
+            .conn()
             .query_row(
                 "SELECT name FROM clients WHERE id = ?1",
                 params![client_id],
                 |r| r.get(0),
             )
             .map_err(|_| AppError::NotFound("client".into()))?;
+        drop(app_lock);
+
+        let lock = state.active_client.lock().unwrap();
+        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let conn = ac.db.conn();
 
         let mut stmt =
             conn.prepare("SELECT file_name, file_path FROM documents ORDER BY created_at")?;
@@ -118,17 +122,21 @@ pub fn export_all_clients_documents(
 
 fn export_single_client(client_id: &str, output_folder: &str, state: &AppState) -> Result<i32> {
     let (client_name, docs) = {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = ac.db.conn();
-
-        let client_name: String = conn
+        let app_lock = state.app_db.lock().unwrap();
+        let app_db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let client_name: String = app_db
+            .conn()
             .query_row(
                 "SELECT name FROM clients WHERE id = ?1",
                 params![client_id],
                 |r| r.get(0),
             )
             .map_err(|_| AppError::NotFound("client".into()))?;
+        drop(app_lock);
+
+        let lock = state.active_client.lock().unwrap();
+        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        let conn = ac.db.conn();
 
         let mut stmt =
             conn.prepare("SELECT file_name, file_path FROM documents ORDER BY created_at")?;

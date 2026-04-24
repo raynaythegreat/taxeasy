@@ -42,17 +42,22 @@ export interface RunDueResult {
   created: number;
 }
 
-export const listRecurring = (): Promise<RecurringTransaction[]> => invoke("list_recurring");
+export const listRecurring = (clientId: string): Promise<RecurringTransaction[]> =>
+  invoke("list_recurring", { clientId });
 
-export const createRecurring = (payload: CreateRecurringPayload): Promise<RecurringTransaction> =>
-  invoke("create_recurring", { payload });
+export const createRecurring = (
+  clientId: string,
+  payload: CreateRecurringPayload,
+): Promise<RecurringTransaction> => invoke("create_recurring", { clientId, payload });
 
 export const updateRecurring = (
+  clientId: string,
   id: string,
   patch: UpdateRecurringPatch,
-): Promise<RecurringTransaction> => invoke("update_recurring", { id, patch });
+): Promise<RecurringTransaction> => invoke("update_recurring", { clientId, id, patch });
 
-export const deleteRecurring = (id: string): Promise<void> =>
-  invoke("delete_recurring", { id });
+export const deleteRecurring = (clientId: string, id: string): Promise<void> =>
+  invoke("delete_recurring", { clientId, id });
 
-export const runDueRecurring = (): Promise<RunDueResult> => invoke("run_due_recurring");
+export const runDueRecurring = (clientId: string): Promise<RunDueResult> =>
+  invoke("run_due_recurring", { clientId });

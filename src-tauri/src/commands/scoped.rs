@@ -2,19 +2,17 @@ use rusqlite::Connection;
 use tauri::Manager;
 
 use crate::{
-    db::ClientDb,
+    db::{ClientDb, OwnerDb},
+    domain::client::EntityType,
     error::{AppError, Result},
     state::AppState,
 };
 
 fn client_db_filename(state: &AppState, client_id: &str) -> Result<String> {
-    eprintln!(
-        "DEBUG client_db_filename: querying for client_id='{}'",
-        client_id
-    );
+    log::debug!("client_db_filename: querying for client_id='{}'", client_id);
     let lock = state.app_db.lock().unwrap();
     let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    eprintln!("DEBUG client_db_filename: app_db is present");
+    log::debug!("client_db_filename: app_db is present");
     let result = db
         .conn()
         .query_row(
@@ -23,10 +21,7 @@ fn client_db_filename(state: &AppState, client_id: &str) -> Result<String> {
             |row| row.get(0),
         )
         .map_err(|_| AppError::NotFound(format!("client {client_id}")));
-    eprintln!(
-        "DEBUG client_db_filename: query result={:?}",
-        result.is_ok()
-    );
+    log::debug!("client_db_filename: query result={:?}", result.is_ok());
     result
 }
 
@@ -53,6 +48,42 @@ fn open_client_db(
     ClientDb::open(client_db_path.to_str().unwrap(), client_id, &passphrase)
 }
 
+fn open_owner_db(state: &AppState, app_handle: &tauri::AppHandle) -> Result<OwnerDb> {
+    let passphrase = {
+        let lock = state.passphrase.lock().unwrap();
+        lock.clone().ok_or(AppError::NoActiveClient)?
+    };
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e: tauri::Error| {
+            AppError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
+    let owner_db_path = data_dir.join("owner.db");
+    let owner_db = OwnerDb::open(owner_db_path.to_str().unwrap(), &passphrase)?;
+
+    let entity_type_str: String = {
+        let app_lock = state.app_db.lock().unwrap();
+        let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+        db.conn()
+            .query_row(
+                "SELECT entity_type FROM business_profile LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or_else(|_| "sole_prop".to_string())
+    };
+    let entity_type = entity_type_str
+        .parse::<EntityType>()
+        .unwrap_or(EntityType::SoleProp);
+    crate::commands::clients::ensure_chart_of_accounts_public(owner_db.conn(), &entity_type)?;
+
+    Ok(owner_db)
+}
+
 /// Execute a function with a connection scoped to either `"owner"` or a client ID.
 ///
 /// - `Some("owner")` or `None` → owner ledger DB
@@ -68,22 +99,41 @@ pub fn with_scoped_conn<T>(
 ) -> Result<T> {
     match scope {
         Some("owner") | None => {
+            {
+                let lock = state.owner_db.lock().unwrap();
+                if let Some(odb) = lock.as_ref() {
+                    return f(odb.conn());
+                }
+            }
+
+            let app_handle = app_handle.ok_or_else(|| {
+                AppError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "AppHandle required to open owner database",
+                ))
+            })?;
+            let odb = open_owner_db(state, app_handle)?;
+            {
+                let mut lock = state.owner_db.lock().unwrap();
+                *lock = Some(odb);
+            }
+
             let lock = state.owner_db.lock().unwrap();
             let odb = lock.as_ref().ok_or(AppError::NoActiveClient)?;
             f(odb.conn())
         }
         Some(client_id) => {
             let active_lock = state.active_client.lock().unwrap();
-            eprintln!("DEBUG scoped: looking for client_id='{}'", client_id);
+            log::debug!("scoped: looking for client_id='{}'", client_id);
             if let Some(ac) = active_lock.as_ref() {
-                eprintln!("DEBUG scoped: active_client.client_id='{}'", ac.client_id);
+                log::debug!("scoped: active_client.client_id='{}'", ac.client_id);
                 if ac.client_id == client_id {
-                    eprintln!("DEBUG scoped: using active client connection");
+                    log::debug!("scoped: using active client connection");
                     return f(ac.db.conn());
                 }
             }
             drop(active_lock);
-            eprintln!("DEBUG scoped: falling through to open_client_db");
+            log::debug!("scoped: falling through to open_client_db");
 
             let app_handle = app_handle.ok_or_else(|| {
                 AppError::Io(std::io::Error::new(

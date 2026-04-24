@@ -57,16 +57,19 @@ export async function listDrafts(clientId: string, status?: string): Promise<Dra
   return invoke<DraftTransaction[]>("list_drafts", { clientId, status: status ?? null });
 }
 
-export async function approveDraft(clientId: string, draftId: string): Promise<any> {
-  return invoke("approve_draft", { clientId, draftId });
+export async function approveDraft(clientId: string, draftId: string): Promise<DraftTransaction> {
+  return invoke<DraftTransaction>("approve_draft", { clientId, draftId });
 }
 
 export async function rejectDraft(clientId: string, draftId: string): Promise<void> {
   return invoke("reject_draft", { clientId, draftId });
 }
 
-export async function bulkApproveDrafts(clientId: string, draftIds: string[]): Promise<any[]> {
-  return invoke<any[]>("bulk_approve_drafts", { clientId, draftIds });
+export async function bulkApproveDrafts(
+  clientId: string,
+  draftIds: string[],
+): Promise<DraftTransaction[]> {
+  return invoke<DraftTransaction[]>("bulk_approve_drafts", { clientId, draftIds });
 }
 
 export async function bulkRejectDrafts(clientId: string, draftIds: string[]): Promise<void> {

@@ -1,9 +1,29 @@
 use serde::{Deserialize, Serialize};
 
+use rusqlite::params;
+
 use crate::domain::chat_message::ChatMessage;
 use crate::domain::draft_transaction::DraftTransaction;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
+
+fn read_tool_execution_config(state: &AppState) -> crate::ai::tools::ToolExecutionConfig {
+    let lock = state.app_db.lock().unwrap();
+    let Some(db) = lock.as_ref() else {
+        return crate::ai::tools::ToolExecutionConfig::default();
+    };
+
+    let govinfo_api_key = db
+        .conn()
+        .query_row(
+            "SELECT value FROM app_settings WHERE key = ?1",
+            params!["govinfo_api_key"],
+            |row| row.get(0),
+        )
+        .ok();
+
+    crate::ai::tools::ToolExecutionConfig { govinfo_api_key }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatResponse {
@@ -141,6 +161,7 @@ pub async fn send_chat_message_stream(
     )?;
 
     let config = crate::ai::ollama::read_ai_config(&state);
+    let tool_config = read_tool_execution_config(&state);
     let conversation_id = uuid::Uuid::new_v4().to_string();
 
     let app_state: &AppState = state.inner();
@@ -156,7 +177,7 @@ pub async fn send_chat_message_stream(
         &conversation_id,
         &|tool_call: &crate::ai::tools::ToolCall| -> Result<crate::ai::tools::ToolResult> {
             with_chat_conn(app_state, Some(&app_handle), &cid, |conn| {
-                crate::ai::tools::execute_tool(conn, &cid, tool_call)
+                crate::ai::tools::execute_tool(conn, &cid, tool_call, &tool_config)
             })
         },
     )

@@ -5,31 +5,43 @@ use std::process::Command;
 
 use crate::error::{AppError, Result};
 
+fn surya_cli_path() -> Option<std::path::PathBuf> {
+    crate::ai::command_paths::resolve_executable("surya")
+}
+
+fn python3_path() -> std::path::PathBuf {
+    crate::ai::command_paths::resolve_executable("python3")
+        .unwrap_or_else(|| std::path::PathBuf::from("python3"))
+}
+
 /// Run Surya OCR on an image file and return the extracted text.
 pub fn run_surya(image_path: &str) -> Result<String> {
     // Try surya CLI first
-    let output = Command::new("surya")
-        .arg("ocr")
-        .arg(image_path)
-        .arg("--output_format")
-        .arg("text")
-        .output();
+    let output = surya_cli_path().map(|surya| {
+        Command::new(surya)
+            .arg("ocr")
+            .arg(image_path)
+            .arg("--output_format")
+            .arg("text")
+            .output()
+    });
 
     match output {
-        Ok(o) if o.status.success() => {
+        Some(Ok(o)) if o.status.success() => {
             return Ok(String::from_utf8_lossy(&o.stdout).trim().to_owned());
         }
-        Ok(o) => {
+        Some(Ok(o)) => {
             let stderr = String::from_utf8_lossy(&o.stderr);
             log::warn!("Surya CLI failed: {}", stderr);
         }
-        Err(e) => {
+        Some(Err(e)) => {
             log::warn!("Surya CLI not available: {}", e);
         }
+        None => {}
     }
 
     // Fallback: try Python module directly
-    let py_output = Command::new("python3")
+    let py_output = Command::new(python3_path())
         .arg("-c")
         .arg(format!(
             r#"
@@ -67,7 +79,7 @@ for p in predictions:
 
 /// Run Surya with layout detection to get structured text blocks.
 pub fn run_surya_layout(image_path: &str) -> Result<SuryaLayoutResult> {
-    let output = Command::new("python3")
+    let output = Command::new(python3_path())
         .arg("-c")
         .arg(format!(
             r#"
@@ -124,10 +136,27 @@ pub struct SuryaLine {
 
 /// Check if Surya is available on the system.
 pub fn is_surya_available() -> bool {
-    Command::new("python3")
+    Command::new(python3_path())
         .arg("-c")
         .arg("import surya")
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
+}
+
+pub fn surya_version() -> Option<String> {
+    Command::new(python3_path())
+        .arg("-m")
+        .arg("pip")
+        .arg("show")
+        .arg("surya-ocr")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| {
+            s.lines()
+                .find(|l| l.starts_with("Version:"))
+                .map(|l| l.trim_start_matches("Version:").trim().to_owned())
+        })
 }

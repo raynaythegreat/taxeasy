@@ -251,8 +251,8 @@ pub fn import_csv(
                 )
             } else {
                 (
-                    default_debit_account.as_str(),
                     default_credit_account.as_str(),
+                    default_debit_account.as_str(),
                 )
             };
 

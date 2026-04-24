@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { type AppSettings, getSettings } from "../lib/settings-api";
 
 interface SettingsContextValue extends AppSettings {
@@ -19,6 +27,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     bonsai_model: "",
     bitnet_url: "http://localhost:8090",
     bitnet_model: "",
+    govinfo_api_key: "",
     glmocr_path: "",
     ocr_engine: "auto",
     theme: "system",
@@ -29,31 +38,33 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const loaded = await getSettings();
       setSettings(loaded);
       setSettingsLoaded(true);
     } catch (error) {
       console.error("Failed to load settings:", error);
-      // Keep defaults and mark as loaded so app can still function
       setSettingsLoaded(true);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadSettings();
-  }, []);
+  }, [loadSettings]);
 
-  const refreshSettings = async () => {
+  const refreshSettings = useCallback(async () => {
     await loadSettings();
-  };
+  }, [loadSettings]);
 
-  const value: SettingsContextValue = {
-    ...settings,
-    settingsLoaded,
-    refreshSettings,
-  };
+  const value: SettingsContextValue = useMemo(
+    () => ({
+      ...settings,
+      settingsLoaded,
+      refreshSettings,
+    }),
+    [settings, settingsLoaded, refreshSettings],
+  );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

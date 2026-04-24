@@ -1,6 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3 } from "lucide-react";
-import { EmptyState } from "../../components/ui/EmptyState";
 import { lastDayOf } from "../../lib/date-utils";
 import { useI18n } from "../../lib/i18n";
 import { getPnl, type PnlLineItem } from "../../lib/tauri";
@@ -75,21 +73,6 @@ export function PnLView({ clientId, dateFrom, dateTo, clientName, onChangePeriod
   const netIncomeNum = parseFloat(data.net_income);
   const netIncomeColor = netIncomeNum >= 0 ? "text-green-700" : "text-red-600";
 
-  if (isEmpty) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <EmptyState
-          icon={<BarChart3 className="w-6 h-6" />}
-          title={t("No activity in this period")}
-          description={t("There are no transactions recorded for the selected date range.")}
-          action={
-            onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined
-          }
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="report-sheet">
       <div className="text-center mb-6 print:mb-4">
@@ -100,51 +83,64 @@ export function PnLView({ clientId, dateFrom, dateTo, clientName, onChangePeriod
         </p>
       </div>
 
-      {hasRevenue && (
-        <section className="report-section">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-            {t("Revenue")}
-          </p>
-          {data.revenue_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))}
-          <SectionDivider />
-          <SubtotalRow label={t("Total Revenue")} amount={data.total_revenue} />
-        </section>
-      )}
-
-      {hasCogs && (
-        <section className="report-section">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-            {t("Cost of Goods Sold")}
-          </p>
-          {data.cogs_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))}
-          <SectionDivider />
-          <SubtotalRow label={t("Total COGS")} amount={data.total_cogs} />
-        </section>
-      )}
-
-      {hasCogs && (
-        <div className="flex justify-between py-1.5 text-sm font-semibold border-t border-b border-gray-400 my-3 print:my-2">
-          <span>{t("Gross Profit")}</span>
-          <span className="tabular-nums">{formatCurrency(data.gross_profit)}</span>
+      {isEmpty && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 print:hidden">
+          {t("There are no transactions recorded for the selected date range.")}
+          {onChangePeriod && (
+            <button
+              type="button"
+              onClick={onChangePeriod}
+              className="ml-2 font-medium text-blue-600 hover:text-blue-700"
+            >
+              {t("Change period")}
+            </button>
+          )}
         </div>
       )}
 
-      {hasExpenses && (
-        <section className="report-section">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-            {t("Operating Expenses")}
-          </p>
-          {data.expense_lines.map((item) => (
-            <LineRow key={item.account_id} item={item} />
-          ))}
-          <SectionDivider />
-          <SubtotalRow label={t("Total Operating Expenses")} amount={data.total_expenses} />
-        </section>
-      )}
+      <section className="report-section">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Revenue")}
+        </p>
+        {hasRevenue ? (
+          data.revenue_lines.map((item) => <LineRow key={item.account_id} item={item} />)
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">{t("No revenue activity")}</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label={t("Total Revenue")} amount={data.total_revenue} />
+      </section>
+
+      <section className="report-section">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Cost of Goods Sold")}
+        </p>
+        {hasCogs ? (
+          data.cogs_lines.map((item) => <LineRow key={item.account_id} item={item} />)
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">{t("No cost of goods sold activity")}</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label={t("Total COGS")} amount={data.total_cogs} />
+      </section>
+
+      <div className="flex justify-between py-1.5 text-sm font-semibold border-t border-b border-gray-400 my-3 print:my-2">
+        <span>{t("Gross Profit")}</span>
+        <span className="tabular-nums">{formatCurrency(data.gross_profit)}</span>
+      </div>
+
+      <section className="report-section">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+          {t("Operating Expenses")}
+        </p>
+        {hasExpenses ? (
+          data.expense_lines.map((item) => <LineRow key={item.account_id} item={item} />)
+        ) : (
+          <p className="pl-4 text-sm text-gray-400 italic">{t("No operating expense activity")}</p>
+        )}
+        <SectionDivider />
+        <SubtotalRow label={t("Total Operating Expenses")} amount={data.total_expenses} />
+      </section>
 
       <div className="report-divider-strong mt-4 pt-2 print:mt-3">
         <div className="flex justify-between py-1 font-bold text-base">

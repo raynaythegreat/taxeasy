@@ -207,6 +207,9 @@ export const en: Record<string, string> = {
   "AI Provider": "AI Provider",
   "No models found": "No models found",
   "Refresh model list": "Refresh model list",
+  Refresh: "Refresh",
+  Ready: "Ready",
+  Unavailable: "Unavailable",
   "Custom model": "Custom model",
   "Select from dropdown or type a custom model name":
     "Select from dropdown or type a custom model name",
@@ -285,6 +288,9 @@ export const en: Record<string, string> = {
   "Total Operating Expenses": "Total Operating Expenses",
   "Failed to load Profit & Loss report. Please try again.":
     "Failed to load Profit & Loss report. Please try again.",
+  "No revenue activity": "No revenue activity",
+  "No cost of goods sold activity": "No cost of goods sold activity",
+  "No operating expense activity": "No operating expense activity",
   "No asset accounts": "No asset accounts",
   "No liability accounts": "No liability accounts",
   "No equity accounts": "No equity accounts",
@@ -507,4 +513,10 @@ export const en: Record<string, string> = {
   "Client Summary": "Client Summary",
   "1040": "1040",
   "No address set": "No address set",
+
+  Preview: "Preview",
+  Modern: "Modern",
+  Classic: "Classic",
+  Minimal: "Minimal",
+  "Loading…": "Loading…",
 };

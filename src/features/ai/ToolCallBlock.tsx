@@ -22,6 +22,7 @@ interface ToolCallBlockProps {
 
 const TOOL_ICONS: Record<string, typeof Search> = {
   categorize: Tag,
+  lookup_tax_guidance: FileText,
   search: Search,
   query: Search,
   report: FileText,
@@ -32,11 +33,28 @@ const TOOL_ICONS: Record<string, typeof Search> = {
 const TOOL_LABELS: Record<string, { active: string; past: string }> = {
   categorize: { active: "Categorizing transaction...", past: "Categorize" },
   create_transaction: { active: "Creating transaction...", past: "Create Transaction" },
+  lookup_tax_guidance: { active: "Researching official tax sources...", past: "Tax Research" },
   query: { active: "Querying ledger...", past: "Query Ledger" },
   report: { active: "Generating report...", past: "Generate Report" },
   search: { active: "Searching...", past: "Search" },
   import: { active: "Importing...", past: "Import" },
 };
+
+function isTaxResearchOutput(value: unknown): value is {
+  summary?: string;
+  sources?: Array<{
+    source?: string;
+    title?: string;
+    summary?: string;
+    url?: string;
+    published_at?: string;
+    confidence?: string;
+  }>;
+} {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as { sources?: unknown };
+  return Array.isArray(maybe.sources);
+}
 
 export function ToolCallBlock({ toolName, toolInput, toolOutput, status }: ToolCallBlockProps) {
   const [expanded, setExpanded] = useState(false);
@@ -102,9 +120,54 @@ export function ToolCallBlock({ toolName, toolInput, toolOutput, status }: ToolC
               <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-neutral-500 mb-1">
                 Output
               </p>
-              <pre className="text-xs bg-white dark:bg-neutral-900 rounded p-2 overflow-auto max-h-40 font-mono text-gray-600 dark:text-neutral-400">
-                {JSON.stringify(toolOutput, null, 2)}
-              </pre>
+              {isTaxResearchOutput(toolOutput) ? (
+                <div className="space-y-2">
+                  {toolOutput.summary && (
+                    <div className="rounded bg-white dark:bg-neutral-900 p-2 text-xs text-gray-600 dark:text-neutral-300">
+                      {toolOutput.summary}
+                    </div>
+                  )}
+                  {toolOutput.sources?.map((source, index) => (
+                    <a
+                      key={`${source.url ?? index}`}
+                      href={source.url ?? "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded border border-gray-200 bg-white p-2 text-xs text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-blue-700 dark:hover:bg-neutral-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-gray-900 dark:text-neutral-100">
+                          {source.source ?? "Official source"}
+                        </span>
+                        {source.confidence && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:bg-neutral-800 dark:text-neutral-400">
+                            {source.confidence}
+                          </span>
+                        )}
+                      </div>
+                      {source.title && (
+                        <p className="mt-1 font-medium text-gray-800 dark:text-neutral-200">
+                          {source.title}
+                        </p>
+                      )}
+                      {source.summary && (
+                        <p className="mt-1 line-clamp-3 text-gray-500 dark:text-neutral-400">
+                          {source.summary}
+                        </p>
+                      )}
+                      {source.published_at && (
+                        <p className="mt-1 text-[10px] text-gray-400 dark:text-neutral-500">
+                          {source.published_at}
+                        </p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <pre className="text-xs bg-white dark:bg-neutral-900 rounded p-2 overflow-auto max-h-40 font-mono text-gray-600 dark:text-neutral-400">
+                  {JSON.stringify(toolOutput, null, 2)}
+                </pre>
+              )}
             </div>
           )}
         </div>

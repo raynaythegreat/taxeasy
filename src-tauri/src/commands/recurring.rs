@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    commands::scoped::with_scoped_conn,
     domain::transaction::cents_to_decimal,
     error::{AppError, Result},
     state::AppState,
@@ -136,27 +137,31 @@ const SELECT_COLS: &str =
 
 // ── Tauri commands ─────────────────────────────────────────────────────────────
 
-/// List all recurring transactions for the active client.
+/// List all recurring transactions for the active scope.
 #[tauri::command(rename_all = "camelCase")]
-pub fn list_recurring(state: tauri::State<AppState>) -> Result<Vec<RecurringTransaction>> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
-    let sql = format!(
-        "SELECT {SELECT_COLS} FROM recurring_transactions ORDER BY next_run_date ASC, description ASC"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map([], row_to_recurring)?
-        .filter_map(|r| r.ok())
-        .collect();
-    Ok(rows)
+pub fn list_recurring(
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<Vec<RecurringTransaction>> {
+    with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM recurring_transactions ORDER BY next_run_date ASC, description ASC"
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt
+            .query_map([], row_to_recurring)?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(rows)
+    })
 }
 
 /// Create a new recurring transaction schedule.
 #[tauri::command(rename_all = "camelCase")]
 pub fn create_recurring(
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     payload: CreateRecurringPayload,
     state: tauri::State<AppState>,
 ) -> Result<RecurringTransaction> {
@@ -168,44 +173,46 @@ pub fn create_recurring(
         return Err(AppError::Validation("amount must be non-zero".into()));
     }
 
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+    let effective_client_id = client_id.as_deref().unwrap_or("owner").to_string();
 
-    let id = Uuid::new_v4().to_string();
-    let now = chrono::Utc::now().to_rfc3339();
+    with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
 
-    conn.execute(
-        "INSERT INTO recurring_transactions
-         (id, client_id, description, amount_cents, debit_account_id, credit_account_id,
-          frequency, start_date, next_run_date, end_date, active, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 1, ?11, ?11)",
-        params![
-            id,
-            ac.client_id,
-            payload.description.trim(),
-            payload.amount_cents,
-            payload.debit_account_id,
-            payload.credit_account_id,
-            payload.frequency,
-            payload.start_date,
-            payload.start_date, // next_run_date = start_date initially
-            payload.end_date,
-            now,
-        ],
-    )?;
+        conn.execute(
+            "INSERT INTO recurring_transactions
+             (id, client_id, description, amount_cents, debit_account_id, credit_account_id,
+              frequency, start_date, next_run_date, end_date, active, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 1, ?11, ?11)",
+            params![
+                id,
+                effective_client_id,
+                payload.description.trim(),
+                payload.amount_cents,
+                payload.debit_account_id,
+                payload.credit_account_id,
+                payload.frequency,
+                payload.start_date,
+                payload.start_date,
+                payload.end_date,
+                now,
+            ],
+        )?;
 
-    conn.query_row(
-        &format!("SELECT {SELECT_COLS} FROM recurring_transactions WHERE id = ?1"),
-        params![id],
-        row_to_recurring,
-    )
-    .map_err(AppError::Database)
+        conn.query_row(
+            &format!("SELECT {SELECT_COLS} FROM recurring_transactions WHERE id = ?1"),
+            params![id],
+            row_to_recurring,
+        )
+        .map_err(AppError::Database)
+    })
 }
 
 /// Update fields on an existing recurring transaction.
 #[tauri::command(rename_all = "camelCase")]
 pub fn update_recurring(
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     id: String,
     patch: UpdateRecurringPatch,
     state: tauri::State<AppState>,
@@ -214,78 +221,79 @@ pub fn update_recurring(
         validate_frequency(f)?;
     }
 
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+    with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        let now = chrono::Utc::now().to_rfc3339();
 
-    let now = chrono::Utc::now().to_rfc3339();
+        if let Some(d) = patch.description {
+            conn.execute(
+                "UPDATE recurring_transactions SET description = ?1, updated_at = ?2 WHERE id = ?3",
+                params![d.trim(), now, id],
+            )?;
+        }
+        if let Some(a) = patch.amount_cents {
+            conn.execute(
+                "UPDATE recurring_transactions SET amount_cents = ?1, updated_at = ?2 WHERE id = ?3",
+                params![a, now, id],
+            )?;
+        }
+        if let Some(acct) = patch.debit_account_id {
+            conn.execute(
+                "UPDATE recurring_transactions SET debit_account_id = ?1, updated_at = ?2 WHERE id = ?3",
+                params![acct, now, id],
+            )?;
+        }
+        if let Some(acct) = patch.credit_account_id {
+            conn.execute(
+                "UPDATE recurring_transactions SET credit_account_id = ?1, updated_at = ?2 WHERE id = ?3",
+                params![acct, now, id],
+            )?;
+        }
+        if let Some(f) = patch.frequency {
+            conn.execute(
+                "UPDATE recurring_transactions SET frequency = ?1, updated_at = ?2 WHERE id = ?3",
+                params![f, now, id],
+            )?;
+        }
+        if let Some(ed) = patch.end_date {
+            conn.execute(
+                "UPDATE recurring_transactions SET end_date = ?1, updated_at = ?2 WHERE id = ?3",
+                params![ed, now, id],
+            )?;
+        }
+        if let Some(active) = patch.active {
+            conn.execute(
+                "UPDATE recurring_transactions SET active = ?1, updated_at = ?2 WHERE id = ?3",
+                params![active as i32, now, id],
+            )?;
+        }
 
-    if let Some(d) = patch.description {
-        conn.execute(
-            "UPDATE recurring_transactions SET description = ?1, updated_at = ?2 WHERE id = ?3",
-            params![d.trim(), now, id],
-        )?;
-    }
-    if let Some(a) = patch.amount_cents {
-        conn.execute(
-            "UPDATE recurring_transactions SET amount_cents = ?1, updated_at = ?2 WHERE id = ?3",
-            params![a, now, id],
-        )?;
-    }
-    if let Some(acct) = patch.debit_account_id {
-        conn.execute(
-            "UPDATE recurring_transactions SET debit_account_id = ?1, updated_at = ?2 WHERE id = ?3",
-            params![acct, now, id],
-        )?;
-    }
-    if let Some(acct) = patch.credit_account_id {
-        conn.execute(
-            "UPDATE recurring_transactions SET credit_account_id = ?1, updated_at = ?2 WHERE id = ?3",
-            params![acct, now, id],
-        )?;
-    }
-    if let Some(f) = patch.frequency {
-        conn.execute(
-            "UPDATE recurring_transactions SET frequency = ?1, updated_at = ?2 WHERE id = ?3",
-            params![f, now, id],
-        )?;
-    }
-    if let Some(ed) = patch.end_date {
-        conn.execute(
-            "UPDATE recurring_transactions SET end_date = ?1, updated_at = ?2 WHERE id = ?3",
-            params![ed, now, id],
-        )?;
-    }
-    if let Some(active) = patch.active {
-        conn.execute(
-            "UPDATE recurring_transactions SET active = ?1, updated_at = ?2 WHERE id = ?3",
-            params![active as i32, now, id],
-        )?;
-    }
-
-    conn.query_row(
-        &format!("SELECT {SELECT_COLS} FROM recurring_transactions WHERE id = ?1"),
-        params![id],
-        row_to_recurring,
-    )
-    .map_err(|_| AppError::NotFound(format!("recurring transaction {id}")))
+        conn.query_row(
+            &format!("SELECT {SELECT_COLS} FROM recurring_transactions WHERE id = ?1"),
+            params![id],
+            row_to_recurring,
+        )
+        .map_err(|_| AppError::NotFound(format!("recurring transaction {id}")))
+    })
 }
 
 /// Delete a recurring transaction schedule (hard delete — no generated txns are removed).
 #[tauri::command(rename_all = "camelCase")]
-pub fn delete_recurring(id: String, state: tauri::State<AppState>) -> Result<()> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
-
-    let rows = conn.execute(
-        "DELETE FROM recurring_transactions WHERE id = ?1",
-        params![id],
-    )?;
-    if rows == 0 {
-        return Err(AppError::NotFound(format!("recurring transaction {id}")));
-    }
-    Ok(())
+pub fn delete_recurring(
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
+    id: String,
+    state: tauri::State<AppState>,
+) -> Result<()> {
+    with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        let rows = conn.execute(
+            "DELETE FROM recurring_transactions WHERE id = ?1",
+            params![id],
+        )?;
+        if rows == 0 {
+            return Err(AppError::NotFound(format!("recurring transaction {id}")));
+        }
+        Ok(())
+    })
 }
 
 /// Internal helper — run due recurring transactions given a live connection.
@@ -390,125 +398,119 @@ pub(crate) fn run_due_on_conn(conn: &rusqlite::Connection) -> usize {
 ///
 /// Called automatically on app unlock (non-fatal — errors are logged as warnings).
 #[tauri::command(rename_all = "camelCase")]
-pub fn run_due_recurring(state: tauri::State<AppState>) -> Result<RunDueResult> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+pub fn run_due_recurring(
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<AppState>,
+) -> Result<RunDueResult> {
+    with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
 
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM recurring_transactions
+             WHERE active = 1 AND next_run_date <= ?1
+             ORDER BY next_run_date ASC"
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let due: Vec<RecurringTransaction> = stmt
+            .query_map(params![today], row_to_recurring)?
+            .filter_map(|r| r.ok())
+            .collect();
 
-    // Fetch all due schedules.
-    let sql = format!(
-        "SELECT {SELECT_COLS} FROM recurring_transactions
-         WHERE active = 1 AND next_run_date <= ?1
-         ORDER BY next_run_date ASC"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let due: Vec<RecurringTransaction> = stmt
-        .query_map(params![today], row_to_recurring)?
-        .filter_map(|r| r.ok())
-        .collect();
+        if due.is_empty() {
+            return Ok(RunDueResult { created: 0 });
+        }
 
-    if due.is_empty() {
-        return Ok(RunDueResult { created: 0 });
-    }
+        conn.execute_batch("BEGIN")?;
+        let result: Result<usize> = (|| {
+            let now = chrono::Utc::now().to_rfc3339();
+            let mut created = 0usize;
 
-    conn.execute_batch("BEGIN")?;
-    let result: Result<usize> = (|| {
-        let now = chrono::Utc::now().to_rfc3339();
-        let mut created = 0usize;
+            for rec in &due {
+                if let Some(ref end) = rec.end_date {
+                    if rec.next_run_date.as_str() > end.as_str() {
+                        conn.execute(
+                            "UPDATE recurring_transactions SET active = 0, updated_at = ?1 WHERE id = ?2",
+                            params![now, rec.id],
+                        )?;
+                        continue;
+                    }
+                }
 
-        for rec in &due {
-            // Respect end_date if set.
-            if let Some(ref end) = rec.end_date {
-                if rec.next_run_date.as_str() > end.as_str() {
-                    // Mark inactive instead of generating.
+                let txn_id = Uuid::new_v4().to_string();
+                let abs_cents = rec.amount_cents.unsigned_abs() as i64;
+
+                conn.execute(
+                    "INSERT INTO transactions (id, txn_date, description, reference, locked, status, created_at)
+                     VALUES (?1, ?2, ?3, NULL, 0, 'posted', ?4)",
+                    params![txn_id, rec.next_run_date, rec.description, now],
+                )?;
+
+                let debit_id = Uuid::new_v4().to_string();
+                conn.execute(
+                    "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents)
+                     VALUES (?1, ?2, ?3, ?4, 0)",
+                    params![debit_id, txn_id, rec.debit_account_id, abs_cents],
+                )?;
+
+                let credit_id = Uuid::new_v4().to_string();
+                conn.execute(
+                    "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents)
+                     VALUES (?1, ?2, ?3, 0, ?4)",
+                    params![credit_id, txn_id, rec.credit_account_id, abs_cents],
+                )?;
+
+                let audit_id = Uuid::new_v4().to_string();
+                let after_json = serde_json::to_string(&rec.description).unwrap_or_default();
+                conn.execute(
+                    "INSERT INTO audit_log (id, action, entity_type, entity_id, after_json)
+                     VALUES (?1, 'create', 'transaction', ?2, ?3)",
+                    params![audit_id, txn_id, after_json],
+                )?;
+
+                if let Some(next) = next_date(&rec.next_run_date, &rec.frequency) {
+                    let should_deactivate = rec
+                        .end_date
+                        .as_ref()
+                        .map(|ed| next.as_str() > ed.as_str())
+                        .unwrap_or(false);
+
+                    conn.execute(
+                        "UPDATE recurring_transactions
+                         SET next_run_date = ?1, active = ?2, updated_at = ?3
+                         WHERE id = ?4",
+                        params![
+                            next,
+                            if should_deactivate { 0i32 } else { 1i32 },
+                            now,
+                            rec.id
+                        ],
+                    )?;
+                } else {
                     conn.execute(
                         "UPDATE recurring_transactions SET active = 0, updated_at = ?1 WHERE id = ?2",
                         params![now, rec.id],
                     )?;
-                    continue;
                 }
+
+                let _ = cents_to_decimal(abs_cents);
+                created += 1;
             }
 
-            let txn_id = Uuid::new_v4().to_string();
-            let abs_cents = rec.amount_cents.unsigned_abs() as i64;
+            Ok(created)
+        })();
 
-            conn.execute(
-                "INSERT INTO transactions (id, txn_date, description, reference, locked, status, created_at)
-                 VALUES (?1, ?2, ?3, NULL, 0, 'posted', ?4)",
-                params![txn_id, rec.next_run_date, rec.description, now],
-            )?;
-
-            let debit_id = Uuid::new_v4().to_string();
-            conn.execute(
-                "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents)
-                 VALUES (?1, ?2, ?3, ?4, 0)",
-                params![debit_id, txn_id, rec.debit_account_id, abs_cents],
-            )?;
-
-            let credit_id = Uuid::new_v4().to_string();
-            conn.execute(
-                "INSERT INTO entries (id, transaction_id, account_id, debit_cents, credit_cents)
-                 VALUES (?1, ?2, ?3, 0, ?4)",
-                params![credit_id, txn_id, rec.credit_account_id, abs_cents],
-            )?;
-
-            // Audit log
-            let audit_id = Uuid::new_v4().to_string();
-            let after_json = serde_json::to_string(&rec.description).unwrap_or_default();
-            conn.execute(
-                "INSERT INTO audit_log (id, action, entity_type, entity_id, after_json)
-                 VALUES (?1, 'create', 'transaction', ?2, ?3)",
-                params![audit_id, txn_id, after_json],
-            )?;
-
-            // Advance next_run_date.
-            if let Some(next) = next_date(&rec.next_run_date, &rec.frequency) {
-                // Check if we've passed the end_date after advancement.
-                let should_deactivate = rec
-                    .end_date
-                    .as_ref()
-                    .map(|ed| next.as_str() > ed.as_str())
-                    .unwrap_or(false);
-
-                conn.execute(
-                    "UPDATE recurring_transactions
-                     SET next_run_date = ?1, active = ?2, updated_at = ?3
-                     WHERE id = ?4",
-                    params![
-                        next,
-                        if should_deactivate { 0i32 } else { 1i32 },
-                        now,
-                        rec.id
-                    ],
-                )?;
-            } else {
-                // Can't advance — deactivate.
-                conn.execute(
-                    "UPDATE recurring_transactions SET active = 0, updated_at = ?1 WHERE id = ?2",
-                    params![now, rec.id],
-                )?;
+        match result {
+            Ok(created) => {
+                conn.execute_batch("COMMIT")?;
+                Ok(RunDueResult { created })
             }
-
-            // Format amount for logging only (non-critical)
-            let _ = cents_to_decimal(abs_cents);
-            created += 1;
+            Err(e) => {
+                let _ = conn.execute_batch("ROLLBACK");
+                Err(e)
+            }
         }
-
-        Ok(created)
-    })();
-
-    match result {
-        Ok(created) => {
-            conn.execute_batch("COMMIT")?;
-            Ok(RunDueResult { created })
-        }
-        Err(e) => {
-            let _ = conn.execute_batch("ROLLBACK");
-            Err(e)
-        }
-    }
+    })
 }
 
 #[cfg(test)]

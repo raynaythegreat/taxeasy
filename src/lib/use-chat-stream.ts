@@ -30,6 +30,7 @@ export function useChatStream({ clientId }: UseChatStreamOptions): UseChatStream
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef(false);
+  const isStreamingRef = useRef(false);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -46,7 +47,8 @@ export function useChatStream({ clientId }: UseChatStreamOptions): UseChatStream
 
   const send = useCallback(
     async (message: string) => {
-      if (isStreaming) return;
+      if (isStreamingRef.current) return;
+      isStreamingRef.current = true;
       setIsStreaming(true);
       setError(null);
       setToolCalls([]);
@@ -137,10 +139,11 @@ export function useChatStream({ clientId }: UseChatStreamOptions): UseChatStream
         setError(e instanceof Error ? e.message : String(e));
         setStreamingMessage(null);
       } finally {
+        isStreamingRef.current = false;
         setIsStreaming(false);
       }
     },
-    [clientId, isStreaming, loadHistory],
+    [clientId, loadHistory],
   );
 
   return {

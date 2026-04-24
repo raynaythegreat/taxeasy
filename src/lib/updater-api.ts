@@ -58,3 +58,7 @@ export async function getAppVersion(): Promise<string> {
 export async function pullLatestCommits(): Promise<string> {
   return invoke<string>("pull_latest_commits");
 }
+
+export async function rebuildAndRestart(): Promise<string> {
+  return invoke<string>("rebuild_and_restart");
+}

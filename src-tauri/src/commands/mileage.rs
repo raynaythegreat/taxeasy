@@ -16,23 +16,13 @@ use uuid::Uuid;
 /// Create a new mileage log entry (internal implementation).
 pub fn create_mileage_log_impl(
     payload: CreateMileagePayload,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<MileageLog> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-        // Get IRS rate for the date
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         let rate_cents = get_rate_for_date(conn, &payload.date)?;
-
-        // Calculate deduction: miles * rate (rate_cents is already in cents)
         let deduction_cents = ((payload.miles_real * rate_cents as f64) as i64).max(0);
-
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
 
@@ -58,7 +48,7 @@ pub fn create_mileage_log_impl(
             ],
         )?;
 
-        let log = conn.query_row(
+        conn.query_row(
             "SELECT * FROM mileage_logs WHERE id = ?1",
             params![id],
             |row: &rusqlite::Row| {
@@ -77,26 +67,19 @@ pub fn create_mileage_log_impl(
                     created_at: row.get(11)?,
                 })
             },
-        )?;
-
-        Ok(log)
+        )
+        .map_err(AppError::Database)
     })
 }
 
 /// List mileage logs for the active client and year (internal implementation).
 pub fn list_mileage_logs_impl(
     year: i32,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<Vec<MileageLog>> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
 
@@ -138,17 +121,11 @@ pub fn list_mileage_logs_impl(
 /// Delete a mileage log entry (internal implementation).
 pub fn delete_mileage_log_impl(
     log_id: String,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<()> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         conn.execute("DELETE FROM mileage_logs WHERE id = ?1", params![log_id])?;
         Ok(())
     })
@@ -180,17 +157,11 @@ pub fn get_irs_mileage_rate_impl(
 /// Get total mileage deduction for a year (internal implementation).
 pub fn get_mileage_deduction_total_impl(
     year: i32,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<i64> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
 
@@ -210,18 +181,11 @@ pub fn get_mileage_deduction_total_impl(
 pub fn update_mileage_log_impl(
     log_id: String,
     payload: UpdateMileagePayload,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<MileageLog> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-        // Get the log first to check current values
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         let log = conn.query_row(
             "SELECT * FROM mileage_logs WHERE id = ?1",
             params![log_id],
@@ -338,17 +302,11 @@ pub fn update_mileage_log_impl(
 /// Get mileage summary statistics for a year (internal implementation).
 pub fn get_mileage_summary_impl(
     year: i32,
+    client_id: &str,
     app_handle: Option<&AppHandle>,
     state: &AppState,
 ) -> Result<MileageSummary> {
-    let active_lock = state.active_client.lock().unwrap();
-    let client_id = active_lock
-        .as_ref()
-        .map(|ac| ac.client_id.clone())
-        .ok_or(AppError::NoActiveClient)?;
-    drop(active_lock);
-
-    super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
+    super::scoped::with_scoped_conn(state, app_handle, Some(client_id), |conn| {
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
 
@@ -401,34 +359,37 @@ fn get_rate_for_date(conn: &rusqlite::Connection, date: &str) -> Result<i32> {
 /// Create a new mileage log entry.
 #[tauri::command(rename_all = "camelCase")]
 pub fn create_mileage_log(
+    client_id: Option<String>,
     payload: CreateMileagePayload,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<MileageLog> {
-    create_mileage_log_impl(payload, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    create_mileage_log_impl(payload, cid, Some(&app_handle), state.inner())
 }
 
-/// List mileage logs for the active client and year.
 #[tauri::command(rename_all = "camelCase")]
 pub fn list_mileage_logs(
+    client_id: Option<String>,
     year: i32,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<Vec<MileageLog>> {
-    list_mileage_logs_impl(year, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    list_mileage_logs_impl(year, cid, Some(&app_handle), state.inner())
 }
 
-/// Delete a mileage log entry.
 #[tauri::command(rename_all = "camelCase")]
 pub fn delete_mileage_log(
+    client_id: Option<String>,
     log_id: String,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<()> {
-    delete_mileage_log_impl(log_id, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    delete_mileage_log_impl(log_id, cid, Some(&app_handle), state.inner())
 }
 
-/// Get IRS mileage rate for a specific year.
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_irs_mileage_rate(
     year: i32,
@@ -438,33 +399,36 @@ pub fn get_irs_mileage_rate(
     get_irs_mileage_rate_impl(year, Some(&app_handle), state.inner())
 }
 
-/// Get total mileage deduction for a year.
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_mileage_deduction_total(
+    client_id: Option<String>,
     year: i32,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<i64> {
-    get_mileage_deduction_total_impl(year, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    get_mileage_deduction_total_impl(year, cid, Some(&app_handle), state.inner())
 }
 
-/// Update an existing mileage log entry.
 #[tauri::command(rename_all = "camelCase")]
 pub fn update_mileage_log(
+    client_id: Option<String>,
     log_id: String,
     payload: UpdateMileagePayload,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<MileageLog> {
-    update_mileage_log_impl(log_id, payload, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    update_mileage_log_impl(log_id, payload, cid, Some(&app_handle), state.inner())
 }
 
-/// Get mileage summary statistics for a year.
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_mileage_summary(
+    client_id: Option<String>,
     year: i32,
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<MileageSummary> {
-    get_mileage_summary_impl(year, Some(&app_handle), state.inner())
+    let cid = client_id.as_deref().unwrap_or("owner");
+    get_mileage_summary_impl(year, cid, Some(&app_handle), state.inner())
 }

@@ -1,8 +1,10 @@
-import { ArrowLeft, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Eye, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useI18n } from "../../lib/i18n";
 import type { InvoiceDetail } from "../../lib/invoice-api";
 import { centsToDollars } from "../../lib/invoice-api";
 import { cn, formatDate } from "../../lib/utils";
+import { InvoicePreview } from "./InvoicePreview";
 
 interface InvoiceDetailPanelProps {
   invoice: InvoiceDetail;
@@ -56,7 +58,12 @@ export function InvoiceDetailPanel({
   onBack,
 }: InvoiceDetailPanelProps) {
   const { t } = useI18n();
+  const [showPreview, setShowPreview] = useState(false);
   const nextStatuses = STATUS_FLOW[invoice.status] ?? [];
+
+  if (showPreview) {
+    return <InvoicePreview invoice={invoice} onClose={() => setShowPreview(false)} />;
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -88,6 +95,14 @@ export function InvoiceDetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowPreview(true)}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            {t("Preview")}
+          </button>
           <button
             type="button"
             onClick={onEdit}

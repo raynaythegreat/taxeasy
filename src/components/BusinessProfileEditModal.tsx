@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { Camera, X } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
 import {
   type BusinessProfile,
   type SaveBusinessProfilePayload,
@@ -49,8 +51,33 @@ export function BusinessProfileEditModal({
     filing_notes: profile.filing_notes,
     fiscal_year_start_month: profile.fiscal_year_start_month,
     accounting_method: profile.accounting_method,
+    profile_image_path: profile.profile_image_path,
   });
   const [error, setError] = useState<string | null>(null);
+
+  const logoSrc = useMemo(
+    () => (formState.profile_image_path ? convertFileSrc(formState.profile_image_path) : null),
+    [formState.profile_image_path],
+  );
+
+  const initial = formState.name?.trim()?.charAt(0)?.toUpperCase() || "?";
+
+  async function handlePickLogo() {
+    if (mutation.isPending) return;
+    const selected = await open({
+      multiple: false,
+      filters: [
+        { name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"] },
+      ],
+    });
+    if (selected) {
+      updateField("profile_image_path", selected);
+    }
+  }
+
+  function handleRemoveLogo() {
+    updateField("profile_image_path", "");
+  }
 
   const mutation = useMutation({
     mutationFn: (payload: SaveBusinessProfilePayload) => saveBusinessProfile(payload),
@@ -95,6 +122,49 @@ export function BusinessProfileEditModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={handlePickLogo}
+              disabled={mutation.isPending}
+              className="relative w-20 h-20 rounded-full border-2 border-dashed border-gray-300 hover:border-blue-400 flex items-center justify-center overflow-hidden group transition-colors shrink-0"
+            >
+              {logoSrc ? (
+                <img src={logoSrc} alt="" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className="text-2xl font-bold text-gray-400">{initial}</span>
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </button>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePickLogo}
+                  disabled={mutation.isPending}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                >
+                  {t("Upload Logo")}
+                </button>
+                {formState.profile_image_path && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={mutation.isPending}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  >
+                    {t("Remove")}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {t("Click the logo to upload your business logo")}
+              </p>
+            </div>
+          </div>
+
           <div>
             <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
               {t("Business Name")} <span className="text-red-500">*</span>

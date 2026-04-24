@@ -475,7 +475,7 @@ async fn resolve_glm_ocr_model(state: &AppState, url: &str) -> Result<String> {
 
 fn read_ollama_url(state: &AppState) -> String {
     let lock = state.app_db.lock().unwrap();
-    match lock.as_ref() {
+    let url = match lock.as_ref() {
         Some(d) => {
             let conn = d.conn();
             conn.query_row(
@@ -486,5 +486,7 @@ fn read_ollama_url(state: &AppState) -> String {
             .unwrap_or_else(|_| "http://localhost:11434".to_owned())
         }
         None => "http://localhost:11434".to_owned(),
-    }
+    };
+
+    crate::ai::lmstudio::normalize_ollama_url(&url)
 }

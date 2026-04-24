@@ -123,15 +123,14 @@ export function RecurringForm({ clientId, existing, onClose, onSaved }: Recurrin
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", clientId],
     queryFn: () => listAccounts(clientId ?? ""),
-    enabled: !!clientId,
   });
 
   const set = (patch: Partial<FormState>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const createMutation = useMutation({
-    mutationFn: (payload: CreateRecurringPayload) => createRecurring(payload),
+    mutationFn: (payload: CreateRecurringPayload) => createRecurring(clientId ?? "owner", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recurring"] });
+      queryClient.invalidateQueries({ queryKey: ["recurring", clientId] });
       onSaved();
     },
     onError: (e: unknown) => setFormError(e instanceof Error ? e.message : String(e)),
@@ -139,9 +138,9 @@ export function RecurringForm({ clientId, existing, onClose, onSaved }: Recurrin
 
   const updateMutation = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: UpdateRecurringPatch }) =>
-      updateRecurring(id, patch),
+      updateRecurring(clientId ?? "owner", id, patch),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recurring"] });
+      queryClient.invalidateQueries({ queryKey: ["recurring", clientId] });
       onSaved();
     },
     onError: (e: unknown) => setFormError(e instanceof Error ? e.message : String(e)),

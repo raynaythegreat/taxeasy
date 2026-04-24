@@ -1,4 +1,4 @@
-use rusqlite::params;
+use rusqlite::{params, Connection};
 
 use crate::{
     domain::transaction::cents_to_decimal,
@@ -18,12 +18,20 @@ fn csv_escape(s: &str) -> String {
 pub fn export_transactions_csv(
     date_from: String,
     date_to: String,
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<String> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        export_transactions_csv_for_conn(&date_from, &date_to, conn)
+    })
+}
 
+fn export_transactions_csv_for_conn(
+    date_from: &str,
+    date_to: &str,
+    conn: &Connection,
+) -> Result<String> {
     let mut stmt = conn.prepare(
         "SELECT t.txn_date, t.description, t.reference, a.name, e.debit_cents, e.credit_cents
          FROM entries e
@@ -71,22 +79,23 @@ pub fn export_report_csv(
     report_type: String,
     date_from: String,
     date_to: String,
+    client_id: Option<String>,
+    app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<String> {
-    match report_type.as_str() {
-        "pnl" => export_pnl_csv(&date_from, &date_to, &state),
-        "balance_sheet" => export_balance_sheet_csv(&date_to, &state),
-        "cash_flow" => export_cash_flow_csv(&date_from, &date_to, &state),
-        _ => Err(AppError::Validation(format!(
-            "unknown report type: {report_type}"
-        ))),
-    }
+    super::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
+        match report_type.as_str() {
+            "pnl" => export_pnl_csv(&date_from, &date_to, conn),
+            "balance_sheet" => export_balance_sheet_csv(&date_to, conn),
+            "cash_flow" => export_cash_flow_csv(&date_from, &date_to, conn),
+            _ => Err(AppError::Validation(format!(
+                "unknown report type: {report_type}"
+            ))),
+        }
+    })
 }
 
-fn export_pnl_csv(date_from: &str, date_to: &str, state: &AppState) -> Result<String> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+fn export_pnl_csv(date_from: &str, date_to: &str, conn: &Connection) -> Result<String> {
 
     // B3: half-open [date_from, date_to). B1: status='posted'.
     // LEFT JOIN: wrap SUMs in CASE WHEN t.id IS NOT NULL so entries whose
@@ -162,10 +171,7 @@ fn export_pnl_csv(date_from: &str, date_to: &str, state: &AppState) -> Result<St
     Ok(csv)
 }
 
-fn export_balance_sheet_csv(as_of_date: &str, state: &AppState) -> Result<String> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+fn export_balance_sheet_csv(as_of_date: &str, conn: &Connection) -> Result<String> {
 
     // Balance Sheet is point-in-time: inclusive `<= as_of_date`. B1: status='posted'.
     // LEFT JOIN: wrap SUMs in CASE WHEN t.id IS NOT NULL (see balance_sheet.rs rationale).
@@ -248,10 +254,7 @@ fn export_balance_sheet_csv(as_of_date: &str, state: &AppState) -> Result<String
     Ok(csv)
 }
 
-fn export_cash_flow_csv(date_from: &str, date_to: &str, state: &AppState) -> Result<String> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-    let conn = ac.db.conn();
+fn export_cash_flow_csv(date_from: &str, date_to: &str, conn: &Connection) -> Result<String> {
 
     let (rev_cr, rev_dr, exp_dr, exp_cr): (i64, i64, i64, i64) = conn.query_row(
         "SELECT
@@ -263,6 +266,7 @@ fn export_cash_flow_csv(date_from: &str, date_to: &str, state: &AppState) -> Res
          JOIN transactions t ON t.id = e.transaction_id
          JOIN accounts a ON a.id = e.account_id
          WHERE t.txn_date BETWEEN ?1 AND ?2
+           AND t.status = 'posted'
            AND a.account_type IN ('revenue','expense')",
         params![date_from, date_to],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
@@ -275,6 +279,7 @@ fn export_cash_flow_csv(date_from: &str, date_to: &str, state: &AppState) -> Res
          JOIN transactions t ON t.id = e.transaction_id
          JOIN accounts a ON a.id = e.account_id
          WHERE t.txn_date BETWEEN ?1 AND ?2
+           AND t.status = 'posted'
            AND (LOWER(a.name) LIKE '%depreciation%' OR LOWER(a.name) LIKE '%amortization%')",
         params![date_from, date_to],
         |row| row.get(0),

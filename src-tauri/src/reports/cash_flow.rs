@@ -3,10 +3,7 @@ use rust_decimal::Decimal;
 use serde::Serialize;
 
 use crate::domain::transaction::cents_to_decimal;
-use crate::{
-    error::{AppError, Result},
-    state::AppState,
-};
+use crate::{error::Result, state::AppState};
 
 #[derive(Debug, Serialize)]
 pub struct CashFlowLineItem {
@@ -178,7 +175,7 @@ fn balance_range_by_role(
         |row| row.get(0),
     )?;
     if role_count == 0 {
-        return Err(AppError::Validation(format!("MissingSystemAccount:{role}")));
+        return Ok((Decimal::ZERO, Decimal::ZERO));
     }
 
     let day_before = shift_date(date_from, -1);

@@ -3,6 +3,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, Result};
 
+pub fn normalize_ollama_url(url: &str) -> String {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        "http://localhost:11434".to_owned()
+    } else {
+        trimmed.to_owned()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct LmStudioModel {
     id: String,
@@ -57,6 +66,7 @@ pub async fn lmstudio_list_models(url: String) -> Result<Vec<String>> {
 #[tauri::command(rename_all = "camelCase")]
 pub async fn ollama_list_models(url: String) -> Result<Vec<String>> {
     let client = Client::new();
+    let url = normalize_ollama_url(&url);
     let endpoint = format!("{}/api/tags", url.trim_end_matches('/'));
     let resp = client
         .get(&endpoint)
@@ -92,6 +102,7 @@ pub async fn ollama_list_models(url: String) -> Result<Vec<String>> {
 #[tauri::command(rename_all = "camelCase")]
 pub async fn ollama_health_url(url: String) -> bool {
     let client = Client::new();
+    let url = normalize_ollama_url(&url);
     let endpoint = format!("{}/api/tags", url.trim_end_matches('/'));
     match client
         .get(&endpoint)

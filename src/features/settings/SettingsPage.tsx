@@ -3,8 +3,8 @@ import { BrainCircuit, Database, Info, Lock, Palette, Settings } from "lucide-re
 import { useCallback, useEffect, useRef, useState } from "react";
 import { backupDatabase, restoreDatabase } from "../../lib/backup-api";
 import { useI18n } from "../../lib/i18n";
-import type { SaveSettingsPayload } from "../../lib/settings-api";
-import { getSettings, saveSettings } from "../../lib/settings-api";
+import type { OcrEngineStatus, SaveSettingsPayload } from "../../lib/settings-api";
+import { getOcrEnginesStatus, getSettings, saveSettings } from "../../lib/settings-api";
 import { useTheme } from "../../lib/theme";
 import type { UpdateCheck } from "../../lib/updater-api";
 import { checkForUpdates, getAppVersion } from "../../lib/updater-api";
@@ -43,6 +43,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   const [ocrAutoPostThreshold, setOcrAutoPostThreshold] = useState(0.7);
   const [ocrEngine, setOcrEngine] = useState<"auto" | "glm-ocr" | "tesseract" | "surya">("auto");
   const [ocrVisionVerification, setOcrVisionVerification] = useState(true);
+  const [govinfoApiKey, setGovinfoApiKey] = useState("");
 
   useEffect(() => {
     getAppVersion()
@@ -53,6 +54,16 @@ export function SettingsPage(_props: { onBack?: () => void }) {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: getSettings,
+    retry: false,
+  });
+
+  const {
+    data: ocrStatuses = [],
+    isFetching: checkingOcrStatuses,
+    refetch: refetchOcrStatuses,
+  } = useQuery<OcrEngineStatus[]>({
+    queryKey: ["ocr-engine-status"],
+    queryFn: getOcrEnginesStatus,
     retry: false,
   });
 
@@ -76,6 +87,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     }
     if (settings.ocr_vision_verification !== undefined) {
       setOcrVisionVerification(settings.ocr_vision_verification);
+    }
+    if (settings.govinfo_api_key !== undefined) {
+      setGovinfoApiKey(settings.govinfo_api_key);
     }
     didHydrateFromSettings.current = true;
   }, [settings, setTheme, ai.initFromSettings]);
@@ -209,9 +223,10 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               providerStatus={ai.providerStatus}
               testingProvider={ai.testingProvider}
               loadingModels={ai.loadingModels}
-              glmocrStatus={ai.glmocrStatus}
               glmocrDetails={ai.glmocrDetails}
               testingGlmocr={ai.testingGlmocr}
+              ocrStatuses={ocrStatuses}
+              checkingOcrStatuses={checkingOcrStatuses}
               saving={saveMutation.isPending}
               onProviderChange={(p) => {
                 ai.setAiProvider(p);
@@ -222,12 +237,17 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               onTestProvider={ai.testProvider}
               onFetchModels={ai.fetchModels}
               onTestGlmocr={ai.testGlmocr}
+              onRefreshOcrStatuses={() => {
+                void refetchOcrStatuses();
+              }}
               ocrAutoPostThreshold={ocrAutoPostThreshold}
               onOcrThresholdChange={setOcrAutoPostThreshold}
               ocrEngine={ocrEngine}
               onOcrEngineChange={setOcrEngine}
               ocrVisionVerification={ocrVisionVerification}
+              govinfoApiKey={govinfoApiKey}
               onOcrVisionVerificationChange={setOcrVisionVerification}
+              onGovinfoApiKeyChange={setGovinfoApiKey}
               onSave={(partial) => saveMutation.mutate(partial)}
             />
           )}

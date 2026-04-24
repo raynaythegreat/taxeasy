@@ -9,6 +9,7 @@ import {
   installUpdate,
   onUpdateProgress,
   pullLatestCommits,
+  rebuildAndRestart,
 } from "../../../lib/updater-api";
 import { cn } from "../../../lib/utils";
 
@@ -42,6 +43,8 @@ export function AboutTab({
   const [isReadyToInstall, setIsReadyToInstall] = useState(false);
   const [isPullingCommits, setIsPullingCommits] = useState(false);
   const [pullMessage, setPullMessage] = useState<string | null>(null);
+  const [isRebuilding, setIsRebuilding] = useState(false);
+  const [rebuildMessage, setRebuildMessage] = useState<string | null>(null);
 
   // Listen for update progress events
   useEffect(() => {
@@ -98,6 +101,7 @@ export function AboutTab({
   const handlePullCommits = useCallback(async () => {
     setIsPullingCommits(true);
     setPullMessage(null);
+    setRebuildMessage(null);
     setUpdateProgress({ status: "pulling" });
     try {
       const message = await pullLatestCommits();
@@ -111,6 +115,25 @@ export function AboutTab({
       });
     } finally {
       setIsPullingCommits(false);
+    }
+  }, []);
+
+  const handleRebuild = useCallback(async () => {
+    setIsRebuilding(true);
+    setRebuildMessage(null);
+    setUpdateProgress({ status: "installing" });
+    try {
+      const message = await rebuildAndRestart();
+      setRebuildMessage(message);
+      setUpdateProgress({ status: "ready", progress: 100 });
+    } catch (err) {
+      setRebuildMessage(err instanceof Error ? err.message : "Failed to rebuild");
+      setUpdateProgress({
+        status: "error",
+        error: err instanceof Error ? err.message : "Failed to rebuild",
+      });
+    } finally {
+      setIsRebuilding(false);
     }
   }, []);
 
@@ -247,6 +270,38 @@ export function AboutTab({
           <div className="text-sm bg-purple-50 border border-purple-200 rounded-lg p-3">
             <p className="font-medium text-purple-800">Git Pull Result:</p>
             <pre className="mt-1 text-xs text-purple-700 whitespace-pre-wrap">{pullMessage}</pre>
+            {pullMessage.includes("Successfully") && (
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRebuild}
+                  disabled={isRebuilding}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                >
+                  {isRebuilding && <Spinner />}
+                  <Play className="w-3.5 h-3.5" />
+                  {isRebuilding ? "Rebuilding..." : "Rebuild Frontend"}
+                </button>
+                <span className="text-xs text-purple-600">
+                  Run this after pulling to rebuild the frontend assets.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {rebuildMessage && (
+          <div className="text-sm bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="font-medium text-green-800">Rebuild Result:</p>
+            <pre className="mt-1 text-xs text-green-700 whitespace-pre-wrap">{rebuildMessage}</pre>
+            <button
+              type="button"
+              onClick={handleInstallUpdate}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Restart App
+            </button>
           </div>
         )}
 

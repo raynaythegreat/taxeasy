@@ -12,18 +12,14 @@ export interface NewsItem {
 }
 
 export async function fetchTaxNews(clientId?: string): Promise<NewsItem[]> {
-  console.log("[TaxNews] Fetching tax news for client:", clientId ?? "global");
   try {
     const result = await invoke<NewsItem[]>("fetch_tax_news", {
       clientId: clientId ?? null,
     });
-    console.log("[TaxNews] Fetched", result.length, "items");
     if (result.length === 0) {
       console.warn(
         "[TaxNews] No items returned - check network connectivity and IRS feed availability",
       );
-    } else {
-      console.log("[TaxNews] First item:", result[0]);
     }
     return result;
   } catch (error) {

@@ -1,10 +1,10 @@
+use crate::commands::scoped::with_scoped_conn;
 use crate::domain::evidence::Evidence;
-use crate::error::{AppError, Result};
+use crate::error::Result;
 use crate::state::AppState;
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn store_evidence(
-    state: tauri::State<'_, AppState>,
     client_id: String,
     source_type: String,
     file_name: Option<String>,
@@ -13,16 +13,9 @@ pub fn store_evidence(
     extracted_fields: Option<String>,
     model_used: String,
     confidence: Option<f64>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Evidence> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-
     let mut file_path: Option<String> = None;
     if let Some(data) = file_data {
         let name = file_name.as_deref().unwrap_or("unnamed");
@@ -37,66 +30,54 @@ pub fn store_evidence(
         file_path = Some(path.to_string_lossy().to_string());
     }
 
-    crate::db::evidence_db::insert_evidence(
-        conn,
-        &client_id,
-        &source_type,
-        file_name.as_deref(),
-        file_path.as_deref(),
-        file_path.as_deref(),
-        ocr_text.as_deref(),
-        extracted_fields.as_deref(),
-        &model_used,
-        confidence,
-    )
+    let fp = file_path.clone();
+    with_scoped_conn(&state, Some(&app_handle), Some(&client_id), |conn| {
+        crate::db::evidence_db::insert_evidence(
+            conn,
+            &client_id,
+            &source_type,
+            file_name.as_deref(),
+            None,
+            fp.as_deref(),
+            ocr_text.as_deref(),
+            extracted_fields.as_deref(),
+            &model_used,
+            confidence,
+        )
+    })
 }
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_evidence(
-    state: tauri::State<'_, AppState>,
     client_id: String,
     evidence_id: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Evidence> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-    crate::db::evidence_db::get_evidence(conn, &client_id, &evidence_id)
+    with_scoped_conn(&state, Some(&app_handle), Some(&client_id), |conn| {
+        crate::db::evidence_db::get_evidence(conn, &client_id, &evidence_id)
+    })
 }
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn list_evidence(
-    state: tauri::State<'_, AppState>,
     client_id: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<Evidence>> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-    crate::db::evidence_db::list_evidence(conn, &client_id)
+    with_scoped_conn(&state, Some(&app_handle), Some(&client_id), |conn| {
+        crate::db::evidence_db::list_evidence(conn, &client_id)
+    })
 }
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn delete_evidence(
-    state: tauri::State<'_, AppState>,
     client_id: String,
     evidence_id: String,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
 ) -> Result<()> {
-    let lock = state.active_client.lock().unwrap();
-    let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-
-    if ac.client_id != client_id {
-        return Err(AppError::NotFound(format!("client {client_id}")));
-    }
-
-    let conn = ac.db.conn();
-    crate::db::evidence_db::delete_evidence(conn, &client_id, &evidence_id)
+    with_scoped_conn(&state, Some(&app_handle), Some(&client_id), |conn| {
+        crate::db::evidence_db::delete_evidence(conn, &client_id, &evidence_id)
+    })
 }

@@ -1,4 +1,6 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Building2 } from "lucide-react";
+import { useMemo } from "react";
 import type { BusinessProfile } from "../../lib/business-profile-api";
 import { useI18n } from "../../lib/i18n";
 import type { EntityType } from "../../lib/tauri";
@@ -21,12 +23,31 @@ interface BusinessProfileCardProps {
 export function BusinessProfileCard({ profile, onNavigate }: BusinessProfileCardProps) {
   const { t } = useI18n();
 
+  const logoSrc = useMemo(
+    () => (profile.profile_image_path ? convertFileSrc(profile.profile_image_path) : null),
+    [profile.profile_image_path],
+  );
+
+  const initial = profile.name?.trim()?.charAt(0)?.toUpperCase() || "?";
+
   return (
     <div className="bg-white border-b border-gray-200 px-8 py-5">
       <div className="flex items-start gap-5">
-        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-          <Building2 className="w-6 h-6 text-blue-600" />
-        </div>
+        {logoSrc ? (
+          <img
+            src={logoSrc}
+            alt={profile.name}
+            className="w-12 h-12 rounded-xl object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+            {profile.name ? (
+              <span className="text-base font-bold text-blue-600">{initial}</span>
+            ) : (
+              <Building2 className="w-6 h-6 text-blue-600" />
+            )}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
             <div>

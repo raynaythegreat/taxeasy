@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { AppShell } from "./components/AppShell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { KeyboardShortcutsHelp } from "./components/KeyboardShortcutsHelp";
@@ -9,6 +10,7 @@ import { useKeyboardShortcuts } from "./lib/use-keyboard-shortcuts";
 
 export default function App() {
   const [unlocked, setUnlocked] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const handleToggleShortcuts = useCallback(() => {
@@ -22,8 +24,19 @@ export default function App() {
   });
 
   useEffect(() => {
-    isUnlocked().then(setUnlocked);
+    isUnlocked()
+      .then(setUnlocked)
+      .catch(() => setUnlocked(false))
+      .finally(() => setChecking(false));
   }, []);
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   if (!unlocked) {
     return <UnlockScreen onUnlocked={() => setUnlocked(true)} />;

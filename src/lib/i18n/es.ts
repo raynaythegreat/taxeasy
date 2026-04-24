@@ -206,6 +206,9 @@ export const es: Record<string, string> = {
   "AI Provider": "Proveedor de IA",
   "No models found": "No se encontraron modelos",
   "Refresh model list": "Actualizar lista de modelos",
+  Refresh: "Actualizar",
+  Ready: "Listo",
+  Unavailable: "No disponible",
   "Custom model": "Modelo personalizado",
   "Select from dropdown or type a custom model name":
     "Seleccione del menú desplegable o escriba un nombre de modelo personalizado",
@@ -284,6 +287,9 @@ export const es: Record<string, string> = {
   "Total Operating Expenses": "Total Gastos Operativos",
   "Failed to load Profit & Loss report. Please try again.":
     "Error al cargar el Estado de Resultados. Intente de nuevo.",
+  "No revenue activity": "Sin actividad de ingresos",
+  "No cost of goods sold activity": "Sin actividad de costo de ventas",
+  "No operating expense activity": "Sin actividad de gastos operativos",
   "No asset accounts": "Sin cuentas de activos",
   "No liability accounts": "Sin cuentas de pasivos",
   "No equity accounts": "Sin cuentas de capital",
@@ -508,4 +514,10 @@ export const es: Record<string, string> = {
   "Client Summary": "Resumen de Clientes",
   "1040": "1040",
   "No address set": "Sin dirección",
+
+  Preview: "Vista Previa",
+  Modern: "Moderno",
+  Classic: "Clásico",
+  Minimal: "Minimalista",
+  "Loading…": "Cargando…",
 };

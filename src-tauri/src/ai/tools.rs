@@ -4,6 +4,11 @@ use serde_json::Value;
 
 use crate::error::Result;
 
+#[derive(Debug, Clone, Default)]
+pub struct ToolExecutionConfig {
+    pub govinfo_api_key: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {
     pub name: String,
@@ -84,6 +89,18 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
                     "date_to": {"type": "string", "description": "End date in YYYY-MM-DD format"}
                 },
                 "required": ["report_type"]
+            }),
+        },
+        ToolDefinition {
+            name: "lookup_tax_guidance".into(),
+            description: "Search official tax sources such as IRS feeds, the Federal Register, and GovInfo for current tax guidance, filing updates, and regulatory changes.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Tax question or topic to research"},
+                    "max_results": {"type": "integer", "description": "Maximum number of official sources to return"}
+                },
+                "required": ["query"]
             }),
         },
     ]
@@ -314,22 +331,24 @@ fn execute_run_report(conn: &Connection, input: &Value) -> Result<Value> {
     let date_from = input["date_from"].as_str().unwrap_or("");
     let date_to = input["date_to"].as_str().unwrap_or("");
 
-    let date_filter = if !date_from.is_empty() && !date_to.is_empty() {
-        format!(
-            "AND t.txn_date >= '{}' AND t.txn_date <= '{}'",
-            date_from, date_to
-        )
+    let mut date_filter = String::new();
+    let mut param_values: Vec<&str> = Vec::new();
+
+    if !date_from.is_empty() && !date_to.is_empty() {
+        date_filter = "AND t.txn_date >= ? AND t.txn_date <= ?".to_string();
+        param_values.push(date_from);
+        param_values.push(date_to);
     } else if !date_from.is_empty() {
-        format!("AND t.txn_date >= '{}'", date_from)
+        date_filter = "AND t.txn_date >= ?".to_string();
+        param_values.push(date_from);
     } else if !date_to.is_empty() {
-        format!("AND t.txn_date <= '{}'", date_to)
-    } else {
-        String::new()
-    };
+        date_filter = "AND t.txn_date <= ?".to_string();
+        param_values.push(date_to);
+    }
 
     match report_type {
         "pnl" => {
-            let mut stmt = conn.prepare(&format!(
+            let sql = format!(
                 "SELECT a.name, a.account_type, SUM(e.debit_cents) as total_debits, SUM(e.credit_cents) as total_credits
                  FROM entries e
                  JOIN transactions t ON t.id = e.transaction_id
@@ -338,10 +357,11 @@ fn execute_run_report(conn: &Connection, input: &Value) -> Result<Value> {
                  GROUP BY a.id
                  ORDER BY a.account_type, a.sort_order",
                 date_filter
-            ))?;
+            );
+            let mut stmt = conn.prepare(&sql)?;
 
             let rows: Vec<Value> = stmt
-                .query_map([], |row| {
+                .query_map(rusqlite::params_from_iter(param_values.iter()), |row| {
                     Ok(serde_json::json!({
                         "account": row.get::<_, String>(0)?,
                         "type": row.get::<_, String>(1)?,
@@ -374,7 +394,7 @@ fn execute_run_report(conn: &Connection, input: &Value) -> Result<Value> {
             }))
         }
         "balance_sheet" | "cash_flow" => {
-            let mut stmt = conn.prepare(&format!(
+            let sql = format!(
                 "SELECT a.name, a.account_type, SUM(e.debit_cents) as total_debits, SUM(e.credit_cents) as total_credits
                  FROM entries e
                  JOIN transactions t ON t.id = e.transaction_id
@@ -383,10 +403,11 @@ fn execute_run_report(conn: &Connection, input: &Value) -> Result<Value> {
                  GROUP BY a.id
                  ORDER BY a.account_type, a.sort_order",
                 date_filter
-            ))?;
+            );
+            let mut stmt = conn.prepare(&sql)?;
 
             let rows: Vec<Value> = stmt
-                .query_map([], |row| {
+                .query_map(rusqlite::params_from_iter(param_values.iter()), |row| {
                     Ok(serde_json::json!({
                         "account": row.get::<_, String>(0)?,
                         "type": row.get::<_, String>(1)?,
@@ -410,16 +431,58 @@ fn execute_run_report(conn: &Connection, input: &Value) -> Result<Value> {
     }
 }
 
+fn execute_lookup_tax_guidance(input: &Value, config: &ToolExecutionConfig) -> Result<Value> {
+    let query = input["query"].as_str().unwrap_or("").trim();
+    let max_results = input["max_results"].as_u64().unwrap_or(5).clamp(1, 8) as usize;
+
+    if query.is_empty() {
+        return Ok(serde_json::json!({
+            "error": "query is required"
+        }));
+    }
+
+    let sources = crate::ai::tax_sources::lookup_tax_guidance(
+        query,
+        &crate::ai::tax_sources::TaxLookupConfig {
+            govinfo_api_key: config.govinfo_api_key.clone(),
+        },
+        max_results,
+    )?;
+
+    let summary = if sources.is_empty() {
+        "No official tax sources matched this question. Ask a narrower question or add a GovInfo API key for broader document search.".to_owned()
+    } else {
+        format!(
+            "Found {} official source{} from IRS, Federal Register, and GovInfo.",
+            sources.len(),
+            if sources.len() == 1 { "" } else { "s" }
+        )
+    };
+
+    Ok(serde_json::json!({
+        "query": query,
+        "summary": summary,
+        "sources": sources,
+        "govinfo_enabled": config
+            .govinfo_api_key
+            .as_deref()
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false),
+    }))
+}
+
 pub fn execute_tool(
     conn: &Connection,
     client_id: &str,
     tool_call: &ToolCall,
+    config: &ToolExecutionConfig,
 ) -> Result<ToolResult> {
     let output = match tool_call.name.as_str() {
         "create_transaction" => execute_create_transaction(conn, client_id, &tool_call.input),
         "categorize" => execute_categorize(conn, client_id, &tool_call.input),
         "query_ledger" => execute_query_ledger(conn, &tool_call.input),
         "run_report" => execute_run_report(conn, &tool_call.input),
+        "lookup_tax_guidance" => execute_lookup_tax_guidance(&tool_call.input, config),
         _ => Ok(serde_json::json!({
             "error": format!("Unknown tool: {}", tool_call.name)
         })),

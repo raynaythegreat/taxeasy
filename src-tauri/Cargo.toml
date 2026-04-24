@@ -44,7 +44,7 @@ sha2           = "0.10"
 
 # Async runtime + HTTP (for Ollama)
 tokio          = { version = "1", features = ["full"] }
-reqwest        = { version = "0.12", features = ["json", "stream"] }
+reqwest        = { version = "0.12", features = ["json", "stream", "blocking"] }
 futures-util   = "0.3"
 base64         = "0.22"
 
@@ -75,4 +75,3 @@ tempfile       = "3"
 
 [dev-dependencies]
 rust_decimal_macros = "1"
-

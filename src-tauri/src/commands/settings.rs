@@ -1,3 +1,6 @@
+use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use argon2::Argon2;
+use rand::rngs::OsRng;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
@@ -5,6 +8,28 @@ use crate::{
     error::{AppError, Result},
     state::AppState,
 };
+
+pub(crate) fn hash_pin(pin: &str) -> Result<String> {
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    Ok(argon2
+        .hash_password(pin.as_bytes(), &salt)
+        .map_err(|e| AppError::Encryption(e.to_string()))?
+        .to_string())
+}
+
+pub(crate) fn verify_pin_hash(pin: &str, stored: &str) -> bool {
+    if stored.starts_with("$argon2") {
+        let parsed = PasswordHash::new(stored).ok();
+        parsed.map_or(false, |h| {
+            Argon2::default()
+                .verify_password(pin.as_bytes(), &h)
+                .is_ok()
+        })
+    } else {
+        pin == stored
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -17,6 +42,7 @@ pub struct AppSettings {
     pub bonsai_model: String,
     pub bitnet_url: String,
     pub bitnet_model: String,
+    pub govinfo_api_key: String,
     pub glmocr_path: String,
     /// OCR engine to use: "auto", "glm-ocr", "tesseract", or "surya"
     pub ocr_engine: String,
@@ -41,6 +67,7 @@ pub struct SaveSettingsPayload {
     pub bonsai_model: Option<String>,
     pub bitnet_url: Option<String>,
     pub bitnet_model: Option<String>,
+    pub govinfo_api_key: Option<String>,
     pub glmocr_path: Option<String>,
     /// OCR engine to use: "auto", "glm-ocr", "tesseract", or "surya"
     pub ocr_engine: Option<String>,
@@ -84,6 +111,7 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
         bonsai_model: get_val("bonsai_model", ""),
         bitnet_url: get_val("bitnet_url", "http://localhost:8090"),
         bitnet_model: get_val("bitnet_model", ""),
+        govinfo_api_key: get_val("govinfo_api_key", ""),
         glmocr_path: get_val("glmocr_path", ""),
         ocr_engine: get_val("ocr_engine", "auto"),
         theme: get_val("theme", "system"),
@@ -135,6 +163,9 @@ pub fn save_settings(payload: SaveSettingsPayload, state: tauri::State<AppState>
     if let Some(ref v) = payload.bitnet_model {
         set_val(conn, "bitnet_model", v)?;
     }
+    if let Some(ref v) = payload.govinfo_api_key {
+        set_val(conn, "govinfo_api_key", v)?;
+    }
     if let Some(ref v) = payload.glmocr_path {
         set_val(conn, "glmocr_path", v)?;
     }
@@ -148,7 +179,12 @@ pub fn save_settings(payload: SaveSettingsPayload, state: tauri::State<AppState>
         set_val(conn, "default_export_path", v)?;
     }
     if let Some(ref v) = payload.app_pin {
-        set_val(conn, "app_pin", v)?;
+        let to_store = if v.starts_with("$argon2") {
+            v.clone()
+        } else {
+            hash_pin(v)?
+        };
+        set_val(conn, "app_pin", &to_store)?;
     }
     if let Some(v) = payload.ocr_auto_post_threshold {
         set_val(conn, "ocr_auto_post_threshold", &v.to_string())?;
@@ -227,16 +263,7 @@ pub async fn get_ocr_engines_status(state: tauri::State<'_, AppState>) -> Result
     });
 
     // Tesseract
-    let tesseract_version = if tesseract_available {
-        std::process::Command::new("tesseract")
-            .arg("--version")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| s.lines().next().map(|l| l.to_string()))
-    } else {
-        None
-    };
+    let tesseract_version = crate::ai::tesseract::tesseract_version();
     statuses.push(OcrEngineStatus {
         engine: "tesseract".to_owned(),
         available: tesseract_available,
@@ -249,17 +276,7 @@ pub async fn get_ocr_engines_status(state: tauri::State<'_, AppState>) -> Result
     });
 
     // Surya
-    let surya_version = if surya_available {
-        std::process::Command::new("pip")
-            .arg("show")
-            .arg("surya-ocr")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| s.lines().find(|l| l.starts_with("Version:")).map(|l| l.trim_start_matches("Version: ").trim().to_string()))
-    } else {
-        None
-    };
+    let surya_version = crate::ai::surya::surya_version();
     statuses.push(OcrEngineStatus {
         engine: "surya".to_owned(),
         available: surya_available,

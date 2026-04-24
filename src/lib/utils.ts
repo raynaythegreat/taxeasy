@@ -93,3 +93,7 @@ export function maskEin(ein: string): string {
   // Keep first 2 characters, mask the rest
   return ein[0] + ein[1] + "X".repeat(ein.length - 2);
 }
+
+export function formatCents(cents: number): string {
+  return formatCurrency((cents / 100).toFixed(2));
+}

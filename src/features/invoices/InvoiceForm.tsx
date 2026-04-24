@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, X } from "lucide-react";
+import { Eye, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "../../lib/i18n";
 import type { CreateInvoiceLinePayload, InvoiceDetail, InvoiceType } from "../../lib/invoice-api";
 import { createInvoice, updateInvoice } from "../../lib/invoice-api";
 import { cn, today } from "../../lib/utils";
+import { InvoicePreview } from "./InvoicePreview";
 
 interface InvoiceFormProps {
   clientId: string;
@@ -72,6 +73,7 @@ export function InvoiceForm({
     invoice ? payloadToLines(invoice.lines) : [emptyLine()],
   );
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -135,6 +137,54 @@ export function InvoiceForm({
 
   const taxAmount = subtotal * ((parseFloat(taxRate) || 0) / 100);
   const total = subtotal + taxAmount;
+
+  function buildPreviewInvoice(): InvoiceDetail {
+    const subtotalCents = Math.round(subtotal * 100);
+    const taxCents = Math.round(taxAmount * 100);
+    const totalCents = Math.round(total * 100);
+    const taxRateNum = parseFloat(taxRate) || 0;
+    return {
+      id: invoice?.id ?? "preview",
+      invoice_number: invoiceNumber,
+      invoice_type: invoiceType,
+      status: invoice?.status ?? "draft",
+      issue_date: issueDate,
+      due_date: dueDate || null,
+      client_name: clientName,
+      client_email: clientEmail || null,
+      client_address: clientAddress || null,
+      subtotal_cents: subtotalCents,
+      tax_cents: taxCents,
+      total_cents: totalCents,
+      tax_rate: taxRateNum,
+      notes: notes || null,
+      transaction_id: invoice?.transaction_id ?? null,
+      lines: lines
+        .map((l, i) => {
+          const qty = parseFloat(l.quantity) || 0;
+          const price = parseFloat(l.unitPrice) || 0;
+          return {
+            id: `preview-${i}`,
+            invoice_id: invoice?.id ?? "preview",
+            description: l.description,
+            quantity: qty,
+            unit_price_cents: Math.round(price * 100),
+            total_cents: Math.round(qty * price * 100),
+            sort_order: i,
+          };
+        })
+        .filter((l) => l.description.trim()),
+      created_at: invoice?.created_at ?? new Date().toISOString(),
+    };
+  }
+
+  if (showPreview) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white">
+        <InvoicePreview invoice={buildPreviewInvoice()} onClose={() => setShowPreview(false)} />
+      </div>
+    );
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -466,6 +516,17 @@ export function InvoiceForm({
               className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
             >
               {t("Cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPreview(true)}
+              disabled={mutation.isPending}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                {t("Preview")}
+              </span>
             </button>
             <button
               type="submit"

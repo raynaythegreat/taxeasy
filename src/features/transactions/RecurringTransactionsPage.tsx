@@ -118,31 +118,31 @@ function RecurringRow({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function RecurringTransactionsPage() {
+export function RecurringTransactionsPage({ clientId }: { clientId: string }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RecurringTransaction | undefined>(undefined);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["recurring"],
-    queryFn: listRecurring,
+    queryKey: ["recurring", clientId],
+    queryFn: () => listRecurring(clientId),
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: () => listAccounts(""),
+    queryKey: ["accounts", clientId],
+    queryFn: () => listAccounts(clientId),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      updateRecurring(id, { active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring"] }),
+      updateRecurring(clientId, id, { active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring", clientId] }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteRecurring(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring"] }),
+    mutationFn: (id: string) => deleteRecurring(clientId, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recurring", clientId] }),
   });
 
   const handleEdit = (rec: RecurringTransaction) => {
@@ -169,6 +169,7 @@ export function RecurringTransactionsPage() {
   if (showForm) {
     return (
       <RecurringForm
+        clientId={clientId}
         existing={editing}
         onClose={() => {
           setShowForm(false);

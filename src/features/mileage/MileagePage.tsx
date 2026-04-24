@@ -19,46 +19,51 @@ const recentYears = [
   new Date().getFullYear() - 2,
 ];
 
-export function MileagePage() {
+interface MileagePageProps {
+  clientId: string;
+}
+
+export function MileagePage({ clientId }: MileagePageProps) {
   const [selectedYear, setSelectedYear] = useState(recentYears[0]);
   const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
   const [showForm, setShowForm] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: ["mileage-logs", selectedYear],
-    queryFn: () => listMileageLogs(selectedYear),
+    queryKey: ["mileage-logs", clientId, selectedYear],
+    queryFn: () => listMileageLogs(clientId, selectedYear),
   });
 
   const { data: summary } = useQuery({
-    queryKey: ["mileage-summary", selectedYear],
-    queryFn: () => getMileageSummary(selectedYear),
+    queryKey: ["mileage-summary", clientId, selectedYear],
+    queryFn: () => getMileageSummary(clientId, selectedYear),
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: CreateMileagePayload) => createMileageLog(payload),
+    mutationFn: (payload: CreateMileagePayload) =>
+      createMileageLog({ ...payload, client_id: clientId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-logs", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary", clientId] });
       setShowForm(false);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateMileagePayload }) =>
-      updateMileageLog(id, payload),
+      updateMileageLog(clientId, id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-logs", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary", clientId] });
       setEditingLog(null);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteMileageLog(id),
+    mutationFn: (id: string) => deleteMileageLog(clientId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mileage-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["mileage-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-logs", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["mileage-summary", clientId] });
     },
   });
 

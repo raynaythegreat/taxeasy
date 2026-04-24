@@ -10,6 +10,7 @@ export interface AppSettings {
   bonsai_model: string;
   bitnet_url: string;
   bitnet_model: string;
+  govinfo_api_key: string;
   glmocr_path: string;
   /** OCR engine: "auto", "glm-ocr", "tesseract", or "surya" */
   ocr_engine: string;
@@ -32,6 +33,7 @@ export interface SaveSettingsPayload {
   bonsai_model?: string;
   bitnet_url?: string;
   bitnet_model?: string;
+  govinfo_api_key?: string;
   glmocr_path?: string;
   /** OCR engine: "auto", "glm-ocr", "tesseract", or "surya" */
   ocr_engine?: string;
@@ -49,6 +51,10 @@ export async function getSettings(): Promise<AppSettings> {
 
 export async function saveSettings(payload: SaveSettingsPayload): Promise<void> {
   return invoke("save_settings", { payload });
+}
+
+export async function verifyPin(pin: string): Promise<boolean> {
+  return invoke("verify_pin", { pin });
 }
 
 export async function ollamaHealth(): Promise<boolean> {
@@ -130,6 +136,6 @@ export async function getOcrEnginesStatus(): Promise<OcrEngineStatus[]> {
 export async function testOcrWithVision(
   filePath: string,
   engine: string,
-): Promise<{ data: any; confidence: any; engineUsed: string; wasVerified: boolean }> {
+): Promise<{ data: unknown; confidence: unknown; engineUsed: string; wasVerified: boolean }> {
   return invoke("test_ocr_with_vision", { filePath, engine });
 }

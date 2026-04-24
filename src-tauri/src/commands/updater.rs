@@ -241,13 +241,30 @@ pub fn get_app_version() -> String {
     current_version()
 }
 
-/// Pull latest commits from main branch using git.
-/// Use this for development builds instead of downloading releases.
+fn find_git_repo() -> Result<std::path::PathBuf, String> {
+    let exe = std::env::current_exe().map_err(|e| format!("Cannot find executable path: {}", e))?;
+    let mut dir = exe.parent().ok_or("Executable has no parent directory")?;
+    loop {
+        if dir.join(".git").exists() {
+            return Ok(dir.to_path_buf());
+        }
+        dir = match dir.parent() {
+            Some(p) => p,
+            None => {
+                return Err(
+                    "No git repository found. Pull is only available in dev builds. Use release updates instead.".to_string()
+                );
+            }
+        };
+    }
+}
+
 #[tauri::command(rename_all = "camelCase")]
 pub async fn pull_latest_commits(app: tauri::AppHandle) -> Result<String, String> {
     use std::process::Command;
 
-    // Emit start event
+    let repo_dir = find_git_repo()?;
+
     let _ = app.emit(
         "updater://progress",
         UpdateProgress {
@@ -257,29 +274,85 @@ pub async fn pull_latest_commits(app: tauri::AppHandle) -> Result<String, String
         },
     );
 
-    // Run git pull
     let output = Command::new("git")
-        .args(["pull", "origin", "main"])
-        .current_dir(app.package_info().name.clone())
+        .args(["fetch", "origin", "main"])
+        .current_dir(&repo_dir)
         .output()
-        .map_err(|e| format!("Failed to execute git pull: {}", e))?;
+        .map_err(|e| format!("Failed to execute git fetch: {}", e))?;
 
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-
-        // Emit success event
-        let _ = app.emit(
-            "updater://progress",
-            UpdateProgress {
-                status: "ready".to_string(),
-                downloaded: 0,
-                content_length: 0,
-            },
-        );
-
-        Ok(format!("Successfully pulled latest changes:\n{}", stdout))
-    } else {
+    if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("Git pull failed: {}", stderr))
+        return Err(format!("Git fetch failed: {}", stderr));
     }
+
+    let reset_output = Command::new("git")
+        .args(["reset", "--hard", "origin/main"])
+        .current_dir(&repo_dir)
+        .output()
+        .map_err(|e| format!("Failed to execute git reset: {}", e))?;
+
+    if !reset_output.status.success() {
+        let stderr = String::from_utf8_lossy(&reset_output.stderr);
+        return Err(format!("Git reset failed: {}", stderr));
+    }
+
+    let stdout = String::from_utf8_lossy(&reset_output.stdout);
+
+    let _ = app.emit(
+        "updater://progress",
+        UpdateProgress {
+            status: "ready".to_string(),
+            downloaded: 0,
+            content_length: 0,
+        },
+    );
+
+    Ok(format!(
+        "Successfully pulled latest changes:\n{}\nRepo: {}",
+        stdout,
+        repo_dir.display()
+    ))
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn rebuild_and_restart(app: tauri::AppHandle) -> Result<String, String> {
+    use std::process::Command;
+
+    let repo_dir = find_git_repo()?;
+
+    let _ = app.emit(
+        "updater://progress",
+        UpdateProgress {
+            status: "installing".to_string(),
+            downloaded: 0,
+            content_length: 0,
+        },
+    );
+
+    let npm_output = Command::new("npm")
+        .args(["run", "build"])
+        .current_dir(&repo_dir)
+        .output()
+        .map_err(|e| format!("Failed to run npm build: {}", e))?;
+
+    if !npm_output.status.success() {
+        let stderr = String::from_utf8_lossy(&npm_output.stderr);
+        return Err(format!("Frontend build failed: {}", stderr));
+    }
+
+    let frontend_out = String::from_utf8_lossy(&npm_output.stdout);
+
+    let _ = app.emit(
+        "updater://progress",
+        UpdateProgress {
+            status: "ready".to_string(),
+            downloaded: 0,
+            content_length: 0,
+        },
+    );
+
+    Ok(format!(
+        "Rebuild complete:\n{}\nApp needs restart to apply changes.",
+        frontend_out
+    ))
 }

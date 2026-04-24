@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 use crate::{
+    commands::settings::verify_pin_hash,
     db::{AppDb, OwnerDb},
     domain::client::EntityType,
     error::{AppError, Result},
@@ -25,11 +26,25 @@ pub fn unlock_app(
     std::fs::create_dir_all(&data_dir)?;
     let db_path = data_dir.join("app.db");
 
-    let app_db = if db_path.exists() {
-        // Database exists - verify PIN first
-        let test_db = AppDb::open(db_path.to_str().unwrap(), &passphrase)?;
+    if db_path.exists() {
+        let mut opened_with = passphrase.clone();
 
-        // Database opened successfully - check stored PIN
+        let test_db = match AppDb::open(db_path.to_str().unwrap(), &passphrase) {
+            Ok(db) => db,
+            Err(_) => {
+                if passphrase == "0000" {
+                    return Err(AppError::WrongPassphrase);
+                }
+                match AppDb::open(db_path.to_str().unwrap(), "0000") {
+                    Ok(db) => {
+                        opened_with = "0000".to_string();
+                        db
+                    }
+                    Err(_) => return Err(AppError::WrongPassphrase),
+                }
+            }
+        };
+
         let stored_pin: Option<String> = test_db
             .conn()
             .query_row(
@@ -37,61 +52,33 @@ pub fn unlock_app(
                 [],
                 |row| row.get(0),
             )
-            .ok();
+            .ok()
+            .flatten();
 
-        // Verify PIN: Allow access if:
-        // 1. No stored PIN (first time setup)
-        // 2. Stored PIN is "0000" (default)
-        // 3. PIN is "0000" and database opened successfully
-        // 4. PIN matches stored PIN
-        // We always allow "0000" since that's the default
-        if let Some(ref saved_pin) = stored_pin {
-            if saved_pin != "0000" && &passphrase != "0000" && saved_pin != &passphrase {
-                return Err(AppError::WrongPassphrase);
-            }
-        } else {
-            // No stored PIN - check if first-time setup
-            let is_fresh = test_db
-                .conn()
-                .query_row("SELECT COUNT(*) FROM clients", [], |row| {
-                    row.get::<_, i64>(0)
-                })
-                .unwrap_or(0)
-                == 0;
-            if !is_fresh && &passphrase != "0000" {
-                return Err(AppError::WrongPassphrase);
-            }
+        let default_pin = "0000".to_string();
+        let effective_pin = stored_pin.as_ref().unwrap_or(&default_pin);
+
+        if effective_pin != "0000"
+            && !verify_pin_hash(&passphrase, effective_pin)
+            && passphrase != "0000"
+        {
+            return Err(AppError::WrongPassphrase);
         }
 
-        test_db
-    } else {
-        // Fresh database - create with provided PIN
-        AppDb::open(db_path.to_str().unwrap(), &passphrase)?
-    };
+        {
+            let mut lock = state.app_db.lock().unwrap();
+            *lock = Some(test_db);
+        }
+        {
+            let mut lock = state.passphrase.lock().unwrap();
+            *lock = Some(opened_with);
+        }
 
-    {
-        let mut lock = state.app_db.lock().unwrap();
-        *lock = Some(app_db);
-    }
-    {
-        let mut lock = state.passphrase.lock().unwrap();
-        *lock = Some(passphrase.clone());
-    }
+        let owner_db_path = data_dir.join("owner.db");
+        let owner_result = OwnerDb::open(owner_db_path.to_str().unwrap(), &passphrase)
+            .or_else(|_| OwnerDb::open(owner_db_path.to_str().unwrap(), "0000"));
 
-    // Open (or create) the owner ledger database.
-    // If this fails (e.g., encrypted with different passphrase), we can still continue with just app.db
-    let owner_db_path = data_dir.join("owner.db");
-    let owner_result = OwnerDb::open(owner_db_path.to_str().unwrap(), &passphrase);
-
-    if owner_result.is_ok() {
-        let owner_db = owner_result.unwrap();
-
-        // Seed chart of accounts if the owner ledger is fresh.
-        let account_count: i64 = owner_db
-            .conn()
-            .query_row("SELECT COUNT(*) FROM accounts", [], |row| row.get(0))
-            .unwrap_or(0);
-        if account_count == 0 {
+        if let Ok(owner_db) = owner_result {
             let entity_type_str: String = {
                 let app_lock = state.app_db.lock().unwrap();
                 let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
@@ -110,15 +97,59 @@ pub fn unlock_app(
                 owner_db.conn(),
                 &entity_type,
             )?;
+
+            {
+                let mut lock = state.owner_db.lock().unwrap();
+                *lock = Some(owner_db);
+            }
+        } else {
+            log::debug!(
+                "Failed to open owner.db - continuing without it: {:?}",
+                owner_result.err()
+            );
         }
+
+        return Ok(true);
+    }
+
+    let app_db = AppDb::open(db_path.to_str().unwrap(), &passphrase)?;
+
+    {
+        let mut lock = state.app_db.lock().unwrap();
+        *lock = Some(app_db);
+    }
+    {
+        let mut lock = state.passphrase.lock().unwrap();
+        *lock = Some(passphrase.clone());
+    }
+
+    let owner_db_path = data_dir.join("owner.db");
+    let owner_result = OwnerDb::open(owner_db_path.to_str().unwrap(), &passphrase);
+
+    if let Ok(owner_db) = owner_result {
+        let entity_type_str: String = {
+            let app_lock = state.app_db.lock().unwrap();
+            let db = app_lock.as_ref().ok_or(AppError::NoActiveClient)?;
+            db.conn()
+                .query_row(
+                    "SELECT entity_type FROM business_profile LIMIT 1",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap_or_else(|_| "sole_prop".to_string())
+        };
+        let entity_type = entity_type_str
+            .parse::<EntityType>()
+            .unwrap_or(EntityType::SoleProp);
+        crate::commands::clients::ensure_chart_of_accounts_public(owner_db.conn(), &entity_type)?;
 
         {
             let mut lock = state.owner_db.lock().unwrap();
             *lock = Some(owner_db);
         }
     } else {
-        eprintln!(
-            "DEBUG: Failed to open owner.db - continuing without it: {:?}",
+        log::debug!(
+            "Failed to open owner.db - continuing without it: {:?}",
             owner_result.err()
         );
     }
@@ -151,6 +182,24 @@ pub fn lock_app(state: tauri::State<AppState>) {
 #[tauri::command(rename_all = "camelCase")]
 pub fn is_unlocked(state: tauri::State<AppState>) -> bool {
     state.app_db.lock().unwrap().is_some()
+}
+
+#[tauri::command(rename_all = "camelCase")]
+pub fn verify_pin(pin: String, state: tauri::State<AppState>) -> Result<bool> {
+    let lock = state.app_db.lock().unwrap();
+    let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+
+    let stored_pin: Option<String> = db
+        .conn()
+        .query_row(
+            "SELECT value FROM app_settings WHERE key = 'app_pin'",
+            [],
+            |row| row.get(0),
+        )
+        .ok();
+
+    let saved = stored_pin.unwrap_or_else(|| "0000".to_owned());
+    Ok(verify_pin_hash(&pin, &saved))
 }
 
 /// Simple connectivity test.

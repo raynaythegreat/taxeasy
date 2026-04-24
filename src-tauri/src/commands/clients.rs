@@ -1613,7 +1613,7 @@ fn ensure_chart_of_accounts(conn: &rusqlite::Connection, entity_type: &EntityTyp
             if let Some(id) = existing.get(code) {
                 conn.execute(
                     "UPDATE accounts SET system_account_role = ?1
-                     WHERE id = ?2 AND system_account_role IS NULL",
+                     WHERE id = ?2 AND (system_account_role IS NULL OR system_account_role = '')",
                     params![role, id],
                 )?;
             }

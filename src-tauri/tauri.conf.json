@@ -18,11 +18,11 @@
         "minWidth": 900,
         "minHeight": 600,
         "resizable": true,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https://asset.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: asset: https://asset.localhost"
     }
   },
   "bundle": {
@@ -43,9 +43,7 @@
     "updater": {
       "active": true,
       "pubkey": "RWTp0LBzKNDHLw2ldkBjwhBSpMpqnF1xhl4dor7jRmIJ80+jlPPPwwN/",
-      "endpoints": [
-        "https://api.github.com/repos/raynaythegreat/taxeasy/releases/latest"
-      ],
+      "endpoints": ["https://api.github.com/repos/raynaythegreat/taxeasy/releases/latest"],
       "windows": {
         "installMode": "passive"
       }

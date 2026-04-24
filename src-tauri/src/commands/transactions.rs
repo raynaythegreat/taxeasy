@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rusqlite::params;
 use uuid::Uuid;
 
@@ -80,30 +82,44 @@ pub fn list_transactions(
             .filter_map(|r| r.ok())
             .collect();
 
-        let mut stmt_entries = conn.prepare(
+        let txn_ids: Vec<String> = txn_rows.iter().map(|t| t.id.clone()).collect();
+        let placeholders: Vec<&str> = txn_ids.iter().map(|_| "?").collect();
+        let entry_sql = format!(
             "SELECT e.id, e.transaction_id, e.account_id, a.name, e.debit_cents, e.credit_cents, e.memo, a.account_type
          FROM entries e JOIN accounts a ON a.id = e.account_id
-         WHERE e.transaction_id = ?1",
-        )?;
+         WHERE e.transaction_id IN ({})",
+            placeholders.join(",")
+        );
+        let mut stmt_entries = conn.prepare(&entry_sql)?;
+        let entry_params: Vec<&str> = txn_ids.iter().map(|s| s.as_str()).collect();
+        let all_entries: Vec<Entry> = stmt_entries
+            .query_map(rusqlite::params_from_iter(entry_params), |row| {
+                Ok(Entry {
+                    id: row.get(0)?,
+                    transaction_id: row.get(1)?,
+                    account_id: row.get(2)?,
+                    account_name: row.get(3)?,
+                    debit: cents_to_decimal(row.get::<_, i64>(4)?),
+                    credit: cents_to_decimal(row.get::<_, i64>(5)?),
+                    memo: row.get(6)?,
+                    account_type: row.get(7)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let mut entry_map: HashMap<String, Vec<Entry>> = HashMap::new();
+        for e in all_entries {
+            entry_map
+                .entry(e.transaction_id.clone())
+                .or_default()
+                .push(e);
+        }
 
         let result = txn_rows
             .into_iter()
             .map(|txn| {
-                let entries: Vec<Entry> = stmt_entries
-                    .query_map(params![txn.id], |row| {
-                        Ok(Entry {
-                            id: row.get(0)?,
-                            transaction_id: row.get(1)?,
-                            account_id: row.get(2)?,
-                            account_name: row.get(3)?,
-                            debit: cents_to_decimal(row.get::<_, i64>(4)?),
-                            credit: cents_to_decimal(row.get::<_, i64>(5)?),
-                            memo: row.get(6)?,
-                            account_type: row.get(7)?,
-                        })
-                    })
-                    .map(|rows| rows.filter_map(|r| r.ok()).collect::<Vec<_>>())
-                    .unwrap_or_default();
+                let entries = entry_map.remove(&txn.id).unwrap_or_default();
                 TransactionWithEntries {
                     transaction: txn,
                     entries,

@@ -64,7 +64,7 @@ mod tests {
             receipt_image_path: None,
         };
 
-        let result = create_mileage_log_impl(payload, None, &state);
+        let result = create_mileage_log_impl(payload, "test-client-uuid", None, &state);
 
         if let Err(ref e) = result {
             eprintln!("ERROR create_mileage_log: {:?}", e);
@@ -91,7 +91,7 @@ mod tests {
             receipt_image_path: None,
         };
 
-        let result = create_mileage_log_impl(payload_2023, None, &state);
+        let result = create_mileage_log_impl(payload_2023, "test-client-uuid", None, &state);
 
         assert!(result.is_ok());
         let log = result.unwrap();
@@ -115,6 +115,7 @@ mod tests {
                 receipt_image_path: None,
             },
             None,
+            "test-client-uuid",
             &state,
         );
         let _ = create_mileage_log_impl(
@@ -128,6 +129,7 @@ mod tests {
                 receipt_image_path: None,
             },
             None,
+            "test-client-uuid",
             &state,
         );
         let _ = create_mileage_log_impl(
@@ -141,10 +143,11 @@ mod tests {
                 receipt_image_path: None,
             },
             None,
+            "test-client-uuid",
             &state,
         );
 
-        let result = list_mileage_logs_impl(2024, None, &state);
+        let result = list_mileage_logs_impl(2024, "test-client-uuid", None, &state);
 
         assert!(result.is_ok());
         let logs = result.unwrap();
@@ -166,12 +169,13 @@ mod tests {
                 notes: None,
                 receipt_image_path: None,
             },
+            "test-client-uuid",
             None,
             &state,
         )
         .unwrap();
 
-        let result = delete_mileage_log_impl(created.id.clone(), None, &state);
+        let result = delete_mileage_log_impl(created.id.clone(), "test-client-uuid", None, &state);
         assert!(result.is_ok());
 
         // Verify deletion through client_db connection
@@ -218,6 +222,7 @@ mod tests {
                 notes: None,
                 receipt_image_path: None,
             },
+            "test-client-uuid",
             None,
             &state,
         );
@@ -231,11 +236,12 @@ mod tests {
                 notes: None,
                 receipt_image_path: None,
             },
+            "test-client-uuid",
             None,
             &state,
         );
 
-        let result = get_mileage_deduction_total_impl(2024, None, &state);
+        let result = get_mileage_deduction_total_impl(2024, "test-client-uuid", None, &state);
 
         assert!(result.is_ok());
         let total = result.unwrap();
@@ -246,7 +252,7 @@ mod tests {
     fn test_get_mileage_deduction_total_empty() {
         let (_conn, state, _db_path) = setup_test_db();
 
-        let result = get_mileage_deduction_total_impl(2024, None, &state);
+        let result = get_mileage_deduction_total_impl(2024, "test-client-uuid", None, &state);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0);

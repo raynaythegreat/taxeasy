@@ -6,12 +6,21 @@ use tempfile::TempDir;
 
 use crate::error::{AppError, Result};
 
+fn tesseract_path() -> Option<std::path::PathBuf> {
+    crate::ai::command_paths::resolve_executable("tesseract")
+}
+
 /// Run Tesseract OCR on an image file and return the extracted text.
 pub fn run_tesseract(image_path: &str) -> Result<String> {
     let tmp_dir = TempDir::new()?;
     let output_path = tmp_dir.path().join("output");
+    let tesseract = tesseract_path().ok_or_else(|| {
+        AppError::AiService(
+            "Failed to run tesseract: binary not found. Is it installed?".to_owned(),
+        )
+    })?;
 
-    let output = Command::new("tesseract")
+    let output = Command::new(tesseract)
         .arg(image_path)
         .arg(&output_path)
         .arg("--psm")
@@ -34,7 +43,13 @@ pub fn run_tesseract(image_path: &str) -> Result<String> {
 
 /// Run Tesseract with JSON output for structured data.
 pub fn run_tesseract_json(image_path: &str) -> Result<TesseractJson> {
-    let output = Command::new("tesseract")
+    let tesseract = tesseract_path().ok_or_else(|| {
+        AppError::AiService(
+            "Failed to run tesseract: binary not found. Is it installed?".to_owned(),
+        )
+    })?;
+
+    let output = Command::new(tesseract)
         .arg(image_path)
         .arg("stdout")
         .arg("--psm")
@@ -91,9 +106,16 @@ pub struct Word {
 
 /// Check if Tesseract is available on the system.
 pub fn is_tesseract_available() -> bool {
-    Command::new("tesseract")
+    tesseract_version().is_some()
+}
+
+pub fn tesseract_version() -> Option<String> {
+    let tesseract = tesseract_path()?;
+    Command::new(tesseract)
         .arg("--version")
         .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| s.lines().next().map(|l| l.to_owned()))
 }

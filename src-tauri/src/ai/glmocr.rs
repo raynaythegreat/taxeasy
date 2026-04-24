@@ -142,13 +142,15 @@ fn read_ollama_url(state: &tauri::State<'_, AppState>) -> String {
         .unwrap_or_else(|_| def.to_owned())
     };
 
-    match db {
+    let url = match db {
         Some(d) => {
             let conn = d.conn();
             get(conn, "ollama_url", "http://localhost:11434")
         }
         None => "http://localhost:11434".into(),
-    }
+    };
+
+    crate::ai::lmstudio::normalize_ollama_url(&url)
 }
 
 async fn resolve_glmocr_model(url: &str) -> Result<String> {

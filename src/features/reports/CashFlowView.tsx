@@ -1,6 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3 } from "lucide-react";
-import { EmptyState } from "../../components/ui/EmptyState";
 import { lastDayOf } from "../../lib/date-utils";
 import { useI18n } from "../../lib/i18n";
 import { type CashFlowLineItem, getCashFlow } from "../../lib/tauri";
@@ -81,23 +79,6 @@ export function CashFlowView({
     data.investing_activities.length === 0 &&
     data.financing_activities.length === 0;
 
-  if (isEmpty) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <EmptyState
-          icon={<BarChart3 className="w-6 h-6" />}
-          title={t("No activity in this period")}
-          description={t(
-            "There are no cash flow transactions recorded for the selected date range.",
-          )}
-          action={
-            onChangePeriod ? { label: t("Change period"), onClick: onChangePeriod } : undefined
-          }
-        />
-      </div>
-    );
-  }
-
   const netChangeNum = parseFloat(data.net_change_in_cash);
   const netChangeColor = netChangeNum >= 0 ? "text-green-700" : "text-red-600";
 
@@ -110,6 +91,21 @@ export function CashFlowView({
           {formatDate(dateFrom)} &ndash; {formatDate(lastDayOf(dateTo))}
         </p>
       </div>
+
+      {isEmpty && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 print:hidden">
+          {t("There are no cash flow transactions recorded for the selected date range.")}
+          {onChangePeriod && (
+            <button
+              type="button"
+              onClick={onChangePeriod}
+              className="ml-2 font-medium text-blue-600 hover:text-blue-700"
+            >
+              {t("Change period")}
+            </button>
+          )}
+        </div>
+      )}
 
       <SubtotalRow label={t("Net Income")} amount={data.net_income} />
 

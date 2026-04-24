@@ -11,6 +11,19 @@ export default defineConfig(async () => ({
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   clearScreen: false,
+  build: {
+    target: "es2021",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          charts: ["recharts"],
+          markdown: ["react-markdown", "remark-gfm"],
+        },
+      },
+    },
+  },
+
   server: {
     port: 1420,
     strictPort: true,
