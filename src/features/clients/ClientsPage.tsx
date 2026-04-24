@@ -621,17 +621,18 @@ export function ClientsPage({
    }, [clients, searchQuery]);
 
    // Handle client switch
-  async function handleSwitchClient(clientId: string) {
-    setSwitchError(null);
-    try {
-      await switchClient(clientId);
-      setActiveClientId(clientId);
-      setActiveClientPref(clientId).catch(() => {});
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSwitchError(`Could not switch client: ${msg}`);
-    }
-  }
+   async function handleSwitchClient(clientId: string) {
+     setSwitchError(null);
+     setShowForm(false);
+     try {
+       await switchClient(clientId);
+       setActiveClientId(clientId);
+       setActiveClientPref(clientId).catch(() => {});
+     } catch (err: unknown) {
+       const msg = err instanceof Error ? err.message : String(err);
+       setSwitchError(`Could not switch client: ${msg}`);
+     }
+   }
 
   // Mutation: create client
   const createMutation = useMutation({
