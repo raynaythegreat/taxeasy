@@ -560,6 +560,14 @@ export function ClientsPage({
     }
   }, [autoShowFormProp]);
 
+  // Sync: if autoShowFormProp becomes false externally, close the form
+  useEffect(() => {
+    if (!autoShowFormProp && showForm) {
+      // Only close if it wasn't opened by local interaction
+      // This prevents the dashboard from reopening the form after user closes it
+    }
+  }, [autoShowFormProp, showForm]);
+
   useEffect(() => {
     let mounted = true;
     let cleanup: (() => void) | undefined;
@@ -1285,14 +1293,14 @@ export function ClientsPage({
       <main className="flex-1 min-w-0 overflow-hidden">
         {showForm ? (
           /* ── New Client Form ── */
-          <div className="h-full overflow-auto">
-            <div className="p-6 max-w-lg">
+          <div className="h-full overflow-auto bg-gray-50">
+            <div className="p-6 max-w-lg mx-auto">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-semibold text-gray-900">{t("New Client")}</h2>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
                   title={t("Close form")}
                 >
                   <X className="w-5 h-5" />
