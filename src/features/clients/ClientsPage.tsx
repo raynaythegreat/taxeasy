@@ -1330,9 +1330,9 @@ export function ClientsPage({
                 noValidate
                 className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5"
               >
-                {/* Client Type Toggle */}
-                <div>
-                  <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              {/* Client Type Toggle */}
+              <div>
+                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => updateField("entity_type", "i1040")}
@@ -1628,164 +1628,206 @@ export function ClientsPage({
           />
         ) : (
           /* ── No client selected — show create form + drop zone ── */
-          <div className="flex flex-col h-full items-center justify-center bg-gray-50/50 p-6">
-            <div className="w-full max-w-lg">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 mb-3">
-                  <Users className="w-6 h-6 text-blue-600" />
+          <div className="flex flex-col h-full overflow-hidden bg-gray-50/50">
+            <div className="flex-1 overflow-auto p-6">
+              <div className="mx-auto max-w-2xl space-y-5">
+                {/* Header */}
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-100 mb-3">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Welcome to Taxeasy</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Select a client or create a new one
+                  </p>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">Welcome to Taxeasy</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Create a new client or drag and drop folders to import in bulk
-                </p>
-              </div>
 
-               {importProgress && importProgress.operation === "bulk_import" && (
-                 <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                   <div className="flex items-start gap-3">
-                     <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin text-blue-600" />
-                     <div className="min-w-0 flex-1">
-                       <p className="text-sm font-semibold text-gray-900">
-                         {t("Importing folders")}
-                       </p>
-                       {importProgress.clientName && (
-                         <p className="mt-1 text-sm text-gray-600">
-                           {t("Processing {client}", { client: importProgress.clientName })}
-                         </p>
-                       )}
-                       {getProgressPercent(importProgress) !== null && (
-                         <div className="mt-3 h-2 rounded-full bg-gray-100">
-                           <div
-                             className="h-2 rounded-full bg-blue-600 transition-all duration-300"
-                             style={{ width: `${getProgressPercent(importProgress)}%` }}
-                           />
-                         </div>
-                       )}
-                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-                         {typeof importProgress.current === "number" &&
-                           typeof importProgress.total === "number" && (
-                             <span>
-                               {t("{current} of {total}", {
-                                 current: String(importProgress.current),
-                                 total: String(importProgress.total),
-                               })}
-                             </span>
-                           )}
-                         {typeof importProgress.importedCount === "number" && (
-                           <span>
-                             {t("{count} imported", {
-                               count: String(importProgress.importedCount),
-                             })}
-                           </span>
-                         )}
-                         {typeof importProgress.skippedCount === "number" && (
-                           <span>
-                             {t("{count} skipped", {
-                               count: String(importProgress.skippedCount),
-                             })}
-                           </span>
-                         )}
-                         {typeof importProgress.failedCount === "number" && (
-                           <span>
-                             {t("{count} failed", {
-                               count: String(importProgress.failedCount),
-                             })}
-                           </span>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-               )}
+                {/* Existing Clients */}
+                {clients && clients.length > 0 && (
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700">
+                        {t("Existing Clients")} ({clients.length})
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForm(true);
+                          setTimeout(() => nameInputRef.current?.focus(), 50);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        + {t("New Client")}
+                      </button>
+                    </div>
+                    <div className="space-y-1.5 max-h-[320px] overflow-auto pr-1">
+                      {clients.map((client) => {
+                        const filingStatus = filingStatuses[client.id] || "not_started";
+                        const initials = client.name
+                          .split(/\s+/)
+                          .map((w) => w[0])
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase() || "?";
+                        return (
+                          <button
+                            key={client.id}
+                            type="button"
+                            onClick={async () => {
+                              await handleSwitchClient(client.id);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all text-left"
+                          >
+                            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0 shadow-sm">
+                              {initials}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {client.name}
+                                </p>
+                                <EntityBadge type={client.entity_type} />
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold leading-4",
+                                    FILING_STATUS_COLORS[filingStatus],
+                                  )}
+                                >
+                                  {t(FILING_STATUS_LABELS[filingStatus])}
+                                </span>
+                                {client.ein && (
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    EIN: ••••{client.ein.slice(-4)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-               <section
-                 className={cn(
-                   "rounded-xl border-2 border-dashed p-6 transition-all",
-                   isDragging
-                     ? "border-blue-500 bg-blue-50/50"
-                     : "border-gray-300 bg-white hover:border-gray-400",
-                 )}
-                 onDragOver={handleDragOver}
-                 onDragLeave={handleDragLeave}
-                 onDrop={handleDrop}
-                 aria-label="Drop zone for folder import"
-               >
-                 {isDragging ? (
-                   <div className="text-center py-4">
-                     <FolderSearch className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-                     <p className="text-sm font-semibold text-gray-900">
-                       Drop folders to import clients
-                     </p>
-                     <p className="text-xs text-gray-500 mt-1">
-                       Each folder becomes a new client with all its files
-                     </p>
-                   </div>
-                 ) : (
-                   <div className="text-center py-4">
-                     <FolderSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                     <p className="text-sm font-medium text-gray-600">
-                       Drag &amp; drop client folders here
-                     </p>
-                     <p className="text-xs text-gray-400 mt-1">
-                       Or create a client manually below
-                     </p>
-                     <button
-                       type="button"
-                       onClick={handleImportFolders}
-                       className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                     >
-                       <FolderSearch className="w-3.5 h-3.5" />
-                       {t("Browse Folders")}
-                     </button>
-                   </div>
-                 )}
-               </section>
+                {/* Divider */}
+                {clients && clients.length > 0 && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      or add a new client
+                    </span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                )}
 
-               {(() => {
-                 const recent = getRecentImports();
-                 return recent.length > 0 ? (
-                   <div className="mt-4">
-                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                       {t("Recently Imported")}
-                     </h3>
-                     <div className="space-y-2">
-                       {recent.map((item) => (
-                         <div
-                           key={item.id}
-                           className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2"
-                         >
-                           <div className="min-w-0 flex-1">
-                             <p className="text-sm font-medium text-gray-900 truncate">
-                               {item.name}
-                             </p>
-                             <EntityBadge type={item.entityType} />
-                           </div>
-                           <button
-                             type="button"
-                             onClick={async () => {
-                               await handleSwitchClient(item.id);
-                             }}
-                             className="ml-3 shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
-                           >
-                             {t("Open")}
-                           </button>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
-                 ) : null;
-               })()}
+                {/* Drop Zone */}
+                {importProgress && importProgress.operation === "bulk_import" && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin text-blue-600" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {t("Importing folders")}
+                        </p>
+                        {importProgress.clientName && (
+                          <p className="mt-1 text-sm text-gray-600">
+                            {t("Processing {client}", { client: importProgress.clientName })}
+                          </p>
+                        )}
+                        {getProgressPercent(importProgress) !== null && (
+                          <div className="mt-3 h-2 rounded-full bg-gray-100">
+                            <div
+                              className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+                              style={{ width: `${getProgressPercent(importProgress)}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                          {typeof importProgress.current === "number" &&
+                            typeof importProgress.total === "number" && (
+                              <span>
+                                {t("{current} of {total}", {
+                                  current: String(importProgress.current),
+                                  total: String(importProgress.total),
+                                })}
+                              </span>
+                            )}
+                          {typeof importProgress.importedCount === "number" && (
+                            <span>
+                              {t("{count} imported", {
+                                count: String(importProgress.importedCount),
+                              })}
+                            </span>
+                          )}
+                          {typeof importProgress.skippedCount === "number" && (
+                            <span>
+                              {t("{count} skipped", {
+                                count: String(importProgress.skippedCount),
+                              })}
+                            </span>
+                          )}
+                          {typeof importProgress.failedCount === "number" && (
+                            <span>
+                              {t("{count} failed", {
+                                count: String(importProgress.failedCount),
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-               <div className="mt-6 flex items-center gap-4">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  or create manually
-                </span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
+                <section
+                  className={cn(
+                    "rounded-xl border-2 border-dashed p-6 transition-all",
+                    isDragging
+                      ? "border-blue-500 bg-blue-50/50"
+                      : "border-gray-300 bg-white hover:border-gray-400",
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  aria-label="Drop zone for folder import"
+                >
+                  {isDragging ? (
+                    <div className="text-center py-4">
+                      <FolderSearch className="w-12 h-12 text-blue-500 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-900">
+                        Drop folders to import clients
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Each folder becomes a new client with all its files
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <FolderSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-600">
+                        Drag &amp; drop client folders here
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Or create a client manually below
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleImportFolders}
+                        className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <FolderSearch className="w-3.5 h-3.5" />
+                        {t("Browse Folders")}
+                      </button>
+                    </div>
+                  )}
+                </section>
 
-              {/* Client Type Toggle */}
-              <div className="mt-4">
+                {/* Client Type Toggle */}
+                <div>
                 <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                   <button
                     type="button"
@@ -1988,6 +2030,7 @@ export function ClientsPage({
               </div>
             </div>
           </div>
+        </div>
         )}
       </main>
 
