@@ -555,18 +555,16 @@ export function ClientsPage({
   }, [initialized, initialClientId]);
 
   useEffect(() => {
+    console.log("[ClientsPage] autoShowFormProp:", autoShowFormProp);
     if (autoShowFormProp) {
       setShowForm(true);
     }
   }, [autoShowFormProp]);
 
-  // Sync: if autoShowFormProp becomes false externally, close the form
+  // Debug: log showForm changes
   useEffect(() => {
-    if (!autoShowFormProp && showForm) {
-      // Only close if it wasn't opened by local interaction
-      // This prevents the dashboard from reopening the form after user closes it
-    }
-  }, [autoShowFormProp, showForm]);
+    console.log("[ClientsPage] showForm changed to:", showForm, "autoShowFormProp:", autoShowFormProp, "activeClientId:", activeClientId);
+  }, [showForm, autoShowFormProp, activeClientId]);
 
   useEffect(() => {
     let mounted = true;
@@ -1290,28 +1288,38 @@ export function ClientsPage({
       </button>
 
       {/* Main content area */}
-      <main className="flex-1 min-w-0 overflow-hidden">
+      <main className="flex-1 min-w-0 overflow-hidden" data-showform={showForm}>
+        {/* Debug indicator — remove after fixing */}
+        <div className="fixed top-2 right-2 z-[9999] bg-black text-white text-xs px-2 py-1 rounded font-mono">
+          showForm={String(showForm)} active={String(!!activeClientId)} autoShow={String(autoShowFormProp)}
+        </div>
         {showForm ? (
           /* ── New Client Form ── */
-          <div className="h-full overflow-auto bg-gray-50">
-            <div className="p-6 max-w-lg mx-auto">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-semibold text-gray-900">{t("New Client")}</h2>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-                  title={t("Close form")}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+          <div className="h-full overflow-auto bg-gray-50 flex items-start justify-center pt-8">
+            <div className="w-full max-w-lg px-4">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{t("New Client")}</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {t("Choose your client type and fill in the details")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    title={t("Close form")}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <form
-                onSubmit={handleSubmit}
-                noValidate
-                className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5"
-              >
+                <form
+                  onSubmit={handleSubmit}
+                  noValidate
+                  className="space-y-5"
+                >
               {/* Client Type Toggle */}
               <div>
                 <div className="flex rounded-lg border border-gray-300 overflow-hidden">
@@ -1601,6 +1609,7 @@ export function ClientsPage({
                   </button>
                 </div>
               </form>
+              </div>
             </div>
           </div>
         ) : activeClientId && clients?.find((c) => c.id === activeClientId) ? (
