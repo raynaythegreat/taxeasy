@@ -561,12 +561,6 @@ export function ClientsPage({
   }, [autoShowFormProp]);
 
   useEffect(() => {
-    if (!activeClientId && !showForm && !initialized) {
-      setShowForm(true);
-    }
-  }, [activeClientId, showForm, initialized]);
-
-  useEffect(() => {
     let mounted = true;
     let cleanup: (() => void) | undefined;
 
@@ -1134,7 +1128,6 @@ export function ClientsPage({
                     .slice(0, 2)
                     .join("")
                     .toUpperCase() || "?";
-                const filingStatus = filingStatuses[client.id] ?? "not_started";
                 if (sidebarCollapsed) {
                   return (
                     <li key={client.id} className="flex justify-center py-1">
@@ -1142,7 +1135,7 @@ export function ClientsPage({
                         type="button"
                         onClick={() => handleSwitchClient(client.id)}
                         className={cn(
-                          "flex items-center justify-center p-1.5 rounded-lg transition-colors focus:outline-none relative",
+                          "flex items-center justify-center p-1.5 rounded-lg transition-colors focus:outline-none",
                           isActive ? "bg-blue-100" : "hover:bg-gray-100",
                         )}
                         title={client.name}
@@ -1157,18 +1150,6 @@ export function ClientsPage({
                         >
                           {initials}
                         </span>
-                        {filingStatus !== "not_started" && (
-                          <span
-                            className={cn(
-                              "absolute bottom-1.5 right-1/2 translate-x-[14px] w-2 h-2 rounded-full",
-                              filingStatus === "accepted"
-                                ? "bg-emerald-500"
-                                : filingStatus === "filed"
-                                  ? "bg-blue-500"
-                                  : "bg-amber-500",
-                            )}
-                          />
-                        )}
                       </button>
                     </li>
                   );
@@ -1200,18 +1181,13 @@ export function ClientsPage({
                             >
                               {client.name}
                             </span>
-                            <span
-                              className={cn(
-                                "shrink-0 inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold leading-4",
-                                FILING_STATUS_COLORS[filingStatus],
-                              )}
-                            >
-                              {t(FILING_STATUS_LABELS[filingStatus])}
-                            </span>
                           </div>
                           <EntityBadge type={client.entity_type} />
                         </div>
                       </button>
+                      {(() => {
+                        const filingStatus = filingStatuses[client.id] ?? "not_started";
+                        return (
                       <div className="flex shrink-0 items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                         <button
                           type="button"
@@ -1228,26 +1204,11 @@ export function ClientsPage({
                             void handleResyncClient(client).catch(() => {});
                           }}
                           disabled={resyncMutation.isPending || !client.source_folder_path}
-                          className="rounded p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={
-                            client.source_folder_path
-                              ? t("Re-sync Folder")
-                              : t("No source folder saved")
-                          }
-                          aria-label={
-                            client.source_folder_path
-                              ? t("Re-sync Folder")
-                              : t("No source folder saved")
-                          }
+                          className="rounded p-1 text-gray-400 hover:bg-purple-50 hover:text-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-30"
+                          title={t("Re-sync source folder")}
+                          aria-label={t("Re-sync source folder")}
                         >
-                          <RefreshCw
-                            className={cn(
-                              "w-3.5 h-3.5",
-                              resyncMutation.isPending && resyncMutation.variables?.id === client.id
-                                ? "animate-spin"
-                                : "",
-                            )}
-                          />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
@@ -1282,13 +1243,15 @@ export function ClientsPage({
                         <button
                           type="button"
                           onClick={() => setArchivingClient(client)}
-                          className="rounded p-1 text-gray-400 hover:bg-amber-50 hover:text-amber-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           title={t("Archive client")}
                           aria-label={t("Archive client")}
                         >
                           <Archive className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                        );
+                      })()}
                     </div>
                   </li>
                 );
@@ -1320,16 +1283,21 @@ export function ClientsPage({
 
       {/* Main content area */}
       <main className="flex-1 min-w-0 overflow-hidden">
-        {activeClientId && clients?.find((c) => c.id === activeClientId) ? (
-          <ClientWorkspace
-            client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
-            initialTab={initialTab}
-          />
-        ) : showForm ? (
+        {showForm ? (
           /* ── New Client Form ── */
           <div className="h-full overflow-auto">
             <div className="p-6 max-w-lg">
-              <h2 className="text-lg font-semibold text-gray-900 mb-5">{t("New Client")}</h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold text-gray-900">{t("New Client")}</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  title={t("Close form")}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
               <form
                 onSubmit={handleSubmit}
@@ -1627,6 +1595,11 @@ export function ClientsPage({
               </form>
             </div>
           </div>
+        ) : activeClientId && clients?.find((c) => c.id === activeClientId) ? (
+          <ClientWorkspace
+            client={clients.find((c) => c.id === activeClientId) ?? clients[0]}
+            initialTab={initialTab}
+          />
         ) : (
           /* ── No client selected — show create form + drop zone ── */
           <div className="flex flex-col h-full overflow-hidden bg-gray-50/50">
