@@ -59,6 +59,8 @@ pub fn run() {
             commands::backup::restore_database,
             commands::settings::get_settings,
             commands::settings::save_settings,
+            commands::settings::get_ocr_engines_status,
+            commands::settings::test_ocr_with_vision,
             commands::files::list_dir_files,
             ai::ollama::ollama_health,
             ai::ollama::check_ai_health_with_url,

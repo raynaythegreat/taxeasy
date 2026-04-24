@@ -41,7 +41,8 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const ai = useAiSettings();
   const [ocrAutoPostThreshold, setOcrAutoPostThreshold] = useState(0.7);
-  const [ocrEngine, setOcrEngine] = useState<"glm-ocr" | "tesseract" | "surya">("glm-ocr");
+  const [ocrEngine, setOcrEngine] = useState<"auto" | "glm-ocr" | "tesseract" | "surya">("auto");
+  const [ocrVisionVerification, setOcrVisionVerification] = useState(true);
 
   useEffect(() => {
     getAppVersion()
@@ -71,7 +72,10 @@ export function SettingsPage(_props: { onBack?: () => void }) {
       setOcrAutoPostThreshold(settings.ocr_auto_post_threshold);
     }
     if (settings.ocr_engine) {
-      setOcrEngine(settings.ocr_engine as "glm-ocr" | "tesseract" | "surya");
+      setOcrEngine(settings.ocr_engine as "auto" | "glm-ocr" | "tesseract" | "surya");
+    }
+    if (settings.ocr_vision_verification !== undefined) {
+      setOcrVisionVerification(settings.ocr_vision_verification);
     }
     didHydrateFromSettings.current = true;
   }, [settings, setTheme, ai.initFromSettings]);
@@ -222,6 +226,8 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               onOcrThresholdChange={setOcrAutoPostThreshold}
               ocrEngine={ocrEngine}
               onOcrEngineChange={setOcrEngine}
+              ocrVisionVerification={ocrVisionVerification}
+              onOcrVisionVerificationChange={setOcrVisionVerification}
               onSave={(partial) => saveMutation.mutate(partial)}
             />
           )}

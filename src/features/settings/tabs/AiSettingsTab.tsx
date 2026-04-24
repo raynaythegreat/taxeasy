@@ -14,9 +14,10 @@ import { cn } from "../../../lib/utils";
 
 type AiProvider = "ollama" | "lmstudio" | "bonsai" | "bitnet";
 
-type OcrEngine = "glm-ocr" | "tesseract" | "surya";
+type OcrEngine = "auto" | "glm-ocr" | "tesseract" | "surya";
 
 const OCR_ENGINES: { value: OcrEngine; label: string; description: string }[] = [
+  { value: "auto", label: "Auto", description: "AI chooses best engine, verifies with vision model" },
   {
     value: "glm-ocr",
     label: "GLM-OCR",
@@ -113,6 +114,7 @@ export interface AiSettingsTabProps {
   saving: boolean;
   ocrAutoPostThreshold: number;
   ocrEngine: OcrEngine;
+  ocrVisionVerification: boolean;
   onProviderChange: (p: AiProvider) => void;
   onUrlChange: (url: string) => void;
   onModelChange: (model: string) => void;
@@ -122,6 +124,7 @@ export interface AiSettingsTabProps {
   onSave: (partial: SaveSettingsPayload) => void;
   onOcrThresholdChange: (value: number) => void;
   onOcrEngineChange: (engine: OcrEngine) => void;
+  onOcrVisionVerificationChange: (value: boolean) => void;
 }
 
 export function AiSettingsTab({
@@ -149,6 +152,7 @@ export function AiSettingsTab({
   saving,
   ocrAutoPostThreshold,
   ocrEngine,
+  ocrVisionVerification,
   onProviderChange,
   onUrlChange,
   onModelChange,
@@ -158,6 +162,7 @@ export function AiSettingsTab({
   onSave,
   onOcrThresholdChange,
   onOcrEngineChange,
+  onOcrVisionVerificationChange,
 }: AiSettingsTabProps) {
   const { t } = useI18n();
 
@@ -407,6 +412,54 @@ export function AiSettingsTab({
           ))}
         </div>
 
+        {/* Vision verification toggle */}
+        <div className="flex items-center gap-3 pt-2">
+          <input
+            type="checkbox"
+            id="vision-verify-all"
+            checked={ocrVisionVerification}
+            onChange={(e) => onOcrVisionVerificationChange(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="vision-verify-all" className="text-sm text-gray-700">
+            Use AI vision model to verify and correct OCR results
+          </label>
+        </div>
+        <p className="text-xs text-gray-500 -mt-1">
+          After OCR extraction, the vision model reviews the image to catch missed text, wrong amounts, or formatting errors.
+          Adds ~5-10 seconds per document but significantly improves accuracy.
+        </p>
+
+        {/* Auto mode info */}
+        {ocrEngine === "auto" && (
+          <div className="mt-4 bg-indigo-50 rounded-lg border border-indigo-200 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
+                <Cpu className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-900">Smart OCR Selection</p>
+                <p className="text-xs text-indigo-700 mt-1">
+                  Automatically selects the best OCR engine based on availability and document type.
+                  Priority: GLM-OCR (vision LLM) → Surya (layout detection) → Tesseract (fast text).
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="vision-verify"
+                checked={ocrVisionVerification}
+                onChange={(e) => onOcrVisionVerificationChange(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label htmlFor="vision-verify" className="text-xs text-indigo-700">
+                Use AI vision model to verify and correct OCR results (improves accuracy)
+              </label>
+            </div>
+          </div>
+        )}
+
         {/* GLM-OCR specifics */}
         {ocrEngine === "glm-ocr" && (
           <div className="mt-4 bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
@@ -578,6 +631,7 @@ export function AiSettingsTab({
               bitnet_model: bitnetModel,
               ocr_auto_post_threshold: ocrAutoPostThreshold,
               ocr_engine: ocrEngine,
+              ocr_vision_verification: ocrVisionVerification,
             })
           }
           disabled={saving}

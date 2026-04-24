@@ -11,13 +11,15 @@ export interface AppSettings {
   bitnet_url: string;
   bitnet_model: string;
   glmocr_path: string;
-  /** OCR engine: "glm-ocr", "tesseract", or "surya" */
+  /** OCR engine: "auto", "glm-ocr", "tesseract", or "surya" */
   ocr_engine: string;
   theme: string;
   default_export_path: string;
   app_pin: string;
   /** Minimum OCR confidence (0–1) required before a draft can be auto-posted. Default 0.7. */
   ocr_auto_post_threshold: number;
+  /** Whether to use AI vision model to verify and correct OCR results. Default true. */
+  ocr_vision_verification: boolean;
 }
 
 export interface SaveSettingsPayload {
@@ -31,12 +33,14 @@ export interface SaveSettingsPayload {
   bitnet_url?: string;
   bitnet_model?: string;
   glmocr_path?: string;
-  /** OCR engine: "glm-ocr", "tesseract", or "surya" */
+  /** OCR engine: "auto", "glm-ocr", "tesseract", or "surya" */
   ocr_engine?: string;
   theme?: string;
   default_export_path?: string;
   app_pin?: string;
   ocr_auto_post_threshold?: number;
+  /** Whether to use AI vision model to verify and correct OCR results. */
+  ocr_vision_verification?: boolean;
 }
 
 export async function getSettings(): Promise<AppSettings> {
@@ -99,4 +103,22 @@ export async function glmocrCheckAvailable(url?: string): Promise<boolean> {
 
 export async function getGlmocrStatus(url?: string): Promise<GlmOcrStatus> {
   return invoke("glmocr_status", { url: url ?? null });
+}
+
+export interface OcrEngineStatus {
+  engine: string;
+  available: boolean;
+  version?: string;
+  message: string;
+}
+
+export async function getOcrEnginesStatus(): Promise<OcrEngineStatus[]> {
+  return invoke("get_ocr_engines_status");
+}
+
+export async function testOcrWithVision(
+  filePath: string,
+  engine: string,
+): Promise<{ data: any; confidence: any; engineUsed: string; wasVerified: boolean }> {
+  return invoke("test_ocr_with_vision", { filePath, engine });
 }

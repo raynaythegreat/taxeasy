@@ -6,5 +6,8 @@ pub mod glmocr;
 pub mod lmstudio;
 pub mod ocr_pipeline;
 pub mod ollama;
+pub mod smart_ocr;
 pub mod streaming;
+pub mod surya;
+pub mod tesseract;
 pub mod tools;

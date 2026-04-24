@@ -20,11 +20,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     bitnet_url: "http://localhost:8090",
     bitnet_model: "",
     glmocr_path: "",
-    ocr_engine: "glm-ocr",
+    ocr_engine: "auto",
     theme: "system",
     default_export_path: "",
     app_pin: "",
     ocr_auto_post_threshold: 0.7,
+    ocr_vision_verification: true,
   });
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
