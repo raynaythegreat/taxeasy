@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use super::super::schedule_c::*;
-    use crate::state::{AppState, ActiveClient};
     use crate::db::{ClientDb, OwnerDb};
+    use crate::state::{ActiveClient, AppState};
     use rusqlite::Connection;
-    use tempfile::tempdir;
     use std::path::PathBuf;
+    use tempfile::tempdir;
 
     fn setup_test_db() -> (Connection, AppState, PathBuf) {
         let dir = tempdir().unwrap();
@@ -24,7 +24,8 @@ mod tests {
 
         // Create ClientDb (runs migrations internally)
         let client_id = "test-client-uuid";
-        let client_db = ClientDb::open(db_path.to_str().unwrap(), client_id, "test-passphrase").unwrap();
+        let client_db =
+            ClientDb::open(db_path.to_str().unwrap(), client_id, "test-passphrase").unwrap();
 
         // Seed test accounts for Schedule C mapping tests
         client_db.conn().execute_batch(
@@ -39,7 +40,10 @@ mod tests {
         ).unwrap();
 
         // Force checkpoint to ensure WAL changes are visible to new connections
-        client_db.conn().execute_batch("PRAGMA wal_checkpoint(TRUNCATE);").unwrap();
+        client_db
+            .conn()
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .unwrap();
 
         *state.active_client.lock().unwrap() = Some(ActiveClient {
             client_id: client_id.to_string(),
@@ -51,7 +55,8 @@ mod tests {
         let raw_key = crate::db::encryption::client_db_key("test-passphrase", client_id).unwrap();
         let hex_key = crate::db::encryption::sqlcipher_hex_key(&raw_key);
         let conn = Connection::open(&db_path).unwrap();
-        conn.execute_batch(&format!("PRAGMA key = \"{hex_key}\";")).unwrap();
+        conn.execute_batch(&format!("PRAGMA key = \"{hex_key}\";"))
+            .unwrap();
 
         (conn, state, db_path)
     }
@@ -106,18 +111,18 @@ mod tests {
             "line_25".to_string(),
             None,
             &state,
-        ).unwrap();
+        )
+        .unwrap();
 
-        let result = delete_schedule_c_mapping_impl(
-            created.id.clone(),
-            None,
-            &state,
-        );
+        let result = delete_schedule_c_mapping_impl(created.id.clone(), None, &state);
 
         assert!(result.is_ok());
 
         // Verify deletion through client_db connection
-        let count: i64 = state.active_client.lock().unwrap()
+        let count: i64 = state
+            .active_client
+            .lock()
+            .unwrap()
             .as_ref()
             .unwrap()
             .db
@@ -148,10 +153,7 @@ mod tests {
             &state,
         );
 
-        let result = list_schedule_c_mappings_impl(
-            None,
-            &state,
-        );
+        let result = list_schedule_c_mappings_impl(None, &state);
 
         assert!(result.is_ok());
         let mappings = result.unwrap();
@@ -193,7 +195,10 @@ mod tests {
         let result = calculate_schedule_c_summary_impl(2024, None, &state);
 
         if let Err(ref e) = result {
-            eprintln!("ERROR calculate_schedule_c_summary_filters_by_date: {:?}", e);
+            eprintln!(
+                "ERROR calculate_schedule_c_summary_filters_by_date: {:?}",
+                e
+            );
         }
         assert!(result.is_ok());
         let summary = result.unwrap();

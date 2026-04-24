@@ -92,7 +92,11 @@ fn add_months(d: NaiveDate, months: u32) -> NaiveDate {
 
 fn days_in_month(year: i32, month: u32) -> u32 {
     // First day of the next month minus one day.
-    let (y, m) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
+    let (y, m) = if month == 12 {
+        (year + 1, 1)
+    } else {
+        (year, month + 1)
+    };
     NaiveDate::from_ymd_opt(y, m, 1)
         .and_then(|d| d.pred_opt())
         .map(|d| d.day())
@@ -296,15 +300,22 @@ pub(crate) fn run_due_on_conn(conn: &rusqlite::Connection) -> usize {
     let due: Vec<RecurringTransaction> = {
         let mut stmt = match conn.prepare(&sql) {
             Ok(s) => s,
-            Err(e) => { log::warn!("recurring auto-run: prepare: {e}"); return 0; }
+            Err(e) => {
+                log::warn!("recurring auto-run: prepare: {e}");
+                return 0;
+            }
         };
         stmt.query_map(rusqlite::params![today], row_to_recurring)
             .map(|rows| rows.filter_map(|r| r.ok()).collect())
             .unwrap_or_default()
     };
-    if due.is_empty() { return 0; }
+    if due.is_empty() {
+        return 0;
+    }
 
-    if conn.execute_batch("BEGIN").is_err() { return 0; }
+    if conn.execute_batch("BEGIN").is_err() {
+        return 0;
+    }
     let now = chrono::Utc::now().to_rfc3339();
     let mut created = 0usize;
     let ok = (|| -> crate::error::Result<()> {
@@ -342,7 +353,11 @@ pub(crate) fn run_due_on_conn(conn: &rusqlite::Connection) -> usize {
                 rusqlite::params![audit_id, txn_id, after_json],
             )?;
             if let Some(next) = next_date(&rec.next_run_date, &rec.frequency) {
-                let deactivate = rec.end_date.as_ref().map(|ed| next.as_str() > ed.as_str()).unwrap_or(false);
+                let deactivate = rec
+                    .end_date
+                    .as_ref()
+                    .map(|ed| next.as_str() > ed.as_str())
+                    .unwrap_or(false);
                 conn.execute(
                     "UPDATE recurring_transactions SET next_run_date=?1, active=?2, updated_at=?3 WHERE id=?4",
                     rusqlite::params![next, if deactivate { 0i32 } else { 1i32 }, now, rec.id],
@@ -358,8 +373,15 @@ pub(crate) fn run_due_on_conn(conn: &rusqlite::Connection) -> usize {
         Ok(())
     })();
     match ok {
-        Ok(()) => { let _ = conn.execute_batch("COMMIT"); created }
-        Err(e) => { log::warn!("recurring auto-run: rollback: {e}"); let _ = conn.execute_batch("ROLLBACK"); 0 }
+        Ok(()) => {
+            let _ = conn.execute_batch("COMMIT");
+            created
+        }
+        Err(e) => {
+            log::warn!("recurring auto-run: rollback: {e}");
+            let _ = conn.execute_batch("ROLLBACK");
+            0
+        }
     }
 }
 
@@ -454,7 +476,12 @@ pub fn run_due_recurring(state: tauri::State<AppState>) -> Result<RunDueResult> 
                     "UPDATE recurring_transactions
                      SET next_run_date = ?1, active = ?2, updated_at = ?3
                      WHERE id = ?4",
-                    params![next, if should_deactivate { 0i32 } else { 1i32 }, now, rec.id],
+                    params![
+                        next,
+                        if should_deactivate { 0i32 } else { 1i32 },
+                        now,
+                        rec.id
+                    ],
                 )?;
             } else {
                 // Can't advance — deactivate.
@@ -495,24 +522,36 @@ mod tests {
 
     #[test]
     fn next_date_monthly_normal() {
-        assert_eq!(next_date("2024-03-15", "monthly"), Some("2024-04-15".into()));
+        assert_eq!(
+            next_date("2024-03-15", "monthly"),
+            Some("2024-04-15".into())
+        );
     }
 
     #[test]
     fn next_date_monthly_month_end_clamp() {
         // Jan 31 + 1 month → Feb 29 (2024 is leap year)
-        assert_eq!(next_date("2024-01-31", "monthly"), Some("2024-02-29".into()));
+        assert_eq!(
+            next_date("2024-01-31", "monthly"),
+            Some("2024-02-29".into())
+        );
     }
 
     #[test]
     fn next_date_monthly_non_leap_clamp() {
         // Jan 31 + 1 month on 2023 (non-leap) → Feb 28
-        assert_eq!(next_date("2023-01-31", "monthly"), Some("2023-02-28".into()));
+        assert_eq!(
+            next_date("2023-01-31", "monthly"),
+            Some("2023-02-28".into())
+        );
     }
 
     #[test]
     fn next_date_quarterly() {
-        assert_eq!(next_date("2024-01-15", "quarterly"), Some("2024-04-15".into()));
+        assert_eq!(
+            next_date("2024-01-15", "quarterly"),
+            Some("2024-04-15".into())
+        );
     }
 
     #[test]

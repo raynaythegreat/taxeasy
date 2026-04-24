@@ -7,6 +7,7 @@ export interface TaxDocument {
   filePath: string;
   fileSize: number;
   mimeType: string;
+  fileHash?: string | null;
   category: string;
   taxYear: number | null;
   description: string | null;
@@ -36,6 +37,7 @@ export interface AddDocumentPayload {
   filePath: string;
   fileSize: number;
   mimeType: string;
+  fileHash?: string;
   category?: string;
   taxYear?: number;
   description?: string;

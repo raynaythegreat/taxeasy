@@ -1,4 +1,6 @@
 pub mod agent;
+pub mod bonsai;
+pub mod bitnet;
 pub mod chat;
 pub mod glmocr;
 pub mod lmstudio;
@@ -6,4 +8,3 @@ pub mod ocr_pipeline;
 pub mod ollama;
 pub mod streaming;
 pub mod tools;
-

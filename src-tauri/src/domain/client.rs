@@ -114,6 +114,8 @@ pub struct Client {
     pub tax_preparer_notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filing_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_folder_path: Option<String>,
     pub fiscal_year_start_month: u8,
     pub accounting_method: AccountingMethod,
     pub archived_at: Option<DateTime<Utc>>,
@@ -138,6 +140,7 @@ pub struct CreateClientPayload {
     pub website: Option<String>,
     pub tax_preparer_notes: Option<String>,
     pub filing_notes: Option<String>,
+    pub source_folder_path: Option<String>,
     pub fiscal_year_start_month: Option<u8>,
     pub accounting_method: Option<AccountingMethod>,
 }

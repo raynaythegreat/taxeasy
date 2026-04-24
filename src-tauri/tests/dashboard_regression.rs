@@ -156,7 +156,8 @@ fn bug_demonstration_unfixed_query_leaks_out_of_range_entries() {
     insert_txn(&conn, "2024-02-01", &cash, &rev, 50_000, "draft");
 
     // The buggy query returns ALL entries regardless of the date filter
-    let (_, buggy_cr) = buggy_account_balance_for_period(&conn, "revenue", "2024-01-01", "2024-04-01");
+    let (_, buggy_cr) =
+        buggy_account_balance_for_period(&conn, "revenue", "2024-01-01", "2024-04-01");
     // Buggy: leaks Q3 and draft entries → 100_000 + 999_900 + 50_000 = 1_149_900
     assert_eq!(
         buggy_cr, 1_149_900,
@@ -182,7 +183,10 @@ fn q1_revenue_excludes_q3_and_draft_transactions() {
 
     // Revenue is credit-normal: cr > 0 when revenue earned
     let (_, cr) = account_balance_for_period(&conn, "revenue", "2024-01-01", "2024-04-01");
-    assert_eq!(cr, 100_000, "Q1 revenue must be exactly $1000 (100_000 cents)");
+    assert_eq!(
+        cr, 100_000,
+        "Q1 revenue must be exactly $1000 (100_000 cents)"
+    );
 }
 
 /// Q3 revenue should be exactly $9999 — not contaminated by Q1 transactions.
@@ -200,7 +204,10 @@ fn q3_revenue_excludes_q1_transactions() {
     insert_txn(&conn, "2024-02-01", &cash, &rev, 50_000, "draft");
 
     let (_, cr) = account_balance_for_period(&conn, "revenue", "2024-07-01", "2024-10-01");
-    assert_eq!(cr, 999_900, "Q3 revenue must be exactly $9999 (999_900 cents)");
+    assert_eq!(
+        cr, 999_900,
+        "Q3 revenue must be exactly $9999 (999_900 cents)"
+    );
 }
 
 /// Accounts with zero activity in the period must still appear (LEFT JOIN is correct).
@@ -242,7 +249,7 @@ fn multiple_account_types_filtered_independently_per_period() {
 
     // Q1: $1000 revenue, $200 expense
     insert_txn(&conn, "2024-02-01", &cash, &rev, 100_000, "posted"); // revenue credit
-    insert_txn(&conn, "2024-02-15", &exp, &cash, 20_000, "posted");   // expense debit
+    insert_txn(&conn, "2024-02-15", &exp, &cash, 20_000, "posted"); // expense debit
 
     // Q3: $5000 revenue, $800 expense — must not bleed into Q1
     insert_txn(&conn, "2024-08-01", &cash, &rev, 500_000, "posted");

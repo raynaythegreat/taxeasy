@@ -12,8 +12,7 @@ pub async fn log_error(
         .app_log_dir()
         .map_err(|e| format!("could not resolve log dir: {e}"))?;
 
-    std::fs::create_dir_all(&log_dir)
-        .map_err(|e| format!("could not create log dir: {e}"))?;
+    std::fs::create_dir_all(&log_dir).map_err(|e| format!("could not create log dir: {e}"))?;
 
     let log_path = log_dir.join("errors.log");
 

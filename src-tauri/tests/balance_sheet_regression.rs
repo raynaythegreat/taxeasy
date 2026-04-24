@@ -77,8 +77,8 @@ fn insert_txn(
 fn cash_balance_respects_as_of_date() {
     let conn = open_db();
 
-    let cash   = insert_account(&conn, "1010", "Cash",          "asset");
-    let equity = insert_account(&conn, "3010", "Owner's Equity","equity");
+    let cash = insert_account(&conn, "1010", "Cash", "asset");
+    let equity = insert_account(&conn, "3010", "Owner's Equity", "equity");
 
     // Transaction A: 2024-02-15, posted, $500 — should be included at Mar 31
     insert_txn(&conn, "2024-02-15", &cash, &equity, 50_000, "posted");
@@ -115,8 +115,8 @@ fn cash_balance_respects_as_of_date() {
 fn cash_balance_year_end_includes_all_posted() {
     let conn = open_db();
 
-    let cash   = insert_account(&conn, "1010", "Cash",          "asset");
-    let equity = insert_account(&conn, "3010", "Owner's Equity","equity");
+    let cash = insert_account(&conn, "1010", "Cash", "asset");
+    let equity = insert_account(&conn, "3010", "Owner's Equity", "equity");
 
     // Transaction A: 2024-02-15, posted, $500
     insert_txn(&conn, "2024-02-15", &cash, &equity, 50_000, "posted");

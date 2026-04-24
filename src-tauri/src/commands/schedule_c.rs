@@ -24,7 +24,6 @@ pub fn list_schedule_c_mappings_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let mut stmt = conn.prepare(
             r#"
             SELECT m.id, m.client_id, m.account_id, m.schedule_c_line, m.is_custom, m.created_at,
@@ -71,7 +70,6 @@ pub fn upsert_schedule_c_mapping_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
 
@@ -169,7 +167,10 @@ pub fn delete_schedule_c_mapping_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-        conn.execute("DELETE FROM coa_schedule_c_mappings WHERE id = ?1", params![mapping_id])?;
+        conn.execute(
+            "DELETE FROM coa_schedule_c_mappings WHERE id = ?1",
+            params![mapping_id],
+        )?;
         Ok(())
     })
 }
@@ -188,52 +189,54 @@ pub fn calculate_schedule_c_summary_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let date_from = format!("{year}-01-01");
         let date_to = format!("{}-01-01", year + 1);
 
-        // Calculate gross receipts (line_1)
+        // Calculate gross receipts (line_1) — revenue accounts with credits
         let gross_receipts: i64 = conn
             .query_row(
                 r#"
-                SELECT COALESCE(SUM(t.amount_cents), 0)
+                SELECT COALESCE(SUM(e.credit_cents), 0)
                 FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                JOIN entries e ON t.id = e.transaction_id
+                JOIN accounts a ON e.account_id = a.id
                 JOIN coa_schedule_c_mappings m ON a.id = m.account_id
                 WHERE m.client_id = ?1 AND m.schedule_c_line = 'line_1'
-                  AND t.date >= ?2 AND t.date < ?3 AND t.amount_cents > 0
+                  AND t.txn_date >= ?2 AND t.txn_date < ?3
                 "#,
                 params![client_id, date_from, date_to],
                 |row| row.get(0),
             )
             .unwrap_or(0);
 
-        // Calculate returns and allowances (line_2)
+        // Calculate returns and allowances (line_2) — revenue debits
         let returns: i64 = conn
             .query_row(
                 r#"
-                SELECT COALESCE(SUM(t.amount_cents), 0)
+                SELECT COALESCE(SUM(e.debit_cents), 0)
                 FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                JOIN entries e ON t.id = e.transaction_id
+                JOIN accounts a ON e.account_id = a.id
                 JOIN coa_schedule_c_mappings m ON a.id = m.account_id
                 WHERE m.client_id = ?1 AND m.schedule_c_line = 'line_2'
-                  AND t.date >= ?2 AND t.date < ?3
+                  AND t.txn_date >= ?2 AND t.txn_date < ?3
                 "#,
                 params![client_id, date_from, date_to],
                 |row| row.get(0),
             )
             .unwrap_or(0);
 
-        // Calculate COGS (line_4)
+        // Calculate COGS (line_4) — expense debits
         let cogs: i64 = conn
             .query_row(
                 r#"
-                SELECT COALESCE(SUM(t.amount_cents), 0)
+                SELECT COALESCE(SUM(e.debit_cents), 0)
                 FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                JOIN entries e ON t.id = e.transaction_id
+                JOIN accounts a ON e.account_id = a.id
                 JOIN coa_schedule_c_mappings m ON a.id = m.account_id
                 WHERE m.client_id = ?1 AND m.schedule_c_line = 'line_4'
-                  AND t.date >= ?2 AND t.date < ?3
+                  AND t.txn_date >= ?2 AND t.txn_date < ?3
                 "#,
                 params![client_id, date_from, date_to],
                 |row| row.get(0),
@@ -243,16 +246,17 @@ pub fn calculate_schedule_c_summary_impl(
         // Calculate gross profit (line_5 = line_1 - line_2 - line_4)
         let gross_profit = (gross_receipts - returns - cogs).max(0);
 
-        // Calculate other income (line_6)
+        // Calculate other income (line_6) — revenue credits
         let other_income: i64 = conn
             .query_row(
                 r#"
-                SELECT COALESCE(SUM(t.amount_cents), 0)
+                SELECT COALESCE(SUM(e.credit_cents), 0)
                 FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                JOIN entries e ON t.id = e.transaction_id
+                JOIN accounts a ON e.account_id = a.id
                 JOIN coa_schedule_c_mappings m ON a.id = m.account_id
                 WHERE m.client_id = ?1 AND m.schedule_c_line = 'line_6'
-                  AND t.date >= ?2 AND t.date < ?3 AND t.amount_cents > 0
+                  AND t.txn_date >= ?2 AND t.txn_date < ?3
                 "#,
                 params![client_id, date_from, date_to],
                 |row| row.get(0),
@@ -262,17 +266,18 @@ pub fn calculate_schedule_c_summary_impl(
         // Calculate gross income (line_7 = line_5 + line_6)
         let gross_income = gross_profit + other_income;
 
-        // Calculate expenses by line
+        // Calculate expenses by line — expense debits
         let mut expenses_by_line: Vec<(String, i64)> = conn
             .prepare(
                 r#"
-                SELECT m.schedule_c_line, COALESCE(SUM(t.amount_cents), 0) as total
+                SELECT m.schedule_c_line, COALESCE(SUM(e.debit_cents), 0) as total
                 FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                JOIN entries e ON t.id = e.transaction_id
+                JOIN accounts a ON e.account_id = a.id
                 JOIN coa_schedule_c_mappings m ON a.id = m.account_id
                 WHERE m.client_id = ?1 AND m.schedule_c_line LIKE 'line_%'
                   AND m.schedule_c_line NOT IN ('line_1', 'line_2', 'line_4', 'line_6')
-                  AND t.date >= ?2 AND t.date < ?3
+                  AND t.txn_date >= ?2 AND t.txn_date < ?3
                 GROUP BY m.schedule_c_line
                 "#,
             )?
@@ -344,7 +349,12 @@ pub fn upsert_schedule_c_mapping(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<ScheduleCMapping> {
-    upsert_schedule_c_mapping_impl(account_id, schedule_c_line, Some(&app_handle), state.inner())
+    upsert_schedule_c_mapping_impl(
+        account_id,
+        schedule_c_line,
+        Some(&app_handle),
+        state.inner(),
+    )
 }
 
 /// Delete a Schedule C mapping.

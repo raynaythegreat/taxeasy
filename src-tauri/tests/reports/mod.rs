@@ -32,7 +32,13 @@ fn open_db() -> Connection {
 }
 
 /// Insert a minimal account and return its id.
-fn insert_account(conn: &Connection, code: &str, name: &str, atype: &str, role: Option<&str>) -> String {
+fn insert_account(
+    conn: &Connection,
+    code: &str,
+    name: &str,
+    atype: &str,
+    role: Option<&str>,
+) -> String {
     let id = format!("acct-{code}");
     conn.execute(
         "INSERT INTO accounts (id, code, name, account_type, active, sort_order, system_account_role)
@@ -236,7 +242,10 @@ fn balance_range_by_role_returns_error_when_unmapped() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(role_count, 0, "role count should be 0 when no account has the role");
+    assert_eq!(
+        role_count, 0,
+        "role count should be 0 when no account has the role"
+    );
     // Production code returns AppError::Validation("MissingSystemAccount:cash") when count == 0.
     // We verify the detection condition directly since we can't call the Tauri command here.
 }
@@ -306,16 +315,16 @@ fn net_income_for(conn: &Connection, from: &str, to: &str) -> i64 {
 fn pnl_net_income_equals_balance_sheet_ytd_change_in_equity() {
     let conn = open_db();
 
-    let cash = insert_account(&conn, "1010", "Cash",    "asset",   Some("cash"));
-    let rev  = insert_account(&conn, "4010", "Revenue", "revenue", None);
-    let exp  = insert_account(&conn, "6010", "Expense", "expense", None);
+    let cash = insert_account(&conn, "1010", "Cash", "asset", Some("cash"));
+    let rev = insert_account(&conn, "4010", "Revenue", "revenue", None);
+    let exp = insert_account(&conn, "6010", "Expense", "expense", None);
 
     // FY 2024 Jan–Dec: [2024-01-01, 2025-01-01)
     insert_txn(&conn, "2024-03-01", &cash, &rev, 100_000, "posted"); // +$1000 revenue
-    insert_txn(&conn, "2024-06-01", &exp,  &cash,  30_000, "posted"); // +$300 expense
-    insert_txn(&conn, "2024-12-31", &cash, &rev,  50_000, "posted"); // +$500 revenue
-    // A draft that must not affect either report
-    insert_txn(&conn, "2024-09-01", &cash, &rev,  99_999, "draft");
+    insert_txn(&conn, "2024-06-01", &exp, &cash, 30_000, "posted"); // +$300 expense
+    insert_txn(&conn, "2024-12-31", &cash, &rev, 50_000, "posted"); // +$500 revenue
+                                                                    // A draft that must not affect either report
+    insert_txn(&conn, "2024-09-01", &cash, &rev, 99_999, "draft");
 
     let pnl_ni = net_income_for(&conn, "2024-01-01", "2025-01-01");
     // net_income = (100_000 + 50_000) - 30_000 = 120_000 cents
@@ -333,14 +342,14 @@ fn pnl_net_income_equals_balance_sheet_ytd_change_in_equity() {
 fn tie_out_with_draft_excluded_both_sides() {
     let conn = open_db();
 
-    let cash = insert_account(&conn, "1010", "Cash",    "asset",   Some("cash"));
-    let rev  = insert_account(&conn, "4010", "Revenue", "revenue", None);
+    let cash = insert_account(&conn, "1010", "Cash", "asset", Some("cash"));
+    let rev = insert_account(&conn, "4010", "Revenue", "revenue", None);
 
     insert_txn(&conn, "2024-05-01", &cash, &rev, 200_000, "posted");
-    insert_txn(&conn, "2024-05-15", &cash, &rev,  50_000, "draft");   // excluded
+    insert_txn(&conn, "2024-05-15", &cash, &rev, 50_000, "draft"); // excluded
 
     let pnl_ni = net_income_for(&conn, "2024-01-01", "2025-01-01");
-    let bs_ni  = net_income_for(&conn, "2024-01-01", "2025-01-01");
+    let bs_ni = net_income_for(&conn, "2024-01-01", "2025-01-01");
     assert_eq!(pnl_ni, 200_000);
     assert_eq!(pnl_ni, bs_ni);
 }

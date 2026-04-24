@@ -9,6 +9,7 @@ import {
   Loader2,
   Printer,
   Receipt,
+  RefreshCw,
   Sparkles,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
@@ -24,17 +25,19 @@ import { YearOverYearView } from "../features/reports/YearOverYearView";
 import { TransactionsPage } from "../features/transactions/TransactionsPage";
 import { lastDayOf } from "../lib/date-utils";
 import { handleExportReport } from "../lib/export-api";
-import { useI18n } from "../lib/i18n";
-import { triggerPrint } from "../lib/print-utils";
-import type { Client } from "../lib/tauri";
-import {
-  cn,
-  formatDate,
-  maskEin,
-  PERIOD_LABELS,
-  periodRange,
-  type ReportPeriod,
-} from "../lib/utils";
+ import { useI18n } from "../lib/i18n";
+ import { triggerPrint } from "../lib/print-utils";
+ import { useQueryClient } from "@tanstack/react-query";
+ import type { Client } from "../lib/tauri";
+ import {
+   cn,
+   formatDate,
+   maskEin,
+   PERIOD_LABELS,
+   periodRange,
+   type ReportPeriod,
+ } from "../lib/utils";
+ import { resyncClientFolder } from "../lib/tauri";
 
 const AiWorkspace = lazy(() =>
   import("../features/ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
@@ -63,27 +66,52 @@ interface ClientWorkspaceProps {
   initialTab?: WorkspaceTab;
 }
 
-export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorkspaceProps) {
-  const { t } = useI18n();
-  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
-  const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
-  const [balanceSheetMode, setBalanceSheetMode] = useState<BalanceSheetMode>("period");
-  const [period, setPeriod] = useState<ReportPeriod>("annual");
-  const [compareYears, setCompareYears] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [editingClient, setEditingClient] = useState(false);
+  export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorkspaceProps) {
+    const { t } = useI18n();
+    const queryClient = useQueryClient();
+    const [tab, setTab] = useState<WorkspaceTab>(initialTab);
+    const [prevClientId, setPrevClientId] = useState(client.id);
+    const [reportType, setReportType] = useState<"pnl" | "balance_sheet" | "cash_flow">("pnl");
+    const [balanceSheetMode, setBalanceSheetMode] = useState<BalanceSheetMode>("period");
+    const [period, setPeriod] = useState<ReportPeriod>("annual");
+    const [compareYears, setCompareYears] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [editingClient, setEditingClient] = useState(false);
+    const [resyncing, setResyncing] = useState(false);
+
+  useEffect(() => {
+    if (client.id !== prevClientId) {
+      setTab(initialTab);
+      setPrevClientId(client.id);
+    }
+  }, [client.id, initialTab, prevClientId]);
 
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab]);
 
-  const currentYear = new Date().getFullYear();
-  const recentYears = useMemo(
-    () => Array.from({ length: 6 }, (_, i) => currentYear - i),
-    [currentYear],
-  );
-  const [taxYear, setTaxYear] = useState(currentYear);
-  const isRecent = recentYears.includes(taxYear);
+   const currentYear = new Date().getFullYear();
+   const recentYears = useMemo(
+     () => Array.from({ length: 6 }, (_, i) => currentYear - i),
+     [currentYear],
+   );
+   const [taxYear, setTaxYear] = useState(currentYear);
+   const isRecent = recentYears.includes(taxYear);
+
+   async function handleResync() {
+     if (!client.id || !client.source_folder_path) return;
+     setResyncing(true);
+     try {
+       await resyncClientFolder(client.id);
+       // Optionally show a success toast or refresh data
+       queryClient.invalidateQueries();
+     } catch (err) {
+       console.error("Resync failed:", err);
+       alert(t("Failed to re-sync folder. See console for details."));
+     } finally {
+       setResyncing(false);
+     }
+   }
 
   const ALL_TABS: { id: WorkspaceTab; label: string; icon?: React.ReactNode }[] = [
     { id: "overview", label: t("Overview") },
@@ -132,7 +160,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       {tab !== "overview" && (
         <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-3 print:hidden">
           <div className="flex items-center gap-3 flex-wrap">
@@ -171,7 +199,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
         </nav>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto print:overflow-visible pb-6">
+      <div className="flex-1 min-h-0 overflow-auto print:overflow-visible">
         {tab === "overview" && (
           <div className="flex flex-col h-full">
             {/* Profile header */}
@@ -198,14 +226,31 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
                           </span>
                         )}
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setEditingClient(true)}
-                      className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      {t("Edit Profile")}
-                    </button>
+                     </div>
+                     <div className="flex items-center gap-2 mt-3">
+                       <button
+                         type="button"
+                         onClick={() => setEditingClient(true)}
+                         className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                       >
+                         {t("Edit Profile")}
+                       </button>
+                       {client.source_folder_path && (
+                         <button
+                           type="button"
+                           onClick={() => {
+                             if (confirm(t("Re-sync this client's folder? This will scan for new documents."))) {
+                               void handleResync();
+                             }
+                           }}
+                           disabled={resyncing}
+                           className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                         >
+                           <RefreshCw className={`w-3.5 h-3.5 ${resyncing ? "animate-spin" : ""}`} />
+                           {t("Re-sync Folder")}
+                         </button>
+                       )}
+                     </div>
                   </div>
                   <div className="flex items-center gap-5 mt-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
@@ -296,7 +341,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
 
             {is1040 ? (
               /* Simplified 1040 overview - no transaction charts */
-              <div className="flex-1 px-6 py-6 space-y-6 bg-gray-50">
+              <div className="flex-1 px-6 py-4 space-y-6 bg-gray-50">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("Quick Actions")}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -574,7 +619,7 @@ export function ClientWorkspace({ client, initialTab = "overview" }: ClientWorks
             </div>
 
             {/* Report content */}
-            <div className="flex-1 bg-[var(--color-background)] print:bg-white min-h-full py-6 print:py-0 overflow-auto">
+            <div className="flex-1 bg-[var(--color-background)] print:bg-white py-4 print:py-0 overflow-auto">
               {compareYears && reportType !== "cash_flow" ? (
                 <YearOverYearView
                   reportType={reportType}

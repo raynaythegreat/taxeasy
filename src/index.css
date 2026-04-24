@@ -66,11 +66,20 @@
   }
 
   html {
+    height: 100%;
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
     scroll-behavior: smooth;
   }
 
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
   body {
+    min-width: 320px;
+    overflow: hidden;
     background-color: var(--color-background);
     color: var(--color-text);
   }

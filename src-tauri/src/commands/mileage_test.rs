@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
     use super::super::mileage::*;
-    use crate::domain::mileage_log::CreateMileagePayload;
-    use crate::state::{AppState, ActiveClient};
     use crate::db::{ClientDb, OwnerDb};
+    use crate::domain::mileage_log::CreateMileagePayload;
+    use crate::state::{ActiveClient, AppState};
     use rusqlite::Connection;
-    use tempfile::tempdir;
     use std::path::PathBuf;
+    use tempfile::tempdir;
 
     fn setup_test_db() -> (Connection, AppState, PathBuf) {
         let dir = tempdir().unwrap();
@@ -25,10 +25,14 @@ mod tests {
 
         // Create ClientDb (runs migrations internally)
         let client_id = "test-client-uuid";
-        let client_db = ClientDb::open(db_path.to_str().unwrap(), client_id, "test-passphrase").unwrap();
+        let client_db =
+            ClientDb::open(db_path.to_str().unwrap(), client_id, "test-passphrase").unwrap();
 
         // Force checkpoint to ensure WAL changes are visible to new connections
-        client_db.conn().execute_batch("PRAGMA wal_checkpoint(TRUNCATE);").unwrap();
+        client_db
+            .conn()
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .unwrap();
 
         *state.active_client.lock().unwrap() = Some(ActiveClient {
             client_id: client_id.to_string(),
@@ -40,7 +44,8 @@ mod tests {
         let raw_key = crate::db::encryption::client_db_key("test-passphrase", client_id).unwrap();
         let hex_key = crate::db::encryption::sqlcipher_hex_key(&raw_key);
         let conn = Connection::open(&db_path).unwrap();
-        conn.execute_batch(&format!("PRAGMA key = \"{hex_key}\";")).unwrap();
+        conn.execute_batch(&format!("PRAGMA key = \"{hex_key}\";"))
+            .unwrap();
 
         (conn, state, db_path)
     }
@@ -100,17 +105,41 @@ mod tests {
         let (_conn, state, _db_path) = setup_test_db();
 
         let _ = create_mileage_log_impl(
-            CreateMileagePayload { date: "2024-03-15".to_string(), purpose: "Trip 1".to_string(), origin: "A".to_string(), destination: "B".to_string(), miles_real: 10.0, notes: None },
+            CreateMileagePayload {
+                date: "2024-03-15".to_string(),
+                purpose: "Trip 1".to_string(),
+                origin: "A".to_string(),
+                destination: "B".to_string(),
+                miles_real: 10.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
         );
         let _ = create_mileage_log_impl(
-            CreateMileagePayload { date: "2024-07-22".to_string(), purpose: "Trip 2".to_string(), origin: "A".to_string(), destination: "C".to_string(), miles_real: 20.0, notes: None },
+            CreateMileagePayload {
+                date: "2024-07-22".to_string(),
+                purpose: "Trip 2".to_string(),
+                origin: "A".to_string(),
+                destination: "C".to_string(),
+                miles_real: 20.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
         );
         let _ = create_mileage_log_impl(
-            CreateMileagePayload { date: "2023-11-10".to_string(), purpose: "Old Trip".to_string(), origin: "A".to_string(), destination: "D".to_string(), miles_real: 15.0, notes: None },
+            CreateMileagePayload {
+                date: "2023-11-10".to_string(),
+                purpose: "Old Trip".to_string(),
+                origin: "A".to_string(),
+                destination: "D".to_string(),
+                miles_real: 15.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
         );
@@ -128,16 +157,28 @@ mod tests {
         let (_conn, state, _db_path) = setup_test_db();
 
         let created = create_mileage_log_impl(
-            CreateMileagePayload { date: "2024-05-01".to_string(), purpose: "Test Trip".to_string(), origin: "Here".to_string(), destination: "There".to_string(), miles_real: 30.0, notes: None },
+            CreateMileagePayload {
+                date: "2024-05-01".to_string(),
+                purpose: "Test Trip".to_string(),
+                origin: "Here".to_string(),
+                destination: "There".to_string(),
+                miles_real: 30.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = delete_mileage_log_impl(created.id.clone(), None, &state);
         assert!(result.is_ok());
 
         // Verify deletion through client_db connection
-        let count: i64 = state.active_client.lock().unwrap()
+        let count: i64 = state
+            .active_client
+            .lock()
+            .unwrap()
             .as_ref()
             .unwrap()
             .db
@@ -168,12 +209,28 @@ mod tests {
         let (_conn, state, _db_path) = setup_test_db();
 
         let _ = create_mileage_log_impl(
-            CreateMileagePayload { date: "2024-02-10".to_string(), purpose: "Trip 1".to_string(), origin: "A".to_string(), destination: "B".to_string(), miles_real: 100.0, notes: None },
+            CreateMileagePayload {
+                date: "2024-02-10".to_string(),
+                purpose: "Trip 1".to_string(),
+                origin: "A".to_string(),
+                destination: "B".to_string(),
+                miles_real: 100.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
         );
         let _ = create_mileage_log_impl(
-            CreateMileagePayload { date: "2024-08-15".to_string(), purpose: "Trip 2".to_string(), origin: "A".to_string(), destination: "C".to_string(), miles_real: 50.0, notes: None },
+            CreateMileagePayload {
+                date: "2024-08-15".to_string(),
+                purpose: "Trip 2".to_string(),
+                origin: "A".to_string(),
+                destination: "C".to_string(),
+                miles_real: 50.0,
+                notes: None,
+                receipt_image_path: None,
+            },
             None,
             &state,
         );

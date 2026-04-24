@@ -104,27 +104,40 @@ pub async fn check_for_updates(_app: tauri::AppHandle) -> Result<UpdateCheck, St
         .await
         .map_err(|e| e.to_string())?;
 
-    let (has_release_update, latest_version, release_url, release_notes, published_at, download_url) =
-        if release_resp.status().is_success() {
-            let release: GithubRelease = release_resp.json().await.map_err(|e| e.to_string())?;
-            let latest = release.tag_name.trim_start_matches('v').to_string();
-            let pattern = platform_asset_pattern();
-            let dl_url = release
-                .assets
-                .iter()
-                .find(|a| a.name.contains(pattern))
-                .map(|a| a.browser_download_url.clone());
-            (
-                latest != current_version(),
-                latest,
-                release.html_url,
-                release.body,
-                release.published_at,
-                dl_url,
-            )
-        } else {
-            (false, current_version(), String::new(), None, String::new(), None)
-        };
+    let (
+        has_release_update,
+        latest_version,
+        release_url,
+        release_notes,
+        published_at,
+        download_url,
+    ) = if release_resp.status().is_success() {
+        let release: GithubRelease = release_resp.json().await.map_err(|e| e.to_string())?;
+        let latest = release.tag_name.trim_start_matches('v').to_string();
+        let pattern = platform_asset_pattern();
+        let dl_url = release
+            .assets
+            .iter()
+            .find(|a| a.name.contains(pattern))
+            .map(|a| a.browser_download_url.clone());
+        (
+            latest != current_version(),
+            latest,
+            release.html_url,
+            release.body,
+            release.published_at,
+            dl_url,
+        )
+    } else {
+        (
+            false,
+            current_version(),
+            String::new(),
+            None,
+            String::new(),
+            None,
+        )
+    };
 
     // Check commits behind on main branch
     let commits_resp = client
@@ -136,10 +149,15 @@ pub async fn check_for_updates(_app: tauri::AppHandle) -> Result<UpdateCheck, St
 
     let (is_behind_on_commits, latest_commit_sha, commits_behind) =
         if commits_resp.status().is_success() {
-            let commits: Vec<GithubCommit> = commits_resp.json().await.map_err(|e| e.to_string())?;
+            let commits: Vec<GithubCommit> =
+                commits_resp.json().await.map_err(|e| e.to_string())?;
             if let Some(latest) = commits.first() {
                 let is_behind = Some(&latest.sha) != local_commit.as_ref();
-                (is_behind, Some(latest.sha.clone()), if is_behind { 1 } else { 0 })
+                (
+                    is_behind,
+                    Some(latest.sha.clone()),
+                    if is_behind { 1 } else { 0 },
+                )
             } else {
                 (false, None, 0)
             }

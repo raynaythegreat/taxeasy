@@ -4,6 +4,7 @@ export interface UpdateClientPayload {
   name?: string;
   entity_type?: string;
   ein?: string;
+  source_folder_path?: string;
   contact_name?: string;
   email?: string;
   phone?: string;

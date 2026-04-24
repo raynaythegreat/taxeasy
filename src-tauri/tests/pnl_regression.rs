@@ -107,8 +107,8 @@ fn only_in_period_posted_transactions_are_counted() {
     // Inside Q1, draft — MUST NOT be counted ($500 = 50_000 cents)
     insert_txn(&conn, "2024-03-10", &cash, &rev1, 50_000, "draft");
 
-    let report = compute_pnl(&conn, "2024-01-01", "2024-04-01")
-        .expect("compute_pnl should succeed");
+    let report =
+        compute_pnl(&conn, "2024-01-01", "2024-04-01").expect("compute_pnl should succeed");
 
     // Expected: only the $100 posted-in-period transaction.
     // If LEFT JOIN bug is present this equals 10_000 + 999_900 + 50_000 = 1_059_900 cents.
@@ -127,7 +127,7 @@ fn period_q2_returns_only_q2_data() {
     let conn = open_db();
 
     let cash = insert_account(&conn, "1010", "Cash", "asset");
-    let rev  = insert_account(&conn, "4010", "Revenue", "revenue");
+    let rev = insert_account(&conn, "4010", "Revenue", "revenue");
 
     // Q1 transaction — must NOT appear in Q2 report
     insert_txn(&conn, "2024-03-15", &cash, &rev, 30_000, "posted");
@@ -138,8 +138,8 @@ fn period_q2_returns_only_q2_data() {
     // Q3 transaction — must NOT appear in Q2 report
     insert_txn(&conn, "2024-07-20", &cash, &rev, 80_000, "posted");
 
-    let report = compute_pnl(&conn, "2024-04-01", "2024-07-01")
-        .expect("compute_pnl should succeed");
+    let report =
+        compute_pnl(&conn, "2024-04-01", "2024-07-01").expect("compute_pnl should succeed");
 
     let total = cents(report.total_revenue);
 

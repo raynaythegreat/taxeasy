@@ -12,10 +12,7 @@ use uuid::Uuid;
 // ============================================================================
 
 /// List vendors for active client (internal implementation).
-pub fn list_vendors_impl(
-    app_handle: Option<&AppHandle>,
-    state: &AppState,
-) -> Result<Vec<Vendor>> {
+pub fn list_vendors_impl(app_handle: Option<&AppHandle>, state: &AppState) -> Result<Vec<Vendor>> {
     let active_lock = state.active_client.lock().unwrap();
     let client_id = active_lock
         .as_ref()
@@ -24,7 +21,6 @@ pub fn list_vendors_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let mut stmt = conn.prepare(
             r#"
             SELECT id, client_id, name, ein, ssn_encrypted, address_line1, address_line2,
@@ -86,10 +82,13 @@ pub fn create_vendor_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let id = Uuid::new_v4().to_string();
         let created_at = chrono::Utc::now().to_rfc3339();
-        let is_1099_required = if ein.is_some() || ssn_encrypted.is_some() { 1 } else { 0 };
+        let is_1099_required = if ein.is_some() || ssn_encrypted.is_some() {
+            1
+        } else {
+            0
+        };
 
         conn.execute(
             r#"
@@ -100,34 +99,42 @@ pub fn create_vendor_impl(
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 0, ?13, ?14)
             "#,
             params![
-                id, client_id, name, ein, ssn_encrypted, address_line1, address_line2,
-                city, state_prov, postal_code, phone, email, is_1099_required, created_at
+                id,
+                client_id,
+                name,
+                ein,
+                ssn_encrypted,
+                address_line1,
+                address_line2,
+                city,
+                state_prov,
+                postal_code,
+                phone,
+                email,
+                is_1099_required,
+                created_at
             ],
         )?;
 
-        let vendor = conn.query_row(
-            "SELECT * FROM vendors WHERE id = ?1",
-            params![id],
-            |row| {
-                Ok(Vendor {
-                    id: row.get(0)?,
-                    client_id: row.get(1)?,
-                    name: row.get(2)?,
-                    ein: row.get(3)?,
-                    ssn_encrypted: row.get(4)?,
-                    address_line1: row.get(5)?,
-                    address_line2: row.get(6)?,
-                    city: row.get(7)?,
-                    state: row.get(8)?,
-                    postal_code: row.get(9)?,
-                    phone: row.get(10)?,
-                    email: row.get(11)?,
-                    total_payments_cents: row.get(12)?,
-                    is_1099_required: row.get(13)?,
-                    created_at: row.get(14)?,
-                })
-            },
-        )?;
+        let vendor = conn.query_row("SELECT * FROM vendors WHERE id = ?1", params![id], |row| {
+            Ok(Vendor {
+                id: row.get(0)?,
+                client_id: row.get(1)?,
+                name: row.get(2)?,
+                ein: row.get(3)?,
+                ssn_encrypted: row.get(4)?,
+                address_line1: row.get(5)?,
+                address_line2: row.get(6)?,
+                city: row.get(7)?,
+                state: row.get(8)?,
+                postal_code: row.get(9)?,
+                phone: row.get(10)?,
+                email: row.get(11)?,
+                total_payments_cents: row.get(12)?,
+                is_1099_required: row.get(13)?,
+                created_at: row.get(14)?,
+            })
+        })?;
 
         Ok(vendor)
     })
@@ -157,7 +164,6 @@ pub fn update_vendor_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         // Build dynamic update with only provided fields
         let mut sql_parts = Vec::new();
         let mut param_idx = 1;
@@ -229,7 +235,11 @@ pub fn update_vendor_impl(
         bind_params.push(&client_id);
         param_idx += 1;
 
-        let sql = format!("UPDATE vendors SET {} WHERE id = ?{}", sql_parts.join(", "), param_idx);
+        let sql = format!(
+            "UPDATE vendors SET {} WHERE id = ?{}",
+            sql_parts.join(", "),
+            param_idx
+        );
         bind_params.push(&vendor_id);
 
         let mut stmt = conn.prepare(&sql)?;
@@ -462,7 +472,13 @@ pub fn generate_1099_nec_impl(
                     box5_state_tax_withheld, box6_state_number, generated_at
                 ) VALUES (?1, ?2, ?3, ?4, 0, 0, 0, NULL, ?5)
                 "#,
-                params![id, vendor_id, tax_year, box1_nonemployee_compensation, generated_at],
+                params![
+                    id,
+                    vendor_id,
+                    tax_year,
+                    box1_nonemployee_compensation,
+                    generated_at
+                ],
             )?;
 
             let form = conn.query_row(
@@ -503,7 +519,6 @@ pub fn list_generated_1099_nec_impl(
     drop(active_lock);
 
     super::scoped::with_scoped_conn(state, app_handle, Some(&client_id), |conn| {
-
         let mut stmt = conn.prepare(
             r#"
             SELECT g.* FROM generated_1099_nec g
@@ -565,9 +580,18 @@ pub fn create_vendor(
     state: tauri::State<AppState>,
 ) -> Result<Vendor> {
     create_vendor_impl(
-        name, ein, ssn_encrypted, address_line1, address_line2,
-        city, state_prov, postal_code, phone, email,
-        Some(&app_handle), state.inner(),
+        name,
+        ein,
+        ssn_encrypted,
+        address_line1,
+        address_line2,
+        city,
+        state_prov,
+        postal_code,
+        phone,
+        email,
+        Some(&app_handle),
+        state.inner(),
     )
 }
 
@@ -589,9 +613,19 @@ pub fn update_vendor(
     state: tauri::State<AppState>,
 ) -> Result<Vendor> {
     update_vendor_impl(
-        vendor_id, name, ein, ssn_encrypted, address_line1, address_line2,
-        city, state_val, postal_code, phone, email,
-        Some(&app_handle), state.inner(),
+        vendor_id,
+        name,
+        ein,
+        ssn_encrypted,
+        address_line1,
+        address_line2,
+        city,
+        state_val,
+        postal_code,
+        phone,
+        email,
+        Some(&app_handle),
+        state.inner(),
     )
 }
 
@@ -616,8 +650,12 @@ pub fn record_contractor_payment(
     state: tauri::State<AppState>,
 ) -> Result<ContractorPayment> {
     record_contractor_payment_impl(
-        vendor_id, transaction_id, amount_cents, payment_date,
-        Some(&app_handle), state.inner(),
+        vendor_id,
+        transaction_id,
+        amount_cents,
+        payment_date,
+        Some(&app_handle),
+        state.inner(),
     )
 }
 

@@ -1,9 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { FolderOpen, FolderSearch, X } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { updateClient } from "../../lib/client-api";
 import { useI18n } from "../../lib/i18n";
-import type { AccountingMethod, Client, EntityType } from "../../lib/tauri";
+import {
+  type AccountingMethod,
+  type Client,
+  type EntityType,
+  pickClientFolder,
+} from "../../lib/tauri";
 import { cn } from "../../lib/utils";
 
 const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
@@ -42,6 +48,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
   const [name, setName] = useState(client.name);
   const [entityType, setEntityType] = useState<EntityType>(client.entity_type);
   const [ein, setEin] = useState(client.ein ?? "");
+  const [sourceFolderPath, setSourceFolderPath] = useState(client.source_folder_path ?? "");
   const [contactName, setContactName] = useState(client.contact_name ?? "");
   const [email, setEmail] = useState(client.email ?? "");
   const [phone, setPhone] = useState(client.phone ?? "");
@@ -64,6 +71,7 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
         name: name.trim(),
         entity_type: entityType,
         ein: ein.trim() || undefined,
+        source_folder_path: sourceFolderPath.trim() || undefined,
         contact_name: contactName.trim() || undefined,
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -178,6 +186,62 @@ export function ClientEditModal({ client, onClose, onSaved }: ClientEditModalPro
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={mutation.isPending}
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="edit-source-folder-path"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              {t("Source Folder Path")}
+            </label>
+            <div className="space-y-2">
+              <input
+                id="edit-source-folder-path"
+                type="text"
+                value={sourceFolderPath}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSourceFolderPath(e.target.value)}
+                placeholder={t("No source folder saved")}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={mutation.isPending}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const folderPath = await pickClientFolder();
+                    if (folderPath) {
+                      setSourceFolderPath(folderPath);
+                    }
+                  }}
+                  disabled={mutation.isPending}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FolderSearch className="h-3.5 w-3.5" />
+                  {t("Choose Folder")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourceFolderPath("")}
+                  disabled={mutation.isPending || !sourceFolderPath.trim()}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t("Clear")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openPath(sourceFolderPath).catch(() => {})}
+                  disabled={mutation.isPending || !sourceFolderPath.trim()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  {t("Open Folder")}
+                </button>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {t("Inspect or update the folder used for imports.")}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

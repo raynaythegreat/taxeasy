@@ -41,6 +41,7 @@ export function SettingsPage(_props: { onBack?: () => void }) {
 
   const ai = useAiSettings();
   const [ocrAutoPostThreshold, setOcrAutoPostThreshold] = useState(0.7);
+  const [ocrEngine, setOcrEngine] = useState<"glm-ocr" | "tesseract" | "surya">("glm-ocr");
 
   useEffect(() => {
     getAppVersion()
@@ -68,6 +69,9 @@ export function SettingsPage(_props: { onBack?: () => void }) {
     setExportPath(settings.default_export_path || "");
     if (settings.ocr_auto_post_threshold !== undefined) {
       setOcrAutoPostThreshold(settings.ocr_auto_post_threshold);
+    }
+    if (settings.ocr_engine) {
+      setOcrEngine(settings.ocr_engine as "glm-ocr" | "tesseract" | "surya");
     }
     didHydrateFromSettings.current = true;
   }, [settings, setTheme, ai.initFromSettings]);
@@ -188,6 +192,10 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               ollamaModel={ai.ollamaModel}
               lmStudioUrl={ai.lmStudioUrl}
               lmStudioModel={ai.lmStudioModel}
+              bonsaiUrl={ai.bonsaiUrl}
+              bonsaiModel={ai.bonsaiModel}
+              bitnetUrl={ai.bitnetUrl}
+              bitnetModel={ai.bitnetModel}
               currentModels={ai.currentModels}
               currentModel={ai.currentModel}
               currentUrl={ai.currentUrl}
@@ -212,6 +220,8 @@ export function SettingsPage(_props: { onBack?: () => void }) {
               onTestGlmocr={ai.testGlmocr}
               ocrAutoPostThreshold={ocrAutoPostThreshold}
               onOcrThresholdChange={setOcrAutoPostThreshold}
+              ocrEngine={ocrEngine}
+              onOcrEngineChange={setOcrEngine}
               onSave={(partial) => saveMutation.mutate(partial)}
             />
           )}

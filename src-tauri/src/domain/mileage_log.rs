@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct MileageLog {
     pub id: String,
     pub client_id: String,
-    pub date: String,  // ISO-8601 "YYYY-MM-DD"
+    pub date: String, // ISO-8601 "YYYY-MM-DD"
     pub purpose: String,
     pub origin: String,
     pub destination: String,
@@ -21,7 +21,7 @@ pub struct MileageLog {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IrsRate {
     pub year: i32,
-    pub rate_cents: i32,  // Rate in cents (e.g., 67 = $0.67 per mile)
+    pub rate_cents: i32, // Rate in cents (e.g., 67 = $0.67 per mile)
 }
 
 /// Summary statistics for mileage in a year

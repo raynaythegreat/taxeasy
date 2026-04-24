@@ -8,18 +8,25 @@ use crate::{
 };
 
 fn client_db_filename(state: &AppState, client_id: &str) -> Result<String> {
-    eprintln!("DEBUG client_db_filename: querying for client_id='{}'", client_id);
+    eprintln!(
+        "DEBUG client_db_filename: querying for client_id='{}'",
+        client_id
+    );
     let lock = state.app_db.lock().unwrap();
     let db = lock.as_ref().ok_or(AppError::NoActiveClient)?;
     eprintln!("DEBUG client_db_filename: app_db is present");
-    let result = db.conn()
+    let result = db
+        .conn()
         .query_row(
             "SELECT db_filename FROM clients WHERE id = ?1 AND archived_at IS NULL",
             rusqlite::params![client_id],
             |row| row.get(0),
         )
         .map_err(|_| AppError::NotFound(format!("client {client_id}")));
-    eprintln!("DEBUG client_db_filename: query result={:?}", result.is_ok());
+    eprintln!(
+        "DEBUG client_db_filename: query result={:?}",
+        result.is_ok()
+    );
     result
 }
 

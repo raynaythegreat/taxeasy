@@ -82,8 +82,16 @@ pub async fn run_agent_loop(
                         id: draft_id.to_owned(),
                         client_id: client_id.to_owned(),
                         evidence_id: String::new(),
-                        date: result.output.get("date").and_then(|v| v.as_str()).map(|s| s.to_owned()),
-                        description: result.output.get("description").and_then(|v| v.as_str()).map(|s| s.to_owned()),
+                        date: result
+                            .output
+                            .get("date")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_owned()),
+                        description: result
+                            .output
+                            .get("description")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_owned()),
                         reference: None,
                         debit_account_id: None,
                         credit_account_id: None,
@@ -146,6 +154,36 @@ async fn stream_completion(
             crate::ai::streaming::lmstudio_stream_complete(
                 app_handle,
                 &config.lm_studio_url,
+                model,
+                prompt,
+                conversation_id,
+            )
+            .await
+        }
+        "bonsai" => {
+            let model = if config.bonsai_model.is_empty() {
+                return Err(AppError::AiService("No Bonsai model selected".into()));
+            } else {
+                &config.bonsai_model
+            };
+            crate::ai::streaming::bonsai_bitnet_stream_complete(
+                app_handle,
+                &config.bonsai_url,
+                model,
+                prompt,
+                conversation_id,
+            )
+            .await
+        }
+        "bitnet" => {
+            let model = if config.bitnet_model.is_empty() {
+                return Err(AppError::AiService("No BitNet model selected".into()));
+            } else {
+                &config.bitnet_model
+            };
+            crate::ai::streaming::bonsai_bitnet_stream_complete(
+                app_handle,
+                &config.bitnet_url,
                 model,
                 prompt,
                 conversation_id,

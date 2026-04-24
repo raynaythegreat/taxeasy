@@ -73,7 +73,7 @@ function formatTimestampHeader(dateStr: string): string {
 
 export function ChatPanel({ clientId }: ChatPanelProps) {
   const { t } = useI18n();
-  const { ai_provider, ollama_url, lm_studio_url, settingsLoaded } = useSettings();
+  const { ai_provider, ollama_url, lm_studio_url, bonsai_url, bitnet_url, settingsLoaded } = useSettings();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -95,7 +95,11 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
       if (cancelled) return;
       setModelStatus("checking");
 
-      const providerUrl = ai_provider === "lmstudio" ? lm_studio_url : ollama_url;
+      const providerUrl =
+        ai_provider === "lmstudio" ? lm_studio_url
+        : ai_provider === "bonsai" ? bonsai_url
+        : ai_provider === "bitnet" ? bitnet_url
+        : ollama_url;
       console.log("[AI Health] Checking provider:", ai_provider, "at URL:", providerUrl);
 
       try {
@@ -128,7 +132,7 @@ export function ChatPanel({ clientId }: ChatPanelProps) {
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [settingsLoaded, ai_provider, ollama_url, lm_studio_url]);
+  }, [settingsLoaded, ai_provider, ollama_url, lm_studio_url, bonsai_url, bitnet_url]);
 
   useEffect(() => {
     const unlistenPromise = listen("open_devtools", () => {

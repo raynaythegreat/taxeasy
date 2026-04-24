@@ -27,7 +27,8 @@ pub async fn send_chat_message(
 
         let conn = ac.db.conn();
 
-        let user_msg = crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
+        let user_msg =
+            crate::db::chat_db::insert_message(conn, &client_id, "user", &message, None)?;
         let ctx = crate::ai::chat::build_chat_context(conn, &client_id);
         let hist = crate::db::chat_db::get_history(conn, &client_id)?;
 
@@ -37,7 +38,10 @@ pub async fn send_chat_message(
     let config = crate::ai::ollama::read_ai_config(&state);
 
     let system_prompt = crate::ai::chat::chat_system_prompt();
-    let mut full_prompt = format!("{}\n\nClient Data:\n{}\n\nChat History:\n", system_prompt, context);
+    let mut full_prompt = format!(
+        "{}\n\nClient Data:\n{}\n\nChat History:\n",
+        system_prompt, context
+    );
     for msg in &history {
         full_prompt.push_str(&format!("{}: {}\n", msg.role, msg.content));
     }
@@ -125,12 +129,13 @@ pub async fn send_chat_message_stream(
     let app_state: &AppState = state.inner();
     let cid = client_id.clone();
 
-    let execute_tool_fn = |tool_call: &crate::ai::tools::ToolCall| -> Result<crate::ai::tools::ToolResult> {
-        let lock = app_state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = ac.db.conn();
-        crate::ai::tools::execute_tool(conn, &cid, tool_call)
-    };
+    let execute_tool_fn =
+        |tool_call: &crate::ai::tools::ToolCall| -> Result<crate::ai::tools::ToolResult> {
+            let lock = app_state.active_client.lock().unwrap();
+            let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
+            let conn = ac.db.conn();
+            crate::ai::tools::execute_tool(conn, &cid, tool_call)
+        };
 
     let agent_result = crate::ai::agent::run_agent_loop(
         &app_handle,
@@ -203,10 +208,7 @@ pub fn get_chat_history(
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub fn clear_chat_history(
-    state: tauri::State<'_, AppState>,
-    client_id: String,
-) -> Result<()> {
+pub fn clear_chat_history(state: tauri::State<'_, AppState>, client_id: String) -> Result<()> {
     let lock = state.active_client.lock().unwrap();
     let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
 

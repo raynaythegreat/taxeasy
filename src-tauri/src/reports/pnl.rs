@@ -36,9 +36,12 @@ pub fn get_pnl(
     app_handle: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<PnlReport> {
-    crate::commands::scoped::with_scoped_conn(&state, Some(&app_handle), client_id.as_deref(), |conn| {
-        compute_pnl(conn, &date_from, &date_to)
-    })
+    crate::commands::scoped::with_scoped_conn(
+        &state,
+        Some(&app_handle),
+        client_id.as_deref(),
+        |conn| compute_pnl(conn, &date_from, &date_to),
+    )
 }
 
 pub fn compute_pnl(

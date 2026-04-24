@@ -1,9 +1,37 @@
-import { CheckCircle2, ChevronDown, RefreshCw, TestTube2, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Cpu,
+  RefreshCw,
+  Server,
+  TestTube2,
+  XCircle,
+} from "lucide-react";
 import { useI18n } from "../../../lib/i18n";
 import type { GlmOcrStatus, SaveSettingsPayload } from "../../../lib/settings-api";
 import { cn } from "../../../lib/utils";
 
-type AiProvider = "ollama" | "lmstudio";
+type AiProvider = "ollama" | "lmstudio" | "bonsai" | "bitnet";
+
+type OcrEngine = "glm-ocr" | "tesseract" | "surya";
+
+const OCR_ENGINES: { value: OcrEngine; label: string; description: string }[] = [
+  {
+    value: "glm-ocr",
+    label: "GLM-OCR",
+    description: "Uses Ollama with vision model (recommended)",
+  },
+  { value: "tesseract", label: "Tesseract", description: "Open source OCR, runs locally" },
+  { value: "surya", label: "Surya", description: "Modern OCR with layout detection" },
+];
+
+const AI_PROVIDERS: { value: AiProvider; label: string; description: string }[] = [
+  { value: "ollama", label: "Ollama", description: "Local LLM via Ollama" },
+  { value: "lmstudio", label: "LM Studio", description: "Local LLM via LM Studio" },
+  { value: "bonsai", label: "Bonsai", description: "Local LLM via Bonsai" },
+  { value: "bitnet", label: "BitNet", description: "Microsoft BitNet models" },
+];
 
 function Spinner() {
   return (
@@ -11,6 +39,42 @@ function Spinner() {
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
+  );
+}
+
+function ConnectionBadge({ ok, testing }: { ok: boolean | null; testing: boolean }) {
+  if (testing) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+        <Spinner />
+        <span className="truncate">Testing</span>
+      </span>
+    );
+  }
+
+  if (ok === true) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">Ready</span>
+      </span>
+    );
+  }
+
+  if (ok === false) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+        <XCircle className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">Offline</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
+      <Clock className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">Not tested</span>
+    </span>
   );
 }
 
@@ -30,6 +94,10 @@ export interface AiSettingsTabProps {
   ollamaModel: string;
   lmStudioUrl: string;
   lmStudioModel: string;
+  bonsaiUrl: string;
+  bonsaiModel: string;
+  bitnetUrl: string;
+  bitnetModel: string;
   currentModels: string[];
   currentModel: string;
   currentUrl: string;
@@ -44,6 +112,7 @@ export interface AiSettingsTabProps {
   testingGlmocr: boolean;
   saving: boolean;
   ocrAutoPostThreshold: number;
+  ocrEngine: OcrEngine;
   onProviderChange: (p: AiProvider) => void;
   onUrlChange: (url: string) => void;
   onModelChange: (model: string) => void;
@@ -52,6 +121,7 @@ export interface AiSettingsTabProps {
   onTestGlmocr: () => void;
   onSave: (partial: SaveSettingsPayload) => void;
   onOcrThresholdChange: (value: number) => void;
+  onOcrEngineChange: (engine: OcrEngine) => void;
 }
 
 export function AiSettingsTab({
@@ -60,6 +130,10 @@ export function AiSettingsTab({
   ollamaModel,
   lmStudioUrl,
   lmStudioModel,
+  bonsaiUrl,
+  bonsaiModel,
+  bitnetUrl,
+  bitnetModel,
   currentModels,
   currentModel,
   currentUrl,
@@ -74,6 +148,7 @@ export function AiSettingsTab({
   testingGlmocr,
   saving,
   ocrAutoPostThreshold,
+  ocrEngine,
   onProviderChange,
   onUrlChange,
   onModelChange,
@@ -82,71 +157,143 @@ export function AiSettingsTab({
   onTestGlmocr,
   onSave,
   onOcrThresholdChange,
+  onOcrEngineChange,
 }: AiSettingsTabProps) {
   const { t } = useI18n();
 
+  const currentModelIsCustom = currentModel.trim() !== "" && !currentModels.includes(currentModel);
+  const visibleServerUrl = currentUrl.trim() || defaultUrl;
+  const connectionState = testingProvider
+    ? {
+        icon: <Spinner />,
+        title: "Testing connection",
+        message: `Checking ${providerLabel} at ${visibleServerUrl}`,
+        className: "border-blue-200 bg-blue-50 text-blue-800",
+        detailClassName: "text-blue-600",
+      }
+    : providerStatus === true
+      ? {
+          icon: <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />,
+          title: `${providerLabel} is ready`,
+          message: "The AI workspace can use this server for chat and draft creation.",
+          className: "border-green-200 bg-green-50 text-green-800",
+          detailClassName: "text-green-600",
+        }
+      : providerStatus === false
+        ? {
+            icon: <XCircle className="h-4 w-4 shrink-0 text-red-600" />,
+            title: "Connection failed",
+            message: "Check that the local server is running and the URL is reachable.",
+            className: "border-red-200 bg-red-50 text-red-800",
+            detailClassName: "text-red-600",
+          }
+        : {
+            icon: <Clock className="h-4 w-4 shrink-0 text-gray-500" />,
+            title: "Connection not tested",
+            message: "Test the server before relying on this provider.",
+            className: "border-gray-200 bg-gray-50 text-gray-800",
+            detailClassName: "text-gray-500",
+          };
+
   return (
     <>
+      {/* AI Provider Selection - Enhanced styling */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-        <h3 className="text-sm font-semibold text-gray-900">{t("AI Provider")}</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-base font-semibold text-gray-900">{t("AI Provider")}</h3>
+          <ConnectionBadge ok={providerStatus} testing={testingProvider} />
+        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {(["ollama", "lmstudio"] as const).map((p) => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {AI_PROVIDERS.map((provider) => (
             <button
               type="button"
-              key={p}
-              onClick={() => onProviderChange(p)}
+              key={provider.value}
+              onClick={() => onProviderChange(provider.value)}
               className={cn(
-                "rounded-xl border-2 p-4 text-center transition-colors focus:outline-none",
-                aiProvider === p
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300",
+                "min-w-0 rounded-xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                "hover:border-gray-300 hover:shadow-sm",
+                aiProvider === provider.value
+                  ? "border-blue-600 bg-blue-50 shadow-sm"
+                  : "border-gray-200",
               )}
             >
-              <span
-                className={cn(
-                  "text-sm font-semibold",
-                  aiProvider === p ? "text-blue-700" : "text-gray-700",
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span
+                    className={cn(
+                      "block truncate text-base font-bold",
+                      aiProvider === provider.value ? "text-blue-700" : "text-gray-800",
+                    )}
+                  >
+                    {provider.label}
+                  </span>
+                  <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-relaxed text-gray-500">
+                    {provider.description}
+                  </p>
+                </div>
+                {aiProvider === provider.value && (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                 )}
-              >
-                {p === "ollama" ? "Ollama" : "LM Studio"}
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                {p === "ollama" ? "Local LLM via Ollama" : "Local LLM via LM Studio"}
-              </p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {providerLabel} {t("Server")}
-        </h3>
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <Server className="h-4 w-4 shrink-0 text-gray-500" />
+              <h3 className="truncate text-base font-semibold text-gray-900">
+                {providerLabel} {t("Server")}
+              </h3>
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              Configure the local endpoint and model used by the AI workspace.
+            </p>
+          </div>
+          <ConnectionBadge ok={providerStatus} testing={testingProvider} />
+        </div>
+
+        <div className={cn("rounded-lg border px-4 py-3", connectionState.className)}>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-2">
+              {connectionState.icon}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{connectionState.title}</p>
+                <p className={cn("mt-0.5 text-xs", connectionState.detailClassName)}>
+                  {connectionState.message}
+                </p>
+              </div>
+            </div>
+            <span className="min-w-0 break-all text-xs font-medium">{visibleServerUrl}</span>
+          </div>
+        </div>
 
         <div>
           <label htmlFor="ai-server-url" className="block text-sm font-medium text-gray-700 mb-1.5">
             {t("Server URL")}
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
               id="ai-server-url"
               type="text"
               value={currentUrl}
               onChange={(e) => onUrlChange(e.target.value)}
-              className="flex-1 px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={defaultUrl}
             />
             <button
               type="button"
               onClick={onTestProvider}
               disabled={testingProvider}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 sm:shrink-0"
             >
               <TestTube2 className="w-4 h-4" />
               {t("Test")}
             </button>
-            <StatusDot ok={providerStatus} testing={testingProvider} />
           </div>
         </div>
 
@@ -157,84 +304,160 @@ export function AiSettingsTab({
           >
             {t("Model")}
           </label>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <select
-                id="ai-model-select"
-                value={currentModel}
-                onChange={(e) => onModelChange(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none pr-8"
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 flex-1">
+                <Cpu className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <select
+                  id="ai-model-select"
+                  value={currentModel}
+                  onChange={(e) => onModelChange(e.target.value)}
+                  className="w-full min-w-0 appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-8 font-mono text-sm text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title={currentModel || defaultModel}
+                >
+                  {currentModels.length > 0 && !currentModel && (
+                    <option value="">Select a discovered model</option>
+                  )}
+                  {currentModelIsCustom && (
+                    <option value={currentModel}>{currentModel} (custom)</option>
+                  )}
+                  {currentModels.length === 0 && !currentModel && (
+                    <option value="">{t("No models found")}</option>
+                  )}
+                  {currentModels.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              </div>
+              <button
+                type="button"
+                onClick={onFetchModels}
+                disabled={loadingModels}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 sm:shrink-0"
+                title={t("Refresh model list")}
               >
-                {currentModels.length === 0 && <option value="">{t("No models found")}</option>}
-                {currentModels.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                {loadingModels ? <Spinner /> : <RefreshCw className="w-4 h-4" />}
+                <span className="sm:sr-only">{t("Refresh model list")}</span>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onFetchModels}
-              disabled={loadingModels}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-              title={t("Refresh model list")}
-            >
-              {loadingModels ? <Spinner /> : <RefreshCw className="w-4 h-4" />}
-            </button>
+            <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+              <span className="truncate">
+                {currentModels.length > 0
+                  ? `${currentModels.length} discovered model${currentModels.length === 1 ? "" : "s"}`
+                  : "No discovered models yet"}
+              </span>
+              {currentModelIsCustom && (
+                <span className="inline-flex max-w-full items-center rounded-full bg-white px-2 py-0.5 font-medium text-gray-600">
+                  <span className="truncate">{t("Custom model")}</span>
+                </span>
+              )}
+            </div>
           </div>
-          {currentModels.length === 0 && currentModel && (
-            <p className="mt-1 text-xs text-gray-400">
-              {t("Custom model")}: {currentModel}
-            </p>
-          )}
           <input
             type="text"
             value={currentModel}
             onChange={(e) => onModelChange(e.target.value)}
-            className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="mt-2 w-full min-w-0 rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={defaultModel}
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 break-words text-xs text-gray-400">
             {t("Select from dropdown or type a custom model name")}
           </p>
         </div>
       </div>
 
+      {/* OCR Engine Selection - New section */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
-        <h3 className="text-sm font-semibold text-gray-900">{t("GLM-OCR")}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">OCR Engine</h3>
+          <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
+        </div>
 
-        <div className="space-y-3">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-gray-500 -mt-3">
+          Select which OCR engine to use for document scanning
+        </p>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {OCR_ENGINES.map((engine) => (
+            <button
+              type="button"
+              key={engine.value}
+              onClick={() => onOcrEngineChange(engine.value)}
+              className={cn(
+                "rounded-xl border-2 p-4 text-left transition-all focus:outline-none",
+                "hover:shadow-md hover:scale-[1.02]",
+                ocrEngine === engine.value
+                  ? "border-blue-600 bg-blue-50 shadow-md"
+                  : "border-gray-200 hover:border-gray-300",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-sm font-bold block",
+                  ocrEngine === engine.value ? "text-blue-700" : "text-gray-800",
+                )}
+              >
+                {engine.label}
+              </span>
+              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{engine.description}</p>
+            </button>
+          ))}
+        </div>
+
+        {/* GLM-OCR specifics */}
+        {ocrEngine === "glm-ocr" && (
+          <div className="mt-4 bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">{t("OCR Model")}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-gray-900">OCR Model</p>
+                <p className="text-xs text-gray-500 mt-0.5">
                   {glmocrDetails?.model_name || "glm-ocr:latest"}
                 </p>
               </div>
-              <StatusDot ok={glmocrStatus} testing={testingGlmocr} />
+              <button
+                type="button"
+                onClick={onTestGlmocr}
+                disabled={testingGlmocr}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+              >
+                <TestTube2 className="w-4 h-4" />
+                {t("Test")}
+              </button>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
-              {glmocrDetails?.message || t("Document scanning uses the GLM-OCR model from Ollama.")}
+            <p className="text-xs text-gray-500">
+              {glmocrDetails?.message || "Document scanning uses the GLM-OCR model from Ollama."}
+            </p>
+            <p className="text-xs text-gray-400">
+              Install:{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">ollama pull glm-ocr:latest</code>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onTestGlmocr}
-              disabled={testingGlmocr}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              <TestTube2 className="w-4 h-4" />
-              {t("Test OCR Model")}
-            </button>
-            <span className="text-xs text-gray-400">
-              {t("Install with")}: <code>ollama pull glm-ocr:latest</code>
-            </span>
+        )}
+
+        {/* Tesseract info */}
+        {ocrEngine === "tesseract" && (
+          <div className="mt-4 bg-blue-50 rounded-lg border border-blue-200 p-4">
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">Tesseract OCR</span> — Uses the system Tesseract
+              installation for document scanning. Install via Homebrew:{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">brew install tesseract</code>
+            </p>
           </div>
-        </div>
+        )}
+
+        {/* Surya info */}
+        {ocrEngine === "surya" && (
+          <div className="mt-4 bg-green-50 rounded-lg border border-green-200 p-4">
+            <p className="text-sm text-green-800">
+              <span className="font-medium">Surya OCR</span> — Modern OCR with layout detection
+              capabilities. Install via pip:{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded">pip install surya-ocr</code>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
@@ -272,15 +495,13 @@ export function AiSettingsTab({
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-sm font-medium text-gray-900">
-              {t("Require approval before posting")}
+              {t("Draft from files/photos")}
             </span>
             <input
               type="checkbox"
               defaultChecked
-              disabled
-              className="w-4 h-4 rounded border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-xs text-gray-400 ml-2">{t("Required in v1")}</span>
           </div>
         </div>
       </div>
@@ -351,7 +572,12 @@ export function AiSettingsTab({
               ollama_model: ollamaModel,
               lm_studio_url: lmStudioUrl,
               lm_studio_model: lmStudioModel,
+              bonsai_url: bonsaiUrl,
+              bonsai_model: bonsaiModel,
+              bitnet_url: bitnetUrl,
+              bitnet_model: bitnetModel,
               ocr_auto_post_threshold: ocrAutoPostThreshold,
+              ocr_engine: ocrEngine,
             })
           }
           disabled={saving}

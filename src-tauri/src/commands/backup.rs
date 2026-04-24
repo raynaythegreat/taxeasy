@@ -32,16 +32,20 @@ pub async fn backup_database(
         (cid, fname)
     };
 
-    let data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let data_dir = app_handle.path().app_data_dir().map_err(|e| {
+        AppError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
     let src_path = data_dir.join("clients").join(&db_filename);
 
     {
         let lock = state.active_client.lock().unwrap();
         let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        ac.db.conn().execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
+        ac.db
+            .conn()
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
     }
 
     let dest = app_handle
@@ -89,10 +93,12 @@ pub async fn restore_database(
         .map_err(|_| AppError::NotFound(format!("client {client_id}")))?
     };
 
-    let data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let data_dir = app_handle.path().app_data_dir().map_err(|e| {
+        AppError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
     let dest_path = data_dir.join("clients").join(&db_filename);
 
     let src = app_handle
@@ -120,11 +126,8 @@ pub async fn restore_database(
                 lock.clone().unwrap_or_default()
             };
 
-            let client_db = crate::db::ClientDb::open(
-                dest_path.to_str().unwrap(),
-                &client_id,
-                &passphrase,
-            )?;
+            let client_db =
+                crate::db::ClientDb::open(dest_path.to_str().unwrap(), &client_id, &passphrase)?;
 
             {
                 let mut lock = state.active_client.lock().unwrap();

@@ -4,8 +4,8 @@
 ///   1. `preview_csv` — read headers + sample rows without any DB writes.
 ///   2. `import_csv`  — parse, convert to draft transactions, bulk-insert.
 use chrono::NaiveDate;
-use rust_decimal::Decimal;
 use rusqlite::params;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use uuid::Uuid;
@@ -83,7 +83,11 @@ fn parse_amount_cents(raw: &str) -> Option<i64> {
     let cents_dec = (d * Decimal::from(100)).round();
     let cents: i64 = cents_dec.try_into().ok()?;
 
-    if negative { Some(-cents.abs()) } else { Some(cents) }
+    if negative {
+        Some(-cents.abs())
+    } else {
+        Some(cents)
+    }
 }
 
 // ── Tauri commands ─────────────────────────────────────────────────────────────
@@ -202,15 +206,27 @@ pub fn import_csv(
         let reference = mapping.reference_col.and_then(|col| {
             fields.get(col).and_then(|s| {
                 let t = s.trim().to_string();
-                if t.is_empty() { None } else { Some(t) }
+                if t.is_empty() {
+                    None
+                } else {
+                    Some(t)
+                }
             })
         });
 
-        parsed.push(ParsedRow { txn_date, description, reference, amount_cents });
+        parsed.push(ParsedRow {
+            txn_date,
+            description,
+            reference,
+            amount_cents,
+        });
     }
 
     if parsed.is_empty() {
-        return Ok(ImportResult { imported: 0, skipped });
+        return Ok(ImportResult {
+            imported: 0,
+            skipped,
+        });
     }
 
     // Wrap all inserts in a single DB transaction for atomicity.
@@ -229,9 +245,15 @@ pub fn import_csv(
             // Positive amount = income/inflow  → debit the bank/asset (default_debit),
             //                                      credit the income account (default_credit).
             let (debit_acct, credit_acct) = if row.amount_cents < 0 {
-                (default_debit_account.as_str(), default_credit_account.as_str())
+                (
+                    default_debit_account.as_str(),
+                    default_credit_account.as_str(),
+                )
             } else {
-                (default_debit_account.as_str(), default_credit_account.as_str())
+                (
+                    default_debit_account.as_str(),
+                    default_credit_account.as_str(),
+                )
             };
 
             conn.execute(

@@ -1,4 +1,6 @@
 /// Per-client encrypted database.
+use std::collections::HashSet;
+
 use rusqlite::Connection;
 
 use super::encryption::{client_db_key, sqlcipher_hex_key};
@@ -37,16 +39,30 @@ impl ClientDb {
         self.conn.execute_batch(invoices)?;
         let documents = include_str!("../../migrations/004_documents.sql");
         self.conn.execute_batch(documents)?;
+        self.ensure_documents_schema()?;
+
         let ai_workspace = include_str!("../../migrations/005_ai_workspace.sql");
         self.conn.execute_batch(ai_workspace)?;
         // B1: transactions.status column (draft/posted/void lifecycle).
-        self.apply_alter_migration(include_str!("../../migrations/006_transactions_status.sql"), 6)?;
+        self.apply_alter_migration(
+            include_str!("../../migrations/006_transactions_status.sql"),
+            6,
+        )?;
         // B2: accounts.system_account_role column (stable FK for cash-flow matching).
-        self.apply_alter_migration(include_str!("../../migrations/007_accounts_system_role.sql"), 7)?;
+        self.apply_alter_migration(
+            include_str!("../../migrations/007_accounts_system_role.sql"),
+            7,
+        )?;
         // C4: accounts.deductible flag for deductible-expense tracking.
-        self.apply_alter_migration(include_str!("../../migrations/009_accounts_deductible.sql"), 9)?;
+        self.apply_alter_migration(
+            include_str!("../../migrations/009_accounts_deductible.sql"),
+            9,
+        )?;
         // Data entry: recurring transaction schedules.
-        self.apply_alter_migration(include_str!("../../migrations/010_recurring_transactions.sql"), 10)?;
+        self.apply_alter_migration(
+            include_str!("../../migrations/010_recurring_transactions.sql"),
+            10,
+        )?;
         // Chat tools: AI assistant integration.
         self.apply_alter_migration(include_str!("../../migrations/011_chat_tools.sql"), 11)?;
         // Phase 1: Mileage tracking with IRS rates.
@@ -58,7 +74,67 @@ impl ClientDb {
         // Phase 1: Vendors and 1099-NEC tracking.
         eprintln!("DEBUG: Applying migration 14");
         self.apply_alter_migration(include_str!("../../migrations/014_vendors_1099.sql"), 14)?;
+        // Bulk import: document hash dedupe and organizer category.
+        eprintln!("DEBUG: Applying migration 15");
+        self.apply_alter_migration(
+            include_str!("../../migrations/015_client_documents_hash_and_organizer.sql"),
+            15,
+        )?;
+        // Fix: ensure file_hash column exists (migration 4 may have failed on old tables)
+        eprintln!("DEBUG: Applying migration 16");
+        self.apply_alter_migration(
+            include_str!("../../migrations/016_documents_file_hash_fix.sql"),
+            16,
+        )?;
         eprintln!("DEBUG: All migrations applied");
+        Ok(())
+    }
+
+    fn ensure_documents_schema(&self) -> Result<()> {
+        self.conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS documents (
+                id          TEXT PRIMARY KEY,
+                file_name   TEXT NOT NULL,
+                file_path   TEXT NOT NULL,
+                file_size   INTEGER NOT NULL DEFAULT 0,
+                mime_type   TEXT NOT NULL DEFAULT 'application/octet-stream',
+                file_hash   TEXT,
+                category    TEXT NOT NULL DEFAULT 'general',
+                tax_year    INTEGER,
+                description TEXT,
+                created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            );",
+        )?;
+
+        let mut stmt = self.conn.prepare("PRAGMA table_info(documents)")?;
+        let existing: HashSet<String> = stmt
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let wanted = [
+            ("file_size", "INTEGER NOT NULL DEFAULT 0"),
+            ("mime_type", "TEXT NOT NULL DEFAULT 'application/octet-stream'"),
+            ("file_hash", "TEXT"),
+            ("category", "TEXT NOT NULL DEFAULT 'general'"),
+            ("tax_year", "INTEGER"),
+            ("description", "TEXT"),
+            ("created_at", "TEXT NOT NULL DEFAULT ''"),
+        ];
+
+        for (name, ty) in wanted {
+            if !existing.contains(name) {
+                self.conn
+                    .execute(&format!("ALTER TABLE documents ADD COLUMN {name} {ty}"), [])?;
+            }
+        }
+
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_file_hash
+             ON documents(file_hash) WHERE file_hash IS NOT NULL",
+            [],
+        )?;
+
         Ok(())
     }
 
@@ -73,7 +149,10 @@ impl ClientDb {
                 |row| row.get(0),
             )
             .unwrap_or(false);
-        eprintln!("DEBUG apply_alter_migration v{}: already_applied={}", version, already_applied);
+        eprintln!(
+            "DEBUG apply_alter_migration v{}: already_applied={}",
+            version, already_applied
+        );
         if !already_applied {
             eprintln!("DEBUG: Executing migration SQL for version {}", version);
             self.conn.execute_batch(sql)?;

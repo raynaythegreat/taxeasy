@@ -284,10 +284,16 @@ fn export_cash_flow_csv(date_from: &str, date_to: &str, state: &AppState) -> Res
     let mut csv = String::from("Section,Item,Amount\n");
     csv.push_str(&format!("Operating,Net Income,{}\n", net_income));
     if !depreciation.is_zero() {
-        csv.push_str(&format!("Operating,Depreciation & Amortization,{}\n", depreciation));
+        csv.push_str(&format!(
+            "Operating,Depreciation & Amortization,{}\n",
+            depreciation
+        ));
     }
     let net_cash_ops = net_income + depreciation;
-    csv.push_str(&format!("Operating,Net Cash from Operations,{}\n", net_cash_ops));
+    csv.push_str(&format!(
+        "Operating,Net Cash from Operations,{}\n",
+        net_cash_ops
+    ));
     csv.push_str(",,\n");
     csv.push_str("Investing,Net Cash from Investing,0\n");
     csv.push_str(",,\n");

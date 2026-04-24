@@ -35,3 +35,6 @@ mod vendors_1099_test;
 
 #[cfg(test)]
 mod mileage_test;
+
+#[cfg(test)]
+mod clients_test;

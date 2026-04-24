@@ -1,8 +1,11 @@
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::{AppError, Result}, state::AppState};
+use crate::{
+    error::{AppError, Result},
+    state::AppState,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GlmOcrStatus {
@@ -27,7 +30,10 @@ pub struct ReceiptLineItem {
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub async fn scan_receipt(file_path: String, state: tauri::State<'_, AppState>) -> Result<ExtractedReceipt> {
+pub async fn scan_receipt(
+    file_path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<ExtractedReceipt> {
     let lower = file_path.to_lowercase();
     if lower.ends_with(".csv") || lower.ends_with(".txt") {
         return parse_text_statement(&file_path);
@@ -63,12 +69,18 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
         .timeout(std::time::Duration::from_secs(120))
         .send()
         .await
-        .map_err(|e| AppError::AiService(format!("Ollama unreachable at {ollama_url} — is Ollama running? ({e})")))?;
+        .map_err(|e| {
+            AppError::AiService(format!(
+                "Ollama unreachable at {ollama_url} — is Ollama running? ({e})"
+            ))
+        })?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(AppError::AiService(format!("Ollama returned {status}: {body}")));
+        return Err(AppError::AiService(format!(
+            "Ollama returned {status}: {body}"
+        )));
     }
 
     #[derive(Deserialize)]
@@ -80,20 +92,29 @@ If a field is not visible, use null. The date must be YYYY-MM-DD format."#;
         message: OllamaMessage,
     }
 
-    let gen: OllamaResponse = resp.json().await.map_err(|e| AppError::AiService(format!("Failed to parse Ollama response: {e}")))?;
+    let gen: OllamaResponse = resp
+        .json()
+        .await
+        .map_err(|e| AppError::AiService(format!("Failed to parse Ollama response: {e}")))?;
     let raw = gen.message.content.trim().to_owned();
 
     parse_ocr_output(&raw)
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub async fn glmocr_available(url: Option<String>, state: tauri::State<'_, AppState>) -> Result<bool> {
+pub async fn glmocr_available(
+    url: Option<String>,
+    state: tauri::State<'_, AppState>,
+) -> Result<bool> {
     let url = url.unwrap_or_else(|| read_ollama_url(&state));
     Ok(resolve_glmocr_model(&url).await.is_ok())
 }
 
 #[tauri::command(rename_all = "camelCase")]
-pub async fn glmocr_status(url: Option<String>, state: tauri::State<'_, AppState>) -> Result<GlmOcrStatus> {
+pub async fn glmocr_status(
+    url: Option<String>,
+    state: tauri::State<'_, AppState>,
+) -> Result<GlmOcrStatus> {
     let url = url.unwrap_or_else(|| read_ollama_url(&state));
     match resolve_glmocr_model(&url).await {
         Ok(model_name) => Ok(GlmOcrStatus {
@@ -221,7 +242,9 @@ fn parse_text_statement(file_path: &str) -> Result<ExtractedReceipt> {
 
     for line in content.lines() {
         let line = line.trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
 
         let amount = extract_amount(line);
         let date = extract_date_token(line);
@@ -231,7 +254,10 @@ fn parse_text_statement(file_path: &str) -> Result<ExtractedReceipt> {
                 first_date = date.clone();
             }
             let description = line.to_owned();
-            line_items.push(ReceiptLineItem { description, amount });
+            line_items.push(ReceiptLineItem {
+                description,
+                amount,
+            });
         }
     }
 
@@ -249,8 +275,12 @@ fn parse_text_statement(file_path: &str) -> Result<ExtractedReceipt> {
 fn extract_amount(s: &str) -> Option<String> {
     let s = s.replace(',', "");
     for token in s.split_whitespace() {
-        let t = token.trim_start_matches('$').trim_matches(|c: char| !c.is_ascii_digit());
-        if t.is_empty() { continue; }
+        let t = token
+            .trim_start_matches('$')
+            .trim_matches(|c: char| !c.is_ascii_digit());
+        if t.is_empty() {
+            continue;
+        }
         if t.chars().all(|c| c.is_ascii_digit() || c == '.') {
             if let Ok(v) = t.parse::<f64>() {
                 if v > 0.0 {

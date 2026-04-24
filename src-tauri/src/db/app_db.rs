@@ -41,6 +41,7 @@ impl AppDb {
         let tax_news = include_str!("../../migrations/008_tax_news_cache.sql");
         self.conn.execute_batch(tax_news)?;
         self.add_i1040_entity_type()?;
+        self.add_client_source_folder_path()?;
         Ok(())
     }
 
@@ -153,6 +154,25 @@ impl AppDb {
 
         if !already_applied {
             let migration = include_str!("../../migrations/015_app_add_i1040_entity.sql");
+            self.conn.execute_batch(migration)?;
+        }
+
+        Ok(())
+    }
+
+    fn add_client_source_folder_path(&self) -> Result<()> {
+        let already_applied: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM schema_migrations WHERE version = 16",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+
+        if !already_applied {
+            let migration =
+                include_str!("../../migrations/016_app_add_client_source_folder_path.sql");
             self.conn.execute_batch(migration)?;
         }
 

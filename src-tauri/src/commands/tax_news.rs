@@ -120,9 +120,15 @@ fn derive_relevance_tags(
     // Accounting method context boost
     if let Some(method) = accounting_method {
         let ml = method.to_lowercase();
-        if ml == "cash" && haystack.contains("cash") && !tags.contains(&"cash_accounting".to_string()) {
+        if ml == "cash"
+            && haystack.contains("cash")
+            && !tags.contains(&"cash_accounting".to_string())
+        {
             tags.push("cash_accounting".to_string());
-        } else if ml == "accrual" && haystack.contains("accrual") && !tags.contains(&"accrual_accounting".to_string()) {
+        } else if ml == "accrual"
+            && haystack.contains("accrual")
+            && !tags.contains(&"accrual_accounting".to_string())
+        {
             tags.push("accrual_accounting".to_string());
         }
     }
@@ -138,7 +144,8 @@ fn derive_relevance_tags(
             "partnership" => ("partnership", "partnership"),
             _ => ("", ""),
         };
-        if !etag.is_empty() && !tags.contains(&etag.to_string()) && haystack.contains(keyword_hint) {
+        if !etag.is_empty() && !tags.contains(&etag.to_string()) && haystack.contains(keyword_hint)
+        {
             tags.push(etag.to_string());
         }
     }
@@ -171,7 +178,10 @@ struct RawItem {
     categories: Vec<String>,
 }
 
-async fn fetch_feed(source_label: &str, feed_url: &str) -> std::result::Result<Vec<RawItem>, String> {
+async fn fetch_feed(
+    source_label: &str,
+    feed_url: &str,
+) -> std::result::Result<Vec<RawItem>, String> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .user_agent("Taxeasy/1.0 (+https://taxeasy.app)")
@@ -211,16 +221,9 @@ async fn fetch_feed(source_label: &str, feed_url: &str) -> std::result::Result<V
                 .map(|s| s.content)
                 .or_else(|| entry.content.and_then(|c| c.body));
 
-            let published_at = entry
-                .published
-                .or(entry.updated)
-                .map(|dt| dt.to_rfc3339());
+            let published_at = entry.published.or(entry.updated).map(|dt| dt.to_rfc3339());
 
-            let categories: Vec<String> = entry
-                .categories
-                .iter()
-                .map(|c| c.term.clone())
-                .collect();
+            let categories: Vec<String> = entry.categories.iter().map(|c| c.term.clone()).collect();
 
             let id = stable_id(source_label, &url);
 
@@ -252,7 +255,10 @@ async fn fetch_all_feeds() -> Vec<RawItem> {
             }
         }
     }
-    log::info!("tax_news: total items fetched from all sources: {}", all.len());
+    log::info!(
+        "tax_news: total items fetched from all sources: {}",
+        all.len()
+    );
     all
 }
 
@@ -409,16 +415,14 @@ pub async fn fetch_tax_news(
             .path()
             .app_data_dir()
             .map_err(|e: tauri::Error| {
-                AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+                AppError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
             })?;
         db_path = data_dir.join("app.db").to_string_lossy().into_owned();
 
-        passphrase = state
-            .passphrase
-            .lock()
-            .unwrap()
-            .clone()
-            .unwrap_or_default();
+        passphrase = state.passphrase.lock().unwrap().clone().unwrap_or_default();
     }
 
     // ── 2. Stale-while-revalidate ────────────────────────────────────────────
@@ -532,8 +536,14 @@ mod tests {
             Some("sole-prop"),
             Some("cash"),
         );
-        assert!(tags.contains(&"sole_prop".to_string()), "expected sole_prop in {tags:?}");
-        assert!(tags.contains(&"quarterly_estimates".to_string()), "expected quarterly_estimates in {tags:?}");
+        assert!(
+            tags.contains(&"sole_prop".to_string()),
+            "expected sole_prop in {tags:?}"
+        );
+        assert!(
+            tags.contains(&"quarterly_estimates".to_string()),
+            "expected quarterly_estimates in {tags:?}"
+        );
     }
 
     #[test]
@@ -555,7 +565,10 @@ mod tests {
             Some("scorp"),
             None,
         );
-        assert!(tags.contains(&"s_corp".to_string()), "expected s_corp in {tags:?}");
+        assert!(
+            tags.contains(&"s_corp".to_string()),
+            "expected s_corp in {tags:?}"
+        );
     }
 
     #[test]
@@ -578,8 +591,8 @@ mod tests {
     #[test]
     fn parse_fixture_rss() {
         let xml = include_str!("../../tests/fixtures/irs_newsroom.xml");
-        let feed = feed_rs::parser::parse(xml.as_bytes())
-            .expect("fixture RSS should parse without error");
+        let feed =
+            feed_rs::parser::parse(xml.as_bytes()).expect("fixture RSS should parse without error");
         assert!(
             !feed.entries.is_empty(),
             "fixture should contain at least one entry"

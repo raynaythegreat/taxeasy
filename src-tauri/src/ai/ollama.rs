@@ -2,7 +2,10 @@ use reqwest::Client;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::{AppError, Result}, state::AppState};
+use crate::{
+    error::{AppError, Result},
+    state::AppState,
+};
 
 pub struct AiConfig {
     pub provider: String,
@@ -10,6 +13,10 @@ pub struct AiConfig {
     pub ollama_model: String,
     pub lm_studio_url: String,
     pub lm_studio_model: String,
+    pub bonsai_url: String,
+    pub bonsai_model: String,
+    pub bitnet_url: String,
+    pub bitnet_model: String,
 }
 
 fn looks_like_ocr_or_embedding_model(model: &str) -> bool {
@@ -23,16 +30,8 @@ fn looks_like_ocr_or_embedding_model(model: &str) -> bool {
 
 fn preferred_ollama_model(models: &[String]) -> Option<String> {
     let preferred_prefixes = [
-        "qwen2.5",
-        "qwen3",
-        "llama3.2",
-        "llama3.1",
-        "gemma3",
-        "gemma2",
-        "mistral",
-        "deepseek",
-        "phi4",
-        "phi3",
+        "qwen2.5", "qwen3", "llama3.2", "llama3.1", "gemma3", "gemma2", "mistral", "deepseek",
+        "phi4", "phi3",
     ];
 
     for prefix in preferred_prefixes {
@@ -84,6 +83,10 @@ pub fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
                 ollama_model: get(conn, "ollama_model", ""),
                 lm_studio_url: get(conn, "lm_studio_url", "http://localhost:1234"),
                 lm_studio_model: get(conn, "lm_studio_model", ""),
+                bonsai_url: get(conn, "bonsai_url", "http://localhost:8080"),
+                bonsai_model: get(conn, "bonsai_model", ""),
+                bitnet_url: get(conn, "bitnet_url", "http://localhost:8090"),
+                bitnet_model: get(conn, "bitnet_model", ""),
             }
         }
         None => AiConfig {
@@ -92,6 +95,10 @@ pub fn read_ai_config(state: &tauri::State<'_, AppState>) -> AiConfig {
             ollama_model: "".into(),
             lm_studio_url: "http://localhost:1234".into(),
             lm_studio_model: "".into(),
+            bonsai_url: "http://localhost:8080".into(),
+            bonsai_model: "".into(),
+            bitnet_url: "http://localhost:8090".into(),
+            bitnet_model: "".into(),
         },
     }
 }
@@ -114,10 +121,13 @@ pub async fn ollama_health() -> bool {
 pub async fn check_ai_health_with_url(url: String) -> bool {
     let client = Client::new();
     let is_lmstudio = url.contains("1234");
+    let is_ollama = url.contains("11434");
     let endpoint = if is_lmstudio {
         format!("{}/v1/models", url.trim_end_matches('/'))
-    } else {
+    } else if is_ollama {
         format!("{}/api/tags", url.trim_end_matches('/'))
+    } else {
+        format!("{}/v1/models", url.trim_end_matches('/'))
     };
     match client
         .get(&endpoint)
@@ -158,10 +168,16 @@ async fn ollama_complete(url: &str, model: &str, prompt: &str) -> Result<String>
         .map_err(|e| AppError::AiService(e.to_string()))?;
 
     if !resp.status().is_success() {
-        return Err(AppError::AiService(format!("Ollama returned {}", resp.status())));
+        return Err(AppError::AiService(format!(
+            "Ollama returned {}",
+            resp.status()
+        )));
     }
 
-    let gen: GenerateResponse = resp.json().await.map_err(|e| AppError::AiService(e.to_string()))?;
+    let gen: GenerateResponse = resp
+        .json()
+        .await
+        .map_err(|e| AppError::AiService(e.to_string()))?;
     Ok(gen.response.trim().to_owned())
 }
 
@@ -174,6 +190,22 @@ pub async fn ai_complete(config: &AiConfig, prompt: &str) -> Result<String> {
                 &config.lm_studio_model
             };
             crate::ai::lmstudio::lmstudio_complete(&config.lm_studio_url, model, prompt).await
+        }
+        "bonsai" => {
+            let model = if config.bonsai_model.is_empty() {
+                return Err(AppError::AiService("No Bonsai model selected".into()));
+            } else {
+                &config.bonsai_model
+            };
+            crate::ai::lmstudio::lmstudio_complete(&config.bonsai_url, model, prompt).await
+        }
+        "bitnet" => {
+            let model = if config.bitnet_model.is_empty() {
+                return Err(AppError::AiService("No BitNet model selected".into()));
+            } else {
+                &config.bitnet_model
+            };
+            crate::ai::lmstudio::lmstudio_complete(&config.bitnet_url, model, prompt).await
         }
         _ => {
             let model = resolve_ollama_chat_model(&config.ollama_url, &config.ollama_model).await?;
@@ -209,7 +241,9 @@ pub async fn suggest_category(
             "SELECT id, code, name, account_type FROM accounts WHERE active = 1 ORDER BY sort_order, code",
         )?;
         let rows: Vec<(String, String, String, String)> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?
+            .query_map([], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -237,8 +271,8 @@ Respond in JSON only, no markdown, exactly this shape:
     let raw = ai_complete(&config, &prompt).await?;
 
     // Parse JSON response
-    let v: serde_json::Value =
-        serde_json::from_str(&raw).map_err(|_| AppError::AiService("model returned invalid JSON".into()))?;
+    let v: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|_| AppError::AiService("model returned invalid JSON".into()))?;
     let code = v["code"].as_str().unwrap_or("").trim().to_owned();
 
     // Find matching account
@@ -305,7 +339,9 @@ Rules:
     // Sanitize: only SELECT allowed
     let sql_upper = sql.trim().to_uppercase();
     if !sql_upper.starts_with("SELECT") {
-        return Err(AppError::AiService("model generated a non-SELECT query".into()));
+        return Err(AppError::AiService(
+            "model generated a non-SELECT query".into(),
+        ));
     }
 
     // Use an immediately-invoked closure so that `?` returns from the *closure*,
@@ -333,13 +369,13 @@ Rules:
                     let json_val = match val {
                         rusqlite::types::Value::Null => serde_json::Value::Null,
                         rusqlite::types::Value::Integer(n) => serde_json::Value::Number(n.into()),
-                        rusqlite::types::Value::Real(f) => {
-                            serde_json::Number::from_f64(f)
-                                .map(serde_json::Value::Number)
-                                .unwrap_or(serde_json::Value::Null)
-                        }
+                        rusqlite::types::Value::Real(f) => serde_json::Number::from_f64(f)
+                            .map(serde_json::Value::Number)
+                            .unwrap_or(serde_json::Value::Null),
                         rusqlite::types::Value::Text(s) => serde_json::Value::String(s),
-                        rusqlite::types::Value::Blob(_) => serde_json::Value::String("[blob]".into()),
+                        rusqlite::types::Value::Blob(_) => {
+                            serde_json::Value::String("[blob]".into())
+                        }
                     };
                     map.insert(name.clone(), json_val);
                 }
@@ -360,7 +396,9 @@ Question: {question}
 Results: {results_str}
 Summary:"#
     );
-    let summary = ai_complete(&config, &summary_prompt).await.unwrap_or_default();
+    let summary = ai_complete(&config, &summary_prompt)
+        .await
+        .unwrap_or_default();
 
     Ok(NlQueryResult { sql, rows, summary })
 }

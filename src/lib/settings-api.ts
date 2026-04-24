@@ -6,7 +6,13 @@ export interface AppSettings {
   ollama_model: string;
   lm_studio_url: string;
   lm_studio_model: string;
+  bonsai_url: string;
+  bonsai_model: string;
+  bitnet_url: string;
+  bitnet_model: string;
   glmocr_path: string;
+  /** OCR engine: "glm-ocr", "tesseract", or "surya" */
+  ocr_engine: string;
   theme: string;
   default_export_path: string;
   app_pin: string;
@@ -20,7 +26,13 @@ export interface SaveSettingsPayload {
   ollama_model?: string;
   lm_studio_url?: string;
   lm_studio_model?: string;
+  bonsai_url?: string;
+  bonsai_model?: string;
+  bitnet_url?: string;
+  bitnet_model?: string;
   glmocr_path?: string;
+  /** OCR engine: "glm-ocr", "tesseract", or "surya" */
+  ocr_engine?: string;
   theme?: string;
   default_export_path?: string;
   app_pin?: string;
@@ -57,6 +69,22 @@ export async function lmstudioHealth(url: string): Promise<boolean> {
 
 export async function lmstudioListModels(url: string): Promise<string[]> {
   return invoke("lmstudio_list_models", { url });
+}
+
+export async function bonsaiHealth(url: string): Promise<boolean> {
+  return invoke("bonsai_health", { url });
+}
+
+export async function bonsaiListModels(url: string): Promise<string[]> {
+  return invoke("bonsai_list_models", { url });
+}
+
+export async function bitnetHealth(url: string): Promise<boolean> {
+  return invoke("bitnet_health", { url });
+}
+
+export async function bitnetListModels(url: string): Promise<string[]> {
+  return invoke("bitnet_list_models", { url });
 }
 
 export interface GlmOcrStatus {

@@ -13,7 +13,13 @@ pub struct AppSettings {
     pub ollama_model: String,
     pub lm_studio_url: String,
     pub lm_studio_model: String,
+    pub bonsai_url: String,
+    pub bonsai_model: String,
+    pub bitnet_url: String,
+    pub bitnet_model: String,
     pub glmocr_path: String,
+    /// OCR engine to use: "glm-ocr" (default), "tesseract", or "surya"
+    pub ocr_engine: String,
     pub theme: String,
     pub default_export_path: String,
     pub app_pin: String,
@@ -29,7 +35,13 @@ pub struct SaveSettingsPayload {
     pub ollama_model: Option<String>,
     pub lm_studio_url: Option<String>,
     pub lm_studio_model: Option<String>,
+    pub bonsai_url: Option<String>,
+    pub bonsai_model: Option<String>,
+    pub bitnet_url: Option<String>,
+    pub bitnet_model: Option<String>,
     pub glmocr_path: Option<String>,
+    /// OCR engine to use: "glm-ocr" (default), "tesseract", or "surya"
+    pub ocr_engine: Option<String>,
     pub theme: Option<String>,
     pub default_export_path: Option<String>,
     pub app_pin: Option<String>,
@@ -61,7 +73,12 @@ pub fn get_settings(state: tauri::State<AppState>) -> Result<AppSettings> {
         ollama_model: get_val("ollama_model", ""),
         lm_studio_url: get_val("lm_studio_url", "http://localhost:1234"),
         lm_studio_model: get_val("lm_studio_model", ""),
+        bonsai_url: get_val("bonsai_url", "http://localhost:8080"),
+        bonsai_model: get_val("bonsai_model", ""),
+        bitnet_url: get_val("bitnet_url", "http://localhost:8090"),
+        bitnet_model: get_val("bitnet_model", ""),
         glmocr_path: get_val("glmocr_path", ""),
+        ocr_engine: get_val("ocr_engine", "glm-ocr"),
         theme: get_val("theme", "system"),
         default_export_path: get_val("default_export_path", ""),
         app_pin: get_val("app_pin", "0000"),
@@ -98,8 +115,23 @@ pub fn save_settings(payload: SaveSettingsPayload, state: tauri::State<AppState>
     if let Some(ref v) = payload.lm_studio_model {
         set_val(conn, "lm_studio_model", v)?;
     }
+    if let Some(ref v) = payload.bonsai_url {
+        set_val(conn, "bonsai_url", v)?;
+    }
+    if let Some(ref v) = payload.bonsai_model {
+        set_val(conn, "bonsai_model", v)?;
+    }
+    if let Some(ref v) = payload.bitnet_url {
+        set_val(conn, "bitnet_url", v)?;
+    }
+    if let Some(ref v) = payload.bitnet_model {
+        set_val(conn, "bitnet_model", v)?;
+    }
     if let Some(ref v) = payload.glmocr_path {
         set_val(conn, "glmocr_path", v)?;
+    }
+    if let Some(ref v) = payload.ocr_engine {
+        set_val(conn, "ocr_engine", v)?;
     }
     if let Some(ref v) = payload.theme {
         set_val(conn, "theme", v)?;

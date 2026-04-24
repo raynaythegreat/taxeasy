@@ -1,5 +1,7 @@
 use crate::{
-    domain::mileage_log::{CreateMileagePayload, MileageLog, UpdateMileagePayload, IrsRate, MileageSummary},
+    domain::mileage_log::{
+        CreateMileagePayload, IrsRate, MileageLog, MileageSummary, UpdateMileagePayload,
+    },
     error::{AppError, Result},
     state::AppState,
 };
@@ -107,22 +109,25 @@ pub fn list_mileage_logs_impl(
         )?;
 
         let logs = stmt
-            .query_map(params![client_id, date_from, date_to], |row: &rusqlite::Row| {
-                Ok(MileageLog {
-                    id: row.get(0)?,
-                    client_id: row.get(1)?,
-                    date: row.get(2)?,
-                    purpose: row.get(3)?,
-                    origin: row.get(4)?,
-                    destination: row.get(5)?,
-                    miles_real: row.get(6)?,
-                    rate_cents: row.get(7)?,
-                    deduction_cents: row.get(8)?,
-                    notes: row.get(9)?,
-                    receipt_image_path: row.get(10)?,
-                    created_at: row.get(11)?,
-                })
-            })?
+            .query_map(
+                params![client_id, date_from, date_to],
+                |row: &rusqlite::Row| {
+                    Ok(MileageLog {
+                        id: row.get(0)?,
+                        client_id: row.get(1)?,
+                        date: row.get(2)?,
+                        purpose: row.get(3)?,
+                        origin: row.get(4)?,
+                        destination: row.get(5)?,
+                        miles_real: row.get(6)?,
+                        rate_cents: row.get(7)?,
+                        deduction_cents: row.get(8)?,
+                        notes: row.get(9)?,
+                        receipt_image_path: row.get(10)?,
+                        created_at: row.get(11)?,
+                    })
+                },
+            )?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -297,7 +302,8 @@ pub fn update_mileage_log_impl(
             updates.join(", ")
         );
 
-        let param_refs: Vec<&dyn rusqlite::ToSql> = param_values.iter()
+        let param_refs: Vec<&dyn rusqlite::ToSql> = param_values
+            .iter()
             .map(|s| s as &dyn rusqlite::ToSql)
             .collect();
 

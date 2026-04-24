@@ -1,4 +1,5 @@
 import { invoke as invokeCore } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
 export const invoke = invokeCore;
@@ -12,6 +13,7 @@ export interface Client {
   name: string;
   entity_type: EntityType;
   ein?: string;
+  source_folder_path?: string;
   contact_name?: string;
   email?: string;
   phone?: string;
@@ -34,6 +36,7 @@ export interface CreateClientPayload {
   name: string;
   entity_type: EntityType;
   ein?: string;
+  source_folder_path?: string;
   contact_name?: string;
   email?: string;
   phone?: string;
@@ -170,6 +173,153 @@ export const listClients = (): Promise<Client[]> => invoke("list_clients");
 export const createClient = (payload: CreateClientPayload): Promise<Client> =>
   invoke("create_client", { payload });
 
+export interface BulkImportedClient {
+  folderPath: string;
+  client: Client;
+  scannedDocumentCount: number;
+  importedDocumentCount: number;
+  duplicateDocumentCount: number;
+  skippedDocumentCount?: number;
+  dedupedDocumentCount?: number;
+  failedDocumentCount?: number;
+  importedDocuments?: ClientImportDocumentResult[];
+  skippedDocuments?: ClientImportDocumentResult[];
+  failedDocuments?: ClientImportDocumentResult[];
+  warnings?: string[];
+}
+
+export interface ClientImportDocumentResult {
+  fileName?: string;
+  filePath?: string;
+  reason?: string;
+  message?: string;
+}
+
+export interface BulkImportSkippedClient {
+  folderPath: string;
+  clientName: string;
+  reason: string;
+}
+
+export interface BulkImportFailedClient {
+  folderPath: string;
+  clientName?: string;
+  reason: string;
+}
+
+export interface BulkImportClientFoldersResult {
+  created: BulkImportedClient[];
+  skipped: BulkImportSkippedClient[];
+  failed: BulkImportFailedClient[];
+  createdCount?: number;
+  skippedCount?: number;
+  failedCount?: number;
+  importedDocumentCount?: number;
+  skippedDocumentCount?: number;
+  dedupedDocumentCount?: number;
+  failedDocumentCount?: number;
+  warnings?: string[];
+}
+
+export interface ClientFolderSyncResult {
+  client: Client;
+  sourceFolderPath: string;
+  scannedDocumentCount: number;
+  importedDocumentCount: number;
+  duplicateDocumentCount: number;
+  clientId?: string;
+  clientName?: string;
+  skippedDocumentCount?: number;
+  dedupedDocumentCount?: number;
+  failedDocumentCount?: number;
+  importedDocuments?: ClientImportDocumentResult[];
+  skippedDocuments?: ClientImportDocumentResult[];
+  failedDocuments?: ClientImportDocumentResult[];
+  warnings?: string[];
+  message?: string;
+}
+
+export interface ClientImportProgressEvent {
+  operation: "bulk_import" | "resync";
+  stage: "processing" | "completed" | "skipped" | "failed";
+  current: number;
+  total: number;
+  clientId?: string;
+  clientName?: string;
+  folderPath: string;
+  scannedDocumentCount?: number;
+  importedDocumentCount?: number;
+  duplicateDocumentCount?: number;
+  reason?: string;
+  status?: string;
+  phase?: string;
+  percent?: number;
+  message?: string;
+  filePath?: string;
+  importedCount?: number;
+  skippedCount?: number;
+  dedupedCount?: number;
+  failedCount?: number;
+}
+
+const CLIENT_IMPORT_PROGRESS_EVENTS = ["clients://import-progress"];
+
+const RESYNC_CLIENT_FOLDER_COMMANDS = [
+  "resync_client_folder",
+  "re_sync_client_folder",
+  "sync_client_source_folder",
+];
+
+function isMissingCommandError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /command|not found|does not exist|unknown/i.test(message);
+}
+
+async function invokeWithFallback<T>(
+  commands: string[],
+  args: Record<string, unknown>,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (const command of commands) {
+    try {
+      return await invoke<T>(command, args);
+    } catch (error) {
+      lastError = error;
+      if (!isMissingCommandError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError ?? new Error("No compatible Tauri command found");
+}
+
+export const bulkImportClientFolders = (
+  folderPaths: string[],
+): Promise<BulkImportClientFoldersResult> => invoke("bulk_import_client_folders", { folderPaths });
+
+export const resyncClientFolder = (clientId: string): Promise<ClientFolderSyncResult> =>
+  invokeWithFallback<ClientFolderSyncResult>(RESYNC_CLIENT_FOLDER_COMMANDS, { clientId });
+
+export async function onClientImportProgress(
+  callback: (progress: ClientImportProgressEvent) => void,
+): Promise<() => void> {
+  const unlisteners = await Promise.all(
+    CLIENT_IMPORT_PROGRESS_EVENTS.map((eventName) =>
+      listen(eventName, (event) => {
+        callback(event.payload as ClientImportProgressEvent);
+      }),
+    ),
+  );
+
+  return () => {
+    for (const unlisten of unlisteners as UnlistenFn[]) {
+      unlisten();
+    }
+  };
+}
+
 export const switchClient = (clientId: string): Promise<void> =>
   invoke("switch_client", { clientId });
 
@@ -296,6 +446,12 @@ export const pickReceiptFile = (): Promise<string | null> =>
 
 export const pickReceiptFiles = (): Promise<string[] | null> =>
   openDialog({ multiple: true, filters: FILE_FILTERS }) as Promise<string[] | null>;
+
+export const pickClientFolders = (): Promise<string[] | null> =>
+  openDialog({ directory: true, multiple: true }) as Promise<string[] | null>;
+
+export const pickClientFolder = (): Promise<string | null> =>
+  openDialog({ directory: true, multiple: false }) as Promise<string | null>;
 
 export const listDirFiles = (path: string): Promise<string[]> => invoke("list_dir_files", { path });
 
