@@ -11,7 +11,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClientWorkspace, type WorkspaceTab } from "../../components/ClientWorkspace";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { useI18n } from "../../lib/i18n";
@@ -118,6 +118,31 @@ interface ImportProgressState {
   skippedCount?: number;
   dedupedCount?: number;
   failedCount?: number;
+}
+
+interface RecentImport {
+  id: string;
+  name: string;
+  entityType: EntityType;
+  importedAt: number;
+}
+
+function getRecentImports(): RecentImport[] {
+  try {
+    const stored = localStorage.getItem("recent_imports");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addRecentImport(client: { id: string; name: string; entityType: EntityType }) {
+  const recent = getRecentImports();
+  const updated = [
+    { ...client, importedAt: Date.now() },
+    ...recent.filter((r) => r.id !== client.id),
+  ].slice(0, 3);
+  localStorage.setItem("recent_imports", JSON.stringify(updated));
 }
 
 const FILING_STATUS_LABELS: Record<FilingStatus, string> = {
@@ -465,6 +490,29 @@ export function ClientsPage({
   const [importNotice, setImportNotice] = useState<ImportNotice | null>(null);
   const [importProgress, setImportProgress] = useState<ImportProgressState | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const CLIENT_TEMPLATES: { label: string; entity_type: EntityType; accounting_method: AccountingMethod }[] = [
+    { label: "Sole Proprietor", entity_type: "sole_prop", accounting_method: "cash" },
+    { label: "SMLLC", entity_type: "smllc", accounting_method: "cash" },
+    { label: "S-Corp", entity_type: "scorp", accounting_method: "accrual" },
+  ];
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+        e.preventDefault();
+        setShowForm(true);
+        setTimeout(() => {
+          nameInputRef.current?.focus();
+        }, 50);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   const [filingStatuses, setFilingStatuses] = useState<Record<string, FilingStatus>>(() => {
     try {
       const stored = localStorage.getItem("filing_statuses");
@@ -611,6 +659,13 @@ export function ClientsPage({
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setImportProgress(null);
+      result.created.forEach((entry) => {
+        addRecentImport({
+          id: entry.client.id,
+          name: entry.client.name,
+          entityType: entry.client.entity_type,
+        });
+      });
       setImportNotice({
         type: result.failed.length > 0 ? "error" : "success",
         operation: "bulk_import",
@@ -1350,6 +1405,7 @@ export function ClientsPage({
                   <input
                     id="client-name"
                     type="text"
+                    ref={nameInputRef}
                     value={form.name}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       updateField("name", e.target.value)
@@ -1584,50 +1640,143 @@ export function ClientsPage({
                 </p>
               </div>
 
-              <section
-                className={cn(
-                  "rounded-xl border-2 border-dashed p-6 transition-all",
-                  isDragging
-                    ? "border-blue-500 bg-blue-50/50"
-                    : "border-gray-300 bg-white hover:border-gray-400",
-                )}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                aria-label="Drop zone for folder import"
-              >
-                {isDragging ? (
-                  <div className="text-center py-4">
-                    <FolderSearch className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-gray-900">
-                      Drop folders to import clients
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Each folder becomes a new client with all its files
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <FolderSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600">
-                      Drag &amp; drop client folders here
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Or create a client manually below
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleImportFolders}
-                      className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <FolderSearch className="w-3.5 h-3.5" />
-                      {t("Browse Folders")}
-                    </button>
-                  </div>
-                )}
-              </section>
+               {importProgress && importProgress.operation === "bulk_import" && (
+                 <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                   <div className="flex items-start gap-3">
+                     <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin text-blue-600" />
+                     <div className="min-w-0 flex-1">
+                       <p className="text-sm font-semibold text-gray-900">
+                         {t("Importing folders")}
+                       </p>
+                       {importProgress.clientName && (
+                         <p className="mt-1 text-sm text-gray-600">
+                           {t("Processing {client}", { client: importProgress.clientName })}
+                         </p>
+                       )}
+                       {getProgressPercent(importProgress) !== null && (
+                         <div className="mt-3 h-2 rounded-full bg-gray-100">
+                           <div
+                             className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+                             style={{ width: `${getProgressPercent(importProgress)}%` }}
+                           />
+                         </div>
+                       )}
+                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                         {typeof importProgress.current === "number" &&
+                           typeof importProgress.total === "number" && (
+                             <span>
+                               {t("{current} of {total}", {
+                                 current: String(importProgress.current),
+                                 total: String(importProgress.total),
+                               })}
+                             </span>
+                           )}
+                         {typeof importProgress.importedCount === "number" && (
+                           <span>
+                             {t("{count} imported", {
+                               count: String(importProgress.importedCount),
+                             })}
+                           </span>
+                         )}
+                         {typeof importProgress.skippedCount === "number" && (
+                           <span>
+                             {t("{count} skipped", {
+                               count: String(importProgress.skippedCount),
+                             })}
+                           </span>
+                         )}
+                         {typeof importProgress.failedCount === "number" && (
+                           <span>
+                             {t("{count} failed", {
+                               count: String(importProgress.failedCount),
+                             })}
+                           </span>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
-              <div className="mt-6 flex items-center gap-4">
+               <section
+                 className={cn(
+                   "rounded-xl border-2 border-dashed p-6 transition-all",
+                   isDragging
+                     ? "border-blue-500 bg-blue-50/50"
+                     : "border-gray-300 bg-white hover:border-gray-400",
+                 )}
+                 onDragOver={handleDragOver}
+                 onDragLeave={handleDragLeave}
+                 onDrop={handleDrop}
+                 aria-label="Drop zone for folder import"
+               >
+                 {isDragging ? (
+                   <div className="text-center py-4">
+                     <FolderSearch className="w-12 h-12 text-blue-500 mx-auto mb-2" />
+                     <p className="text-sm font-semibold text-gray-900">
+                       Drop folders to import clients
+                     </p>
+                     <p className="text-xs text-gray-500 mt-1">
+                       Each folder becomes a new client with all its files
+                     </p>
+                   </div>
+                 ) : (
+                   <div className="text-center py-4">
+                     <FolderSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                     <p className="text-sm font-medium text-gray-600">
+                       Drag &amp; drop client folders here
+                     </p>
+                     <p className="text-xs text-gray-400 mt-1">
+                       Or create a client manually below
+                     </p>
+                     <button
+                       type="button"
+                       onClick={handleImportFolders}
+                       className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                     >
+                       <FolderSearch className="w-3.5 h-3.5" />
+                       {t("Browse Folders")}
+                     </button>
+                   </div>
+                 )}
+               </section>
+
+               {(() => {
+                 const recent = getRecentImports();
+                 return recent.length > 0 ? (
+                   <div className="mt-4">
+                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                       {t("Recently Imported")}
+                     </h3>
+                     <div className="space-y-2">
+                       {recent.map((item) => (
+                         <div
+                           key={item.id}
+                           className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2"
+                         >
+                           <div className="min-w-0 flex-1">
+                             <p className="text-sm font-medium text-gray-900 truncate">
+                               {item.name}
+                             </p>
+                             <EntityBadge type={item.entityType} />
+                           </div>
+                           <button
+                             type="button"
+                             onClick={async () => {
+                               await handleSwitchClient(item.id);
+                             }}
+                             className="ml-3 shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
+                           >
+                             {t("Open")}
+                           </button>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 ) : null;
+               })()}
+
+               <div className="mt-6 flex items-center gap-4">
                 <div className="flex-1 h-px bg-gray-200" />
                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
                   or create manually
@@ -1695,6 +1844,29 @@ export function ClientsPage({
                     </svg>
                     {t("Business")}
                   </button>
+                </div>
+              </div>
+
+              {/* Template Buttons */}
+              <div className="mt-4">
+                <p className="text-xs font-medium text-gray-500 mb-2">{t("Create from Template")}</p>
+                <div className="flex gap-2">
+                  {CLIENT_TEMPLATES.map((template) => (
+                    <button
+                      key={template.entity_type}
+                      type="button"
+                      onClick={() => {
+                        updateField("entity_type", template.entity_type);
+                        updateField("accounting_method", template.accounting_method);
+                        updateField("name", `${template.label} — `);
+                        nameInputRef.current?.focus();
+                      }}
+                      disabled={createMutation.isPending}
+                      className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {template.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

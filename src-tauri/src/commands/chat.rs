@@ -162,30 +162,26 @@ pub async fn send_chat_message_stream(
     )
     .await?;
 
-    {
-        let lock = state.active_client.lock().unwrap();
-        let ac = lock.as_ref().ok_or(AppError::NoActiveClient)?;
-        let conn = ac.db.conn();
-
-        let tool_metadata: Vec<serde_json::Value> = agent_result
-            .tool_calls
-            .iter()
-            .map(|tc| {
-                serde_json::json!({
-                    "tool_name": tc.tool_name,
-                    "tool_input": tc.tool_input,
-                    "tool_output": tc.tool_output,
-                    "status": tc.status,
-                })
+    let tool_metadata: Vec<serde_json::Value> = agent_result
+        .tool_calls
+        .iter()
+        .map(|tc| {
+            serde_json::json!({
+                "tool_name": tc.tool_name,
+                "tool_input": tc.tool_input,
+                "tool_output": tc.tool_output,
+                "status": tc.status,
             })
-            .collect();
+        })
+        .collect();
 
-        let metadata = if tool_metadata.is_empty() {
-            None
-        } else {
-            Some(serde_json::to_string(&tool_metadata).unwrap_or_default())
-        };
+    let metadata = if tool_metadata.is_empty() {
+        None
+    } else {
+        Some(serde_json::to_string(&tool_metadata).unwrap_or_default())
+    };
 
+    with_chat_conn(&state, Some(&app_handle), &client_id, |conn| {
         crate::db::chat_db::insert_message_with_tools(
             conn,
             &client_id,
@@ -198,8 +194,8 @@ pub async fn send_chat_message_stream(
             None,
             None,
             metadata.as_deref(),
-        )?;
-    }
+        )
+    })?;
 
     Ok(conversation_id)
 }
