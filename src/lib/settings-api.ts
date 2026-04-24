@@ -91,6 +91,17 @@ export async function bitnetListModels(url: string): Promise<string[]> {
   return invoke("bitnet_list_models", { url });
 }
 
+export interface BitNetStatus {
+  available: boolean;
+  model_name: string | null;
+  url: string;
+  message: string;
+}
+
+export async function getBitNetStatus(url?: string): Promise<BitNetStatus> {
+  return invoke("bitnet_status", { url: url ?? null });
+}
+
 export interface GlmOcrStatus {
   available: boolean;
   model_name: string | null;

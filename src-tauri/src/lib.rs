@@ -77,6 +77,7 @@ pub fn run() {
             ai::bonsai::bonsai_list_models,
             ai::bitnet::bitnet_health,
             ai::bitnet::bitnet_list_models,
+            ai::bitnet::bitnet_status,
             commands::invoices::list_invoices,
             commands::invoices::get_invoice,
             commands::invoices::create_invoice,
