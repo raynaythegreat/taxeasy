@@ -115,6 +115,7 @@ export function AppShell() {
         )}
         {view === "clients" && (
           <ClientsPage
+            key={`clients-${autoShowForm ? 'form' : 'list'}`}
             initialClientId={initialClientId}
             initialTab={initialClientTab}
             onBack={() => {
